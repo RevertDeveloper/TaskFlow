@@ -25,6 +25,10 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
 ]
 
+# TaskFlow has its own CSRF boundary; Accounts' CSRF cookie is never validated
+# with TaskFlow secrets.
+CSRF_COOKIE_NAME = "taskflowcsrftoken"
+
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
@@ -78,6 +82,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.authentication.infrastructure.accounts_authentication.AccountsSessionAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
 }
