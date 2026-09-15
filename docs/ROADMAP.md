@@ -452,6 +452,9 @@ npm y scripts de typecheck/lint/test/build estan configurados y validados.
 
 **TF-0103 [P0]** Inicializar Django/DRF sin dominio de negocio.
 
+**Status:** COMPLETED. La API tiene settings por entorno, PostgreSQL configurable,
+health liveness provisional, test runner y dependencias Python bloqueadas.
+
 - **CREATE:** `apps/api/manage.py`, `apps/api/config/settings/`, `apps/api/config/urls.py`, `apps/api/pyproject.toml` o requirements bloqueados.
 - **Requirements:** settings development/test/production, PostgreSQL configurable, health provisional.
 - **Validar:** `manage.py check`, test runner y migracion vacia.
