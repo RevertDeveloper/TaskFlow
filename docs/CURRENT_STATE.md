@@ -7,7 +7,7 @@ Phase 1
 1.1 - Estructura y toolchain
 
 ## Current Task
- TF-0107 - Define branching and commit workflow.
+ Phase 1 Quality Gate - verify all foundation checks.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -23,6 +23,7 @@ Phase 1
 - TF-0104: development Compose built, started and checked over HTTP
 - TF-0105: environment template, Compose interpolation and secret boundaries validated
 - TF-0106: CI workflow parsed and web/API/infrastructure checks validated
+- TF-0107: README and Git workflow documented
 
 ## In Progress
 - Phase 1 Foundation
@@ -45,4 +46,4 @@ Phase 0 PASS with documented exception: application-dependent HTTPS smoke moved 
 75b169d - docs(phase0): close discovery and unblock foundation
 
 ## Next Task
-TF-0107 - Define branching and commit workflow.
+Phase 1 Quality Gate verification.

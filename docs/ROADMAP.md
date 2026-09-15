@@ -496,6 +496,9 @@ los mismos comandos fueron verificados localmente y dentro de la imagen API.
 
 **TF-0107 [P1]** Definir branching y commits.
 
+**Status:** COMPLETED. README y workflow Git documentan ramas, commits,
+validaciones, evidencia y tratamiento de blockers.
+
 - **CREATE/MODIFY:** `README.md`, `docs/development/git-workflow.md`.
 - **Regla:** `main`, `feature/*`, `fix/*`, `refactor/*`; commits `feat:`, `fix:`, `test:`, `docs:`, `chore:`.
 
