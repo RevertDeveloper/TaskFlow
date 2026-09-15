@@ -350,6 +350,8 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 **Risk:** Critical, por dependencia de identidad y cookies.
 
+**Status:** Discovery verificada y documentada; la fase no se considera cerrada totalmente hasta que la validacion externa de `taskflow` en Accounts y la topologia staging/proxy esten confirmadas. Existe un bloqueo explicito del entorno externo, no de la implementacion local.
+
 ### 0.1 - Inventario reproducible
 
 **TF-0001 [P0]** Confirmar estado de los repositorios, ramas, licencias operativas, comandos disponibles y ausencia de codigo TaskFlow existente.
