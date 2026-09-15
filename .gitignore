@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*.sqlite3
 .venv/
 
 # Node and Next.js
