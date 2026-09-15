@@ -350,7 +350,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 **Risk:** Critical, por dependencia de identidad y cookies.
 
-**Status:** Discovery verificada y documentada; el cliente `taskflow` fue creado en el panel de Accounts segun validacion operativa del responsable. La fase sigue bloqueada porque `https://taskflow.carlosrevert.es` devuelve `502 Bad Gateway` y aun no puede validarse el flujo HTTPS completo de staging.
+**Status:** Discovery verificada y documentada; el cliente `taskflow` fue creado en el panel de Accounts y las allowlists de Accounts ya incluyen `https://taskflow.carlosrevert.es`. La fase sigue pendiente de validacion HTTPS completa porque el repositorio TaskFlow aun no tiene frontend/API y el dominio devuelve `502 Bad Gateway` al no existir un upstream.
 
 ### 0.1 - Inventario reproducible
 

@@ -20,11 +20,12 @@ Discovery and architecture validation for the external Accounts contract; roadma
 
 ## In Progress
 - External environment validation of `taskflow` in Accounts staging/production
-- Configure and verify the TaskFlow proxy upstream; public HTTPS currently returns `502 Bad Gateway`
+- Configure and verify the TaskFlow proxy upstream; public HTTPS currently returns `502 Bad Gateway` because the TaskFlow app has not been created yet
 
 ## Blockers
-- Public TaskFlow HTTPS currently returns `502 Bad Gateway`, so the proxy upstream is not serving a TaskFlow application yet
+- Public TaskFlow HTTPS currently returns `502 Bad Gateway`, which is expected while no TaskFlow frontend/API upstream exists, but prevents the Phase 0 HTTPS smoke validation
 - Browser and proxy validation of same-origin topology cannot be completed while the TaskFlow upstream is unavailable
+- Accounts `CSRF_TRUSTED_ORIGINS` and `CORS_ALLOWED_ORIGINS` now include `https://taskflow.carlosrevert.es`; the Accounts container was recreated and is healthy
 - Service key provisioning and authenticated quota calls in staging remain unverified from this repository
 
 ## Decisions
