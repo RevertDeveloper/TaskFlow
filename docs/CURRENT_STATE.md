@@ -7,7 +7,7 @@ Phase 1
 1.1 - Estructura y toolchain
 
 ## Current Task
- TF-0102 - Initialize Next.js with strict TypeScript and lockfile.
+ TF-0103 - Initialize Django/DRF without business domain.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -18,6 +18,7 @@ Phase 1
 - TF-0006: ADRs created
 - TF-0007: risk register created
 - TF-0101: approved monorepo structure created and validated
+- TF-0102: Next.js strict foundation, lockfile and web checks validated
 
 ## In Progress
 - Phase 1 Foundation
@@ -40,4 +41,4 @@ Phase 0 PASS with documented exception: application-dependent HTTPS smoke moved 
 75b169d - docs(phase0): close discovery and unblock foundation
 
 ## Next Task
-TF-0102 - Initialize Next.js with strict TypeScript and lockfile.
+TF-0103 - Initialize Django/DRF without business domain.

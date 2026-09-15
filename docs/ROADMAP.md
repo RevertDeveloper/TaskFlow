@@ -443,6 +443,9 @@ la guia de desarrollo documenta el uso de variables de entorno sin secretos.
 
 **TF-0102 [P0]** Inicializar Next.js con TypeScript strict y lockfile.
 
+**Status:** COMPLETED. Next.js App Router, TypeScript strict, ESLint, lockfile
+npm y scripts de typecheck/lint/test/build estan configurados y validados.
+
 - **CREATE:** `apps/web/package.json`, `apps/web/tsconfig.json`, `apps/web/next.config.*`, `apps/web/src/app/layout.tsx`.
 - **Requirements:** no JavaScript de aplicacion, lint y typecheck.
 - **Validar:** build limpio en CI.
