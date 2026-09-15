@@ -431,6 +431,9 @@ Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Account
 
 **Risk:** High.
 
+**Status:** COMPLETED. Foundation reproducible, stack local operativo, CI base
+validado y configuracion invalida rechazada en produccion.
+
 ### 1.1 - Estructura y toolchain
 
 **TF-0101 [P0]** Crear la estructura aprobada.
@@ -504,11 +507,11 @@ validaciones, evidencia y tratamiento de blockers.
 
 ### QUALITY GATE
 
-- [ ] Desarrollo local levanta servicios.
-- [ ] Lockfiles presentes.
-- [ ] CI verde.
-- [ ] No hay secretos versionados.
-- [ ] Health API distingue al menos proceso vivo de configuracion invalida.
+- [x] Desarrollo local levanta servicios.
+- [x] Lockfiles presentes.
+- [x] CI verde.
+- [x] No hay secretos versionados.
+- [x] Health API distingue al menos proceso vivo de configuracion invalida.
 
 ### Definition of Done
 
