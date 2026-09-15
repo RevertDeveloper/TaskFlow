@@ -1,0 +1,98 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+    command: npm run dev
+    ports:
+      - "${WEB_PORT:-10700}:3000"
+    environment:
+      NODE_ENV: development
+      API_INTERNAL_URL: http://api:8000
+    volumes:
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
+      - web_next:/app/.next
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(() => process.exit(0)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "${API_PORT:-10701}:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DJANGO_DEBUG: "true"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,api
+      DATABASE_URL: postgresql://taskflow:taskflow@db:5432/taskflow
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-10710}:5432"
+    environment:
+      POSTGRES_DB: taskflow
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow -d taskflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-10720}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    command: python -c "import time; time.sleep(10**6)"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DATABASE_URL: postgresql://taskflow:taskflow@db:5432/taskflow
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  web_node_modules:
+  web_next:

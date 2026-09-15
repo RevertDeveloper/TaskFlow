@@ -463,6 +463,10 @@ health liveness provisional, test runner y dependencias Python bloqueadas.
 
 **TF-0104 [P0]** Crear compose de desarrollo con web, API, PostgreSQL, Redis y worker placeholder.
 
+**Status:** COMPLETED. Compose configura los cinco servicios con los puertos
+cerrados, healthchecks y dependencias listas; el stack fue construido, arrancado
+y probado mediante HTTP.
+
 - **CREATE:** `compose.yaml`, `compose.dev.yaml`, `infra/docker/*`.
 - **Puertos obligatorios:** frontend `10700`, API `10701`, PostgreSQL solo en loopback `10710`, Redis solo en loopback `10720`; worker no publica puerto.
 - **Produccion:** Nginx Proxy Manager apunta `taskflow.carlosrevert.es` al frontend `10700`; el proxy de Next.js resuelve el API por red interna o `127.0.0.1:10701`.

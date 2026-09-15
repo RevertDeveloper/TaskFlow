@@ -1,0 +1,11 @@
+services:
+  web:
+    environment:
+      WATCHPACK_POLLING: "true"
+
+  api:
+    environment:
+      DJANGO_DEBUG: "true"
+
+  worker:
+    restart: unless-stopped
