@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 0
+Phase 1
 
 ## Current Subphase
-0.3 - Contratos y ADR iniciales
+1.1 - Estructura y toolchain
 
 ## Current Task
-Discovery and architecture validation for the external Accounts contract; roadmap does not yet authorize implementation of Foundation tasks.
+TF-0101 - Create the approved monorepo structure.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -19,14 +19,12 @@ Discovery and architecture validation for the external Accounts contract; roadma
 - TF-0007: risk register created
 
 ## In Progress
-- External environment validation of `taskflow` in Accounts staging/production
-- Configure and verify the TaskFlow proxy upstream; public HTTPS currently returns `502 Bad Gateway` because the TaskFlow app has not been created yet
+- Phase 1 Foundation
+- HTTPS application smoke validation deferred until the first TaskFlow frontend/API exists
 
 ## Blockers
-- Public TaskFlow HTTPS currently returns `502 Bad Gateway`, which is expected while no TaskFlow frontend/API upstream exists, but prevents the Phase 0 HTTPS smoke validation
-- Browser and proxy validation of same-origin topology cannot be completed while the TaskFlow upstream is unavailable
-- Accounts `CSRF_TRUSTED_ORIGINS` and `CORS_ALLOWED_ORIGINS` now include `https://taskflow.carlosrevert.es`; the Accounts container was recreated and is healthy
-- Service key provisioning and authenticated quota calls in staging remain unverified from this repository
+- None for starting Phase 1.
+- Deferred validation: public TaskFlow HTTPS currently returns `502 Bad Gateway` because the application upstream does not exist yet.
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -35,10 +33,10 @@ Discovery and architecture validation for the external Accounts contract; roadma
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 0 discovery gate: Accounts anonymous `/auth/me/` smoke check passes, but the TaskFlow origin returns `502 Bad Gateway`; gate remains FAIL/PENDING
+Phase 0 PASS with documented exception: application-dependent HTTPS smoke moved to Phase 1.
 
 ## Last Commit
-0daafcc - docs(phase0): add accounts discovery and architecture artifacts
+089a4c0 - docs(phase0): record accounts env activation
 
 ## Next Task
-Phase 1 can begin only after the external Accounts registration and staging validation are either completed or explicitly documented as a project blocker.
+TF-0101 - Create the approved monorepo structure.

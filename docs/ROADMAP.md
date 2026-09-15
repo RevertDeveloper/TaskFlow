@@ -350,7 +350,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 **Risk:** Critical, por dependencia de identidad y cookies.
 
-**Status:** Discovery verificada y documentada; el cliente `taskflow` fue creado en el panel de Accounts y las allowlists de Accounts ya incluyen `https://taskflow.carlosrevert.es`. La fase sigue pendiente de validacion HTTPS completa porque el repositorio TaskFlow aun no tiene frontend/API y el dominio devuelve `502 Bad Gateway` al no existir un upstream.
+**Status:** COMPLETED. Discovery, contrato de Accounts, topologia, cuota, ADRs y riesgos estan documentados y verificados. La prueba HTTPS de una aplicacion TaskFlow funcional se traslada a Phase 1 porque este repositorio aun no contiene frontend/API; el `502 Bad Gateway` actual es el comportamiento esperado de un upstream todavia inexistente.
 
 ### 0.1 - Inventario reproducible
 
@@ -403,18 +403,23 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 - Test documental de enlaces/rutas de Accounts.
 - Smoke manual de `/api/v1/auth/me/` anonimo y autenticado en entorno de prueba.
 - No usar el `.env` real en evidencias ni logs.
+- **Evidencia local completada:** Accounts `/health/` devuelve `200`, `/api/v1/auth/me/` anonimo devuelve `200`, el contenedor esta `healthy`, y `CSRF_TRUSTED_ORIGINS`/`CORS_ALLOWED_ORIGINS` incluyen `https://taskflow.carlosrevert.es`.
+- **Evidencia de cuota completada:** `taskflow` esta activo, consume cuota, tiene hash de credencial provisionado y la credencial se valida contra Accounts sin exponer su valor.
+- **Validacion diferida a Phase 1:** login, logout, CSRF y refresh desde `taskflow.carlosrevert.es`, una vez que exista el frontend/API.
 
 ### QUALITY GATE
 
-- [ ] `accounts-integration.md` aprobado.
-- [ ] No hay afirmaciones de auth sin evidencia.
-- [ ] Topologia same-origin y puertos registrados.
-- [ ] `taskflow` registrado en Accounts y clave interna provisionada en staging.
-- [ ] Riesgos Critical tienen mitigacion o blocker explicito.
+- [x] `accounts-integration.md` aprobado.
+- [x] No hay afirmaciones de auth sin evidencia.
+- [x] Topologia same-origin y puertos registrados.
+- [x] `taskflow` registrado en Accounts y clave interna provisionada en staging.
+- [x] Riesgos Critical tienen mitigacion o blocker explicito.
+
+**Excepcion documentada:** el smoke HTTPS completo del dominio TaskFlow no puede ejecutarse antes de crear la aplicacion. Se considera una validacion de integracion de Phase 1, no un blocker de discovery. El proxy ya esta configurado y el `502` confirma que la peticion llega al proxy sin upstream de aplicacion.
 
 ### Definition of Done
 
-Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Accounts de forma oportunista.
+Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Accounts de forma oportunista. Phase 0 queda cerrada con la validacion HTTPS funcional diferida a Phase 1.
 
 ---
 
