@@ -1,0 +1,2730 @@
+# INFORME MAESTRO
+
+# Aplicación Web de Gestión Inteligente de Tareas
+
+**Versión:** 1.0
+**Estado:** Especificación maestra inicial
+**Tipo de producto:** Web App / PWA
+**Autenticación:** `carlosrevert_accounts` — Django
+**Entrada inteligente:** Audio → STT → LLM → Tareas estructuradas
+**Persistencia:** Nube o dispositivo
+**Objetivo principal:** Capturar, organizar y completar tareas con la mínima fricción posible.
+
+---
+
+# 1. VISIÓN DEL PRODUCTO
+
+La aplicación será un **gestor de tareas personal inteligente**, diseñado para que el usuario pueda capturar rápidamente cualquier cosa que tenga pendiente y posteriormente organizarla, consultarla y completarla de forma extremadamente sencilla.
+
+La aplicación no debe sentirse como un gestor empresarial de proyectos tradicional.
+
+Debe sentirse como un:
+
+> **"Segundo cerebro para tareas pendientes."**
+
+El usuario podrá introducir información de tres maneras:
+
+1. Creando una tarea manualmente.
+2. Introduciendo tareas mediante voz.
+3. Creando una entrada de voz general para que la IA determine automáticamente qué tareas hay dentro, qué explicación corresponde a cada una y en qué lista debe colocarse.
+
+La aplicación tendrá dos conceptos centrales:
+
+### Tareas
+
+Lo que el usuario tiene que hacer ahora.
+
+### Historial
+
+Todo lo que el usuario ha hecho anteriormente.
+
+La interfaz deberá dar **máxima prioridad visual a las tareas pendientes**, mientras que el historial estará disponible pero no competirá visualmente con ellas.
+
+---
+
+# 2. PRINCIPIOS DE DISEÑO
+
+La aplicación se desarrollará siguiendo estos principios:
+
+### 2.1. Capturar primero, organizar después
+
+El usuario no debe verse obligado a rellenar muchos campos para crear una tarea.
+
+Ejemplo:
+
+> "Comprar leche y huevos"
+
+Debe ser suficiente.
+
+Después podrá añadir información adicional.
+
+---
+
+### 2.2. La IA debe reducir trabajo, no crear trabajo
+
+La inteligencia artificial debe convertir lenguaje natural en información estructurada.
+
+Nunca debería obligar al usuario a corregir constantemente resultados.
+
+Cuando exista ambigüedad, la interfaz debe permitir una revisión rápida antes de guardar.
+
+---
+
+### 2.3. Las tareas pendientes son el centro
+
+La aplicación no debe convertirse en un archivo histórico gigantesco.
+
+El usuario entra para saber:
+
+> "¿Qué tengo que hacer?"
+
+Por tanto:
+
+**Pendientes > Historial**
+
+---
+
+### 2.4. La organización debe ser opcional
+
+Una tarea debe poder existir sin lista.
+
+Esto es importante para que una captura rápida nunca falle por no saber dónde colocarla.
+
+Debe existir una categoría/lista:
+
+**Inbox / Sin clasificar**
+
+---
+
+### 2.5. Privacidad como característica de producto
+
+La aplicación tendrá dos modos:
+
+**Cloud Mode**
+
+* Información almacenada en servidor.
+* Disponible desde múltiples dispositivos.
+* Sincronizada con la cuenta.
+
+**Device Mode**
+
+* Información almacenada únicamente en el dispositivo.
+* Máxima privacidad.
+* Sin sincronización entre dispositivos mientras permanezca activo.
+
+---
+
+# 3. CONCEPTO DE LISTAS
+
+Las tareas se agruparán mediante **listas**.
+
+Ejemplos:
+
+* 🏠 Casa
+* 💻 Programación
+* ❤️ Pareja
+* 💼 Trabajo
+* 🔧 Manitas
+* 🛒 Compra
+* 📚 Estudios
+* 💡 Ideas
+* 🧠 Personal
+
+El usuario podrá:
+
+* Crear listas.
+* Eliminar listas.
+* Editarlas.
+* Cambiar nombre.
+* Cambiar icono.
+* Cambiar emoji.
+* Cambiar imagen.
+* Cambiar color.
+* Reordenarlas.
+* Ocultarlas/archivarlas.
+* Establecerlas como favoritas.
+
+---
+
+# 4. ESTRUCTURA DE NAVEGACIÓN
+
+La navegación entre listas debe ser extremadamente cómoda.
+
+Se propone una interfaz híbrida:
+
+## Desktop
+
+Sidebar lateral:
+
+```text
+TASKFLOW
+
++ Nueva tarea
+
+📥 Inbox
+🏠 Casa
+💻 Programación
+❤️ Pareja
+💼 Trabajo
+🔧 Manitas
+🛒 Compra
+
+──────────────
+
+📜 Historial
+⚙ Configuración
+```
+
+---
+
+## Mobile
+
+La interfaz debe funcionar como una experiencia **horizontal/swipe-first**.
+
+Ejemplo:
+
+```text
+← Casa | Programación | Trabajo →
+```
+
+El usuario podrá:
+
+* Deslizar lateralmente.
+* Pulsar sobre la lista.
+* Abrir un selector rápido.
+* Utilizar un gesto para volver al Inbox.
+
+El objetivo es que cambiar de lista sea una acción de menos de un segundo.
+
+---
+
+# 5. HOME / DASHBOARD
+
+La pantalla inicial será la vista de tareas pendientes.
+
+Estructura conceptual:
+
+```text
+┌─────────────────────────────┐
+│ Buenos días, Carlos         │
+│                             │
+│ 12 tareas pendientes        │
+│                             │
+│ [🎙 Capturar por voz]        │
+│ [+ Nueva tarea]             │
+│                             │
+│ ─────────────────────────── │
+│                             │
+│ 🏠 CASA                     │
+│                             │
+│ ☐ Reparar persiana          │
+│ ☐ Comprar bombilla          │
+│ ☐ Revisar lavadora          │
+│                             │
+│ ─────────────────────────── │
+│                             │
+│ 💻 PROGRAMACIÓN             │
+│                             │
+│ ☐ Terminar API              │
+│ ☐ Revisar autenticación     │
+└─────────────────────────────┘
+```
+
+La aplicación puede ofrecer una vista:
+
+### Todas las pendientes
+
+y vistas por lista.
+
+---
+
+# 6. MODELO DE TAREA
+
+Cada tarea tendrá como mínimo:
+
+```text
+id
+user_id
+list_id
+title
+description
+status
+created_at
+completed_at
+updated_at
+position
+source
+```
+
+### Campos principales
+
+#### `title`
+
+Título corto.
+
+Ejemplo:
+
+> Reparar persiana del salón
+
+---
+
+#### `description`
+
+Información interna.
+
+Ejemplo:
+
+> Comprobar primero si el problema está en la cinta. Si está rota, comprar una nueva de 15 mm. La caja está en el armario del pasillo.
+
+Este campo no debe mostrarse obligatoriamente en la vista principal.
+
+---
+
+#### `status`
+
+Estados iniciales:
+
+```text
+pending
+completed
+archived
+```
+
+Para MVP:
+
+```text
+pending
+completed
+```
+
+---
+
+#### `created_at`
+
+Momento exacto de creación.
+
+---
+
+#### `completed_at`
+
+Momento en que se completó.
+
+---
+
+#### `updated_at`
+
+Última modificación.
+
+---
+
+#### `position`
+
+Posición dentro de la lista.
+
+Permitirá drag & drop y orden manual.
+
+---
+
+#### `source`
+
+Origen de la tarea:
+
+```text
+manual
+voice
+ai
+import
+```
+
+Esto será útil para analítica, debugging y futuras funciones.
+
+---
+
+# 7. HISTORIAL
+
+El historial no debe ser simplemente una lista de tareas completadas.
+
+Debe convertirse en un **registro temporal de actividad**.
+
+Ejemplo:
+
+```text
+HOY
+
+09:42
+✓ Terminar informe
+Creada 08:10
+Completada 09:42
+
+08:31
+✓ Comprar leche
+Creada ayer
+Completada 08:31
+
+
+AYER
+
+19:15
+✓ Reparar persiana
+```
+
+---
+
+# 8. HISTORIAL POR LISTA Y GLOBAL
+
+Existirán dos niveles.
+
+## Historial de lista
+
+Dentro de:
+
+🏠 Casa → Historial
+
+Sólo aparecerán tareas pertenecientes a esa lista.
+
+---
+
+## Historial global
+
+Vista:
+
+📜 Todo el historial
+
+Aquí aparecerá absolutamente todo.
+
+Ejemplo:
+
+```text
+15 SEP
+✓ Terminar backend
+💻 Programación
+
+15 SEP
+✓ Comprar leche
+🛒 Compra
+
+14 SEP
+✓ Revisar factura
+💼 Trabajo
+```
+
+---
+
+# 9. EVENT LOG INTERNO
+
+Además del historial visible, a nivel técnico conviene disponer de un **event log**.
+
+Ejemplo:
+
+```text
+TASK_CREATED
+TASK_UPDATED
+TASK_COMPLETED
+TASK_REOPENED
+TASK_MOVED
+TASK_DELETED
+LIST_CREATED
+LIST_UPDATED
+LIST_DELETED
+```
+
+Esto permitirá en el futuro:
+
+* Auditoría.
+* Recuperación.
+* Sincronización.
+* Debug.
+* Analítica.
+* Undo.
+* Historial avanzado.
+
+Por tanto:
+
+### Estado actual
+
+Representa cómo está la aplicación ahora.
+
+### Event log
+
+Representa cómo llegó hasta ese estado.
+
+---
+
+# 10. CREACIÓN MANUAL
+
+Crear una tarea debe ser extremadamente rápido.
+
+Modal:
+
+```text
+Nueva tarea
+
+Título
+[________________________]
+
+Notas
+[________________________]
+[________________________]
+
+Lista
+[💻 Programación ▼]
+
+              CANCELAR  CREAR
+```
+
+Pero también debe existir creación rápida:
+
+```text
++ Escribe una tarea...
+```
+
+El usuario escribe y pulsa Enter.
+
+La tarea se crea inmediatamente.
+
+---
+
+# 11. SISTEMA DE VOZ
+
+Ésta será una de las funcionalidades diferenciales del producto.
+
+Flujo:
+
+```text
+MICRÓFONO
+   ↓
+AUDIO
+   ↓
+STT
+   ↓
+TRANSCRIPCIÓN
+   ↓
+LLM
+   ↓
+ESTRUCTURA JSON
+   ↓
+VALIDACIÓN
+   ↓
+REVISIÓN DEL USUARIO
+   ↓
+CREACIÓN DE TAREAS
+```
+
+---
+
+# 12. DOS MODOS DE VOZ
+
+## 12.1. Audio dirigido a una lista
+
+Ejemplo:
+
+El usuario está dentro de:
+
+💻 Programación
+
+Pulsa:
+
+🎙
+
+Y dice:
+
+> "Tengo que terminar el endpoint de autenticación. Primero tengo que revisar el refresh token y después comprobar que el middleware devuelve correctamente el usuario. También quiero añadir tests."
+
+La IA debe producir:
+
+```json
+{
+  "tasks": [
+    {
+      "title": "Terminar endpoint de autenticación",
+      "description": "Revisar primero el refresh token y comprobar que el middleware devuelve correctamente el usuario. Añadir tests.",
+      "list": "Programación"
+    }
+  ]
+}
+```
+
+---
+
+# 13. VOZ GLOBAL INTELIGENTE
+
+El modo más potente será:
+
+### Captura global
+
+El usuario pulsa:
+
+🎙 Captura inteligente
+
+Y habla libremente.
+
+Ejemplo:
+
+> "Tengo que comprar leche, también revisar el backend del proyecto Juridia, llamar al fontanero porque pierde agua el grifo de la cocina y el sábado quiero limpiar el coche."
+
+La IA recibe:
+
+### Transcripción
+
+*
+
+### Listas disponibles
+
+Por ejemplo:
+
+```text
+Casa
+Programación
+Trabajo
+Compra
+Manitas
+Personal
+```
+
+El LLM deberá clasificar:
+
+```text
+Comprar leche
+→ Compra
+
+Revisar backend de Juridia
+→ Programación
+
+Llamar al fontanero
+→ Manitas
+
+Limpiar el coche
+→ Casa
+```
+
+---
+
+# 14. MULTITAREA DENTRO DEL MISMO AUDIO
+
+La IA debe comprender que una misma frase puede contener:
+
+* Varias tareas.
+* Explicaciones.
+* Dependencias.
+* Contexto.
+* Correcciones.
+* Información secundaria.
+
+Ejemplo:
+
+> "Mañana tengo que arreglar la persiana del dormitorio. Seguramente sea la cinta porque ya está bastante vieja. También tengo que comprar bombillas LED para el salón, que las últimas que compré daban muy poca luz."
+
+Resultado:
+
+```text
+🏠 Casa
+
+☐ Arreglar persiana del dormitorio
+
+Notas:
+Probablemente sea la cinta porque ya está bastante vieja.
+
+
+☐ Comprar bombillas LED para el salón
+
+Notas:
+Comprar bombillas con mayor potencia porque las anteriores daban poca luz.
+```
+
+---
+
+# 15. PROCESAMIENTO LLM
+
+El LLM **no debería devolver texto libre**.
+
+Debe devolver exclusivamente una estructura validable.
+
+Ejemplo:
+
+```json
+{
+  "tasks": [
+    {
+      "title": "Arreglar persiana del dormitorio",
+      "description": "Probablemente sea la cinta porque ya está bastante vieja.",
+      "list_id": "home"
+    },
+    {
+      "title": "Comprar bombillas LED para el salón",
+      "description": "Comprar bombillas con mayor potencia porque las anteriores daban poca luz.",
+      "list_id": "home"
+    }
+  ]
+}
+```
+
+La salida debe validarse mediante un schema.
+
+La aplicación nunca debería insertar directamente una respuesta arbitraria del LLM en la base de datos.
+
+---
+
+# 16. CLASIFICACIÓN DE LISTAS
+
+Para decidir dónde colocar una tarea, el LLM recibirá:
+
+```text
+LISTAS DISPONIBLES
+
+ID: home
+Nombre: Casa
+Descripción: Tareas relacionadas con vivienda, limpieza, reparaciones...
+
+ID: programming
+Nombre: Programación
+Descripción: Desarrollo de software, servidores, código...
+
+ID: work
+Nombre: Trabajo
+Descripción: Trabajo profesional...
+
+ID: shopping
+Nombre: Compra
+Descripción: Productos y compras...
+```
+
+Esto es superior a enviar únicamente el nombre.
+
+La descripción funcionará como **semántica de clasificación**.
+
+---
+
+# 17. PRIORIDAD DE CLASIFICACIÓN
+
+La IA debería utilizar este orden:
+
+### 1. Lista explícitamente indicada
+
+> "Para programación..."
+
+→ Programación.
+
+### 2. Contexto de la lista actual
+
+Si el usuario está dentro de Programación y el audio es dirigido a esa lista:
+
+→ Programación.
+
+### 3. Clasificación semántica
+
+Analizar contenido y listas.
+
+### 4. Inbox
+
+Si existe incertidumbre:
+
+→ Inbox.
+
+La IA no debe inventar nuevas listas automáticamente.
+
+---
+
+# 18. REVISIÓN ANTES DE GUARDAR
+
+La experiencia de voz debe incluir una etapa de confirmación cuando sea necesario.
+
+Ejemplo:
+
+```text
+He encontrado 4 tareas
+
+💻 Programación
+☐ Revisar autenticación
+
+🏠 Casa
+☐ Arreglar persiana
+
+🛒 Compra
+☐ Comprar leche
+
+🔧 Manitas
+☐ Llamar al fontanero
+
+[Editar] [Crear todo]
+```
+
+El usuario podrá cambiar:
+
+* Título.
+* Notas.
+* Lista.
+* Eliminar una tarea.
+
+---
+
+# 19. CAPTURA DE AUDIO Y PRIVACIDAD
+
+Hay que distinguir:
+
+### Audio temporal
+
+El audio puede enviarse al backend/STT y posteriormente eliminarse.
+
+### Transcripción
+
+Puede guardarse opcionalmente.
+
+### Resultado estructurado
+
+Sí forma parte del contenido de la aplicación.
+
+Configuración:
+
+```text
+Guardar grabaciones originales
+[ OFF ]
+
+Guardar transcripciones
+[ ON ]
+```
+
+Por defecto:
+
+**No almacenar audio original permanentemente.**
+
+Esto reduce almacenamiento y riesgo de privacidad.
+
+---
+
+# 20. ALMACENAMIENTO
+
+La aplicación tendrá dos modos de almacenamiento.
+
+# CLOUD MODE
+
+Los datos viven en backend.
+
+Ventajas:
+
+* Multidispositivo.
+* Backup.
+* Sincronización.
+* Acceso desde ordenador, móvil, tablet.
+
+---
+
+# DEVICE MODE
+
+Los datos viven únicamente en el dispositivo.
+
+Ventajas:
+
+* Máxima privacidad.
+* Sin información personal almacenada en servidor.
+* Puede utilizarse como aplicación local.
+
+---
+
+# 21. LOCALSTORAGE VS INDEXEDDB
+
+Aunque conceptualmente se puede hablar de "almacenamiento local", técnicamente recomiendo:
+
+### IndexedDB
+
+en lugar de almacenar toda la aplicación en `localStorage`.
+
+`localStorage` puede utilizarse para preferencias pequeñas:
+
+```text
+theme
+storage_mode
+sidebar_state
+settings
+```
+
+Pero los datos de la aplicación deben vivir en:
+
+```text
+IndexedDB
+```
+
+Porque permite manejar correctamente:
+
+* Muchas tareas.
+* Historial.
+* Eventos.
+* Metadatos.
+* Sincronización.
+* Futuras funcionalidades offline.
+
+---
+
+# 22. CAMBIO DE CLOUD → DEVICE
+
+El usuario pulsa:
+
+```text
+Desactivar almacenamiento en servidor
+Activar almacenamiento en dispositivo
+```
+
+Debe aparecer una explicación:
+
+```text
+Tus datos dejarán de sincronizarse con otros dispositivos.
+
+Se descargará una copia de tus datos en este dispositivo.
+
+¿Continuar?
+
+[CANCELAR]
+[DESCARGAR Y ACTIVAR]
+```
+
+Proceso:
+
+```text
+CLOUD DATABASE
+        ↓
+FETCH ALL USER DATA
+        ↓
+VALIDATE
+        ↓
+WRITE INDEXEDDB
+        ↓
+VERIFY INTEGRITY
+        ↓
+DEVICE MODE
+```
+
+---
+
+# 23. CAMBIO DE DEVICE → CLOUD
+
+El usuario tiene datos locales y activa almacenamiento cloud.
+
+Debe ocurrir:
+
+```text
+INDEXEDDB
+    ↓
+EXPORT DATA
+    ↓
+VALIDATE
+    ↓
+UPLOAD
+    ↓
+SERVER MERGE
+    ↓
+VERIFY
+    ↓
+CLOUD MODE
+```
+
+El usuario no debería perder información.
+
+---
+
+# 24. PROBLEMA CRÍTICO: DUPLICADOS Y CONFLICTOS
+
+Hay que definir este comportamiento desde el principio.
+
+Cada entidad tendrá:
+
+```text
+id UUID
+created_at
+updated_at
+```
+
+Nunca se utilizarán índices locales como identificadores globales.
+
+En sincronización:
+
+### Caso A
+
+La tarea existe únicamente localmente.
+
+→ Crear en servidor.
+
+### Caso B
+
+La tarea existe únicamente en servidor.
+
+→ Descargar.
+
+### Caso C
+
+Existe en ambos lados pero no ha cambiado.
+
+→ Ignorar.
+
+### Caso D
+
+Existe en ambos lados y ambos han cambiado.
+
+→ Resolver conflicto.
+
+Para MVP:
+
+**last-write-wins** basado en `updated_at`.
+
+Más adelante podría evolucionarse hacia un sistema de sincronización basado en eventos/versiones.
+
+---
+
+# 25. BORRAR TODO / RESET
+
+Debe existir:
+
+```text
+⚠ Restablecer aplicación
+```
+
+Pero debe diferenciarse entre:
+
+### Borrar datos locales
+
+y
+
+### Borrar datos de la cuenta
+
+Porque son operaciones muy diferentes.
+
+---
+
+## Reset local
+
+Elimina:
+
+```text
+IndexedDB
+cache
+local settings
+local tasks
+```
+
+No afecta al servidor.
+
+---
+
+## Reset cloud
+
+Elimina:
+
+```text
+todas las tareas
+listas
+historial
+eventos
+```
+
+de la cuenta.
+
+Debe exigir confirmación fuerte:
+
+```text
+Escribe:
+
+BORRAR TODO
+```
+
+antes de ejecutar.
+
+---
+
+# 26. CUENTAS
+
+La autenticación no debería pertenecer a esta aplicación.
+
+Debe integrarse con:
+
+**`carlosrevert_accounts`**
+
+Arquitectura:
+
+```text
+TaskFlow
+   │
+   ├── Auth
+   │
+   ↓
+carlosrevert_accounts
+```
+
+La aplicación únicamente debe confiar en el usuario autenticado.
+
+Nunca debería duplicar el sistema completo de usuarios.
+
+---
+
+# 27. IDENTIDAD DE USUARIO
+
+Todas las entidades cloud tendrán:
+
+```text
+user_id
+```
+
+Ejemplo:
+
+```text
+tasks.user_id
+lists.user_id
+events.user_id
+```
+
+Nunca se debe confiar en un `user_id` enviado libremente desde frontend.
+
+El backend deberá obtener el usuario desde el contexto de autenticación.
+
+---
+
+# 28. ARQUITECTURA PROPUESTA
+
+```text
+                  ┌──────────────────────┐
+                  │  CARLOSREVERT ACCOUNTS│
+                  │       Django         │
+                  └──────────┬───────────┘
+                             │
+                          AUTH
+                             │
+              ┌──────────────▼──────────────┐
+              │        TASKFLOW WEB         │
+              │ React / Next.js              │
+              │ PWA                          │
+              └───────┬──────────┬──────────┘
+                      │          │
+             CLOUD MODE     DEVICE MODE
+                      │          │
+              ┌───────▼───┐   ┌──▼──────────┐
+              │ Backend   │   │ IndexedDB   │
+              │ API       │   │             │
+              └───────┬───┘   └─────────────┘
+                      │
+          ┌───────────┼───────────────┐
+          │           │               │
+          ▼           ▼               ▼
+       Database      STT             LLM
+```
+
+---
+
+# 29. BACKEND
+
+El backend será responsable de:
+
+* Autorización.
+* CRUD de tareas.
+* CRUD de listas.
+* Historial.
+* Eventos.
+* Sincronización.
+* Procesamiento de voz.
+* STT.
+* LLM.
+* Validación de respuestas AI.
+* Rate limiting.
+* Seguridad.
+
+El frontend nunca debería hablar directamente con el proveedor de LLM si se utilizan credenciales privadas.
+
+---
+
+# 30. API CONCEPTUAL
+
+## Authentication
+
+```http
+GET /auth/me
+```
+
+---
+
+## Lists
+
+```http
+GET    /api/lists
+POST   /api/lists
+PATCH  /api/lists/{id}
+DELETE /api/lists/{id}
+```
+
+---
+
+## Tasks
+
+```http
+GET    /api/tasks
+POST   /api/tasks
+PATCH  /api/tasks/{id}
+DELETE /api/tasks/{id}
+```
+
+---
+
+## Complete
+
+```http
+POST /api/tasks/{id}/complete
+```
+
+---
+
+## Reopen
+
+```http
+POST /api/tasks/{id}/reopen
+```
+
+---
+
+## History
+
+```http
+GET /api/history
+GET /api/lists/{id}/history
+```
+
+---
+
+## Voice
+
+```http
+POST /api/voice/transcribe
+POST /api/voice/parse
+POST /api/voice/process
+```
+
+Idealmente:
+
+```http
+POST /api/voice/process
+```
+
+podría encapsular todo el pipeline.
+
+---
+
+## Sync
+
+```http
+GET  /api/sync
+POST /api/sync
+```
+
+---
+
+# 31. MODELO DE DATOS
+
+## `lists`
+
+```text
+id
+user_id
+name
+description
+emoji
+image_url
+color
+position
+is_archived
+created_at
+updated_at
+```
+
+---
+
+## `tasks`
+
+```text
+id
+user_id
+list_id
+title
+description
+status
+position
+source
+created_at
+updated_at
+completed_at
+```
+
+---
+
+## `task_events`
+
+```text
+id
+user_id
+task_id
+event_type
+payload
+created_at
+```
+
+Ejemplo:
+
+```json
+{
+  "event_type": "TASK_COMPLETED",
+  "task_id": "uuid",
+  "created_at": "2026-09-15T08:32:12Z"
+}
+```
+
+---
+
+## `voice_sessions`
+
+```text
+id
+user_id
+created_at
+duration
+transcription
+processing_status
+```
+
+Opcionalmente:
+
+```text
+audio_storage_key
+```
+
+aunque por privacidad recomiendo que el audio original sea temporal por defecto.
+
+---
+
+# 32. INBOX
+
+Debe existir una lista especial:
+
+```text
+📥 Inbox
+```
+
+Características:
+
+* No puede eliminarse.
+* Siempre disponible.
+* Es el destino por defecto cuando la clasificación no es suficientemente fiable.
+* Puede utilizarse para captura rápida.
+
+Esto reduce muchísimo la fricción del producto.
+
+---
+
+# 33. GESTIÓN DE TAREAS
+
+Cada tarea debe permitir:
+
+```text
+☐ Completar
+✎ Editar
+↗ Mover
+⋮ Más
+```
+
+Menú:
+
+```text
+Editar
+Mover a lista
+Duplicar
+Reabrir
+Eliminar
+Ver historial
+```
+
+---
+
+# 34. COMPLETAR UNA TAREA
+
+Cuando el usuario hace check:
+
+```text
+☑ Comprar leche
+```
+
+La tarea desaparece inmediatamente de pendientes.
+
+Pero no se elimina.
+
+Se registra:
+
+```text
+completed_at
+```
+
+y aparece en historial.
+
+La transición debe tener una animación muy ligera.
+
+---
+
+# 35. REAPERTURA
+
+Desde historial:
+
+```text
+✓ Comprar leche
+```
+
+Acción:
+
+```text
+Reabrir
+```
+
+Resultado:
+
+```text
+☐ Comprar leche
+```
+
+y:
+
+```text
+completed_at = null
+```
+
+Además se registra un evento:
+
+```text
+TASK_REOPENED
+```
+
+---
+
+# 36. ELIMINACIÓN
+
+Eliminar una tarea no necesariamente debería significar destruirla inmediatamente de la base de datos.
+
+Para robustez:
+
+```text
+soft delete
+```
+
+Ejemplo:
+
+```text
+deleted_at
+```
+
+Esto permite:
+
+* Undo.
+* Recuperación.
+* Sincronización.
+* Auditoría.
+
+La eliminación física podría ejecutarse posteriormente mediante tareas de mantenimiento.
+
+---
+
+# 37. DISEÑO VISUAL
+
+La aplicación tendrá un sistema visual basado en **themes**.
+
+No debe estar acoplada al estilo Iron Man.
+
+La idea es:
+
+```text
+Theme Engine
+```
+
+Ejemplo:
+
+```text
+Theme: Stark
+Theme: Minimal
+Theme: Cyber
+Theme: Glass
+Theme: Dark
+Theme: Light
+```
+
+---
+
+# 38. TEMA "STARK"
+
+Conceptualmente:
+
+* Fondo oscuro.
+* Paneles translúcidos.
+* Bordes sutiles.
+* Tipografía tecnológica.
+* Microanimaciones.
+* HUD.
+* Indicadores de estado.
+* Elementos geométricos.
+* Feedback visual rápido.
+
+Pero debe evitar convertirse en una copia literal de Iron Man.
+
+La inspiración debería ser:
+
+> **Advanced AI Command Center**
+
+y no:
+
+> "interfaz que imita una película".
+
+---
+
+# 39. SISTEMA DE TOKENS VISUALES
+
+Todos los colores deben depender de variables.
+
+Ejemplo conceptual:
+
+```css
+--color-background
+--color-surface
+--color-primary
+--color-secondary
+--color-text
+--color-muted
+--color-danger
+--color-success
+```
+
+Nunca deberían existir colores críticos "hardcoded" por toda la aplicación.
+
+Esto permitirá crear nuevos temas fácilmente.
+
+---
+
+# 40. RESPONSIVE DESIGN
+
+Debe diseñarse desde el principio para:
+
+### Desktop
+
+* Sidebar.
+* Multicolumna.
+* Drag & drop.
+* Dashboard.
+
+### Tablet
+
+* Sidebar compacto.
+
+### Mobile
+
+* Bottom navigation.
+* Swipe entre listas.
+* FAB de captura.
+* Interacciones grandes.
+* Voice-first.
+
+---
+
+# 41. PWA
+
+La aplicación debería desarrollarse como **PWA**.
+
+Objetivos:
+
+* Instalable.
+* Icono en móvil/escritorio.
+* Offline.
+* Caché.
+* IndexedDB.
+* Arranque rápido.
+
+Especialmente importante para Device Mode.
+
+---
+
+# 42. FUNCIONAMIENTO OFFLINE
+
+## Device Mode
+
+Debe funcionar prácticamente completamente offline.
+
+## Cloud Mode
+
+Debe ser preferentemente:
+
+```text
+offline-first
+```
+
+Es decir:
+
+```text
+Usuario modifica
+      ↓
+Actualización local inmediata
+      ↓
+UI responde instantáneamente
+      ↓
+Sync cuando exista conexión
+```
+
+Esto hará que la aplicación se sienta mucho más rápida.
+
+---
+
+# 43. MOTOR DE SINCRONIZACIÓN
+
+Conceptualmente:
+
+```text
+LOCAL DATABASE
+      │
+      ▼
+LOCAL CHANGES
+      │
+      ▼
+SYNC QUEUE
+      │
+      ▼
+SERVER
+      │
+      ▼
+SERVER CHANGES
+      │
+      ▼
+MERGE
+      │
+      ▼
+LOCAL DATABASE
+```
+
+Nunca se debería construir una sincronización compleja directamente dentro de componentes React.
+
+Debe existir un módulo independiente:
+
+```text
+sync-engine
+```
+
+---
+
+# 44. DISEÑO DE COMPONENTES
+
+Estructura aproximada:
+
+```text
+app/
+├── auth/
+├── dashboard/
+├── lists/
+├── tasks/
+├── history/
+├── voice/
+├── settings/
+└── sync/
+```
+
+Componentes:
+
+```text
+TaskCard
+TaskList
+TaskEditor
+ListSwitcher
+ListSidebar
+VoiceRecorder
+VoiceReview
+HistoryTimeline
+ThemeSelector
+StorageModeSelector
+SyncStatus
+```
+
+---
+
+# 45. ESTADO DE LA APLICACIÓN
+
+Separar:
+
+### Server state
+
+Información que viene del backend.
+
+### Local persistence state
+
+IndexedDB.
+
+### UI state
+
+```text
+activeList
+selectedTask
+modal
+theme
+sidebar
+recording
+```
+
+No mezclar estas responsabilidades.
+
+---
+
+# 46. FEEDBACK DE SINCRONIZACIÓN
+
+El usuario siempre debería saber dónde están sus datos.
+
+Indicador:
+
+```text
+☁ Sincronizado
+```
+
+o:
+
+```text
+↻ Sincronizando...
+```
+
+o:
+
+```text
+⚠ Pendiente de sincronización
+```
+
+En Device Mode:
+
+```text
+🔒 Solo en este dispositivo
+```
+
+Esto evita una confusión crítica.
+
+---
+
+# 47. CONFIGURACIÓN
+
+Pantalla:
+
+```text
+⚙ Configuración
+```
+
+Secciones:
+
+### Cuenta
+
+* Usuario.
+* Sesión.
+* Seguridad.
+
+### Almacenamiento
+
+* Cloud.
+* Device.
+* Sincronizar.
+* Exportar.
+* Importar.
+* Reset.
+
+### Voz e IA
+
+* Procesamiento por voz.
+* Guardar transcripciones.
+* Modelo.
+* Idioma.
+
+### Apariencia
+
+* Tema.
+* Animaciones.
+* Densidad.
+* Modo oscuro.
+
+---
+
+# 48. EXPORTACIÓN
+
+Debe existir desde una primera versión relativamente temprana.
+
+Formato:
+
+```text
+JSON
+```
+
+Ejemplo:
+
+```json
+{
+  "version": 1,
+  "lists": [],
+  "tasks": [],
+  "events": []
+}
+```
+
+Esto permite:
+
+* Backup manual.
+* Migración.
+* Importación.
+* Recuperación.
+* Independencia del backend.
+
+Posteriormente:
+
+```text
+CSV
+Markdown
+```
+
+---
+
+# 49. IMPORTACIÓN
+
+La aplicación podrá importar un backup JSON.
+
+Proceso:
+
+```text
+Seleccionar archivo
+       ↓
+Validar schema
+       ↓
+Mostrar resumen
+       ↓
+Confirmar
+       ↓
+Importar
+```
+
+Nunca sobrescribir datos silenciosamente.
+
+---
+
+# 50. SEGURIDAD
+
+Debe contemplarse:
+
+### Autenticación
+
+Delegada a `carlosrevert_accounts`.
+
+### Autorización
+
+Cada recurso debe pertenecer al usuario autenticado.
+
+### API
+
+Validación estricta.
+
+### LLM
+
+El usuario nunca proporciona directamente prompts del sistema.
+
+### Rate limiting
+
+Especialmente importante para:
+
+```text
+voice/process
+```
+
+porque implica coste computacional.
+
+---
+
+# 51. PROTECCIÓN FRENTE A PROMPT INJECTION
+
+Un detalle importante.
+
+Una tarea podría contener texto como:
+
+> "Ignora todas las instrucciones anteriores..."
+
+Ese contenido es **dato**, no instrucción.
+
+El sistema de IA debe distinguir:
+
+```text
+SYSTEM INSTRUCTIONS
+AVAILABLE LISTS
+USER CONTENT
+```
+
+y exigir salida JSON validada.
+
+---
+
+# 52. CONFIDENCE SCORE
+
+El sistema de voz puede generar internamente una puntuación de confianza.
+
+Ejemplo:
+
+```json
+{
+  "list_id": "home",
+  "confidence": 0.96
+}
+```
+
+No necesariamente debe mostrarse al usuario.
+
+Pero puede servir para decidir:
+
+```text
+> 0.85
+→ crear directamente
+
+0.60 - 0.85
+→ revisar
+
+< 0.60
+→ Inbox
+```
+
+Este mecanismo puede hacer que la experiencia sea mucho más fluida con el tiempo.
+
+---
+
+# 53. INTELIGENCIA FUTURA
+
+Una vez que exista la arquitectura básica, el sistema podría aprender preferencias del usuario.
+
+Ejemplo:
+
+El usuario suele clasificar:
+
+```text
+"Comprar detergente"
+```
+
+en:
+
+```text
+Casa
+```
+
+El sistema podría utilizar ese historial como señal contextual.
+
+No es necesario para MVP.
+
+Pero la arquitectura debería permitirlo.
+
+---
+
+# 54. FUTURAS FUNCIONALIDADES
+
+No forman parte del MVP inicial:
+
+### Prioridades
+
+```text
+Low
+Medium
+High
+Urgent
+```
+
+### Fechas
+
+```text
+due_at
+```
+
+### Recordatorios
+
+### Tareas recurrentes
+
+### Subtareas
+
+### Etiquetas
+
+```text
+#urgente
+#compras
+#backend
+```
+
+### Dependencias
+
+```text
+Tarea A
+   ↓
+Tarea B
+```
+
+### Adjuntos
+
+### Imágenes
+
+### Links
+
+### Calendario
+
+### Notificaciones
+
+### Colaboración
+
+### Compartir listas
+
+---
+
+# 55. DIFERENCIADOR PRINCIPAL DEL PRODUCTO
+
+El producto no debería competir únicamente como:
+
+> "Otro Todo List."
+
+Su propuesta diferencial debe ser:
+
+## Captura cognitiva
+
+El usuario piensa en voz alta.
+
+La aplicación transforma pensamiento desordenado en tareas estructuradas.
+
+Ejemplo:
+
+```text
+PENSAMIENTO HUMANO
+        ↓
+"Hacer todo lo de casa..."
+        ↓
+STT
+        ↓
+TRANSCRIPCIÓN
+        ↓
+LLM
+        ↓
+TAREAS
+        ↓
+CLASIFICACIÓN
+        ↓
+LISTAS
+        ↓
+CHECKLIST
+```
+
+Esta debe convertirse en la característica central del producto.
+
+---
+
+# 56. UX IDEAL
+
+El flujo ideal debería ser:
+
+```text
+Abrir aplicación
+      ↓
+Ver inmediatamente qué tengo pendiente
+      ↓
+Capturar nueva tarea en < 3 segundos
+      ↓
+Completar tarea en 1 interacción
+      ↓
+Volver automáticamente a pendientes
+```
+
+La aplicación debe minimizar:
+
+* formularios,
+* ventanas,
+* clicks,
+* navegación innecesaria.
+
+---
+
+# 57. MÉTRICAS DE PRODUCTO
+
+Aunque sea una aplicación personal, conviene diseñar métricas internas.
+
+### Core
+
+```text
+Tasks created
+Tasks completed
+Completion rate
+Tasks per list
+```
+
+### Voice
+
+```text
+Voice sessions
+Tasks extracted per audio
+AI classification accuracy
+User corrections
+```
+
+### UX
+
+```text
+Time-to-create-task
+Time-to-complete-task
+```
+
+La métrica conceptual más importante sería:
+
+> **Tiempo desde que el usuario piensa en una tarea hasta que está correctamente almacenada.**
+
+---
+
+# 58. MVP
+
+El MVP no necesita todas las funcionalidades anteriores.
+
+Debe incluir:
+
+## Autenticación
+
+Integración con:
+
+```text
+carlosrevert_accounts
+```
+
+## Listas
+
+* Crear.
+* Editar.
+* Eliminar.
+* Emoji.
+* Color.
+
+## Tareas
+
+* Crear.
+* Editar.
+* Eliminar.
+* Completar.
+* Reabrir.
+* Mover entre listas.
+
+## Historial
+
+* Por lista.
+* Global.
+
+## Voz
+
+```text
+Audio
+→ STT
+→ LLM
+→ múltiples tareas
+→ clasificación por lista
+```
+
+## Storage
+
+```text
+Cloud
+Device
+```
+
+## Sync
+
+```text
+Cloud ↔ Device
+```
+
+## Tema
+
+Primer theme:
+
+```text
+Stark
+```
+
+con arquitectura preparada para más themes.
+
+---
+
+# 59. MVP 2
+
+Después:
+
+* Drag & drop.
+* Prioridades.
+* Fechas.
+* PWA completa.
+* Offline-first.
+* Export/import.
+* Mejoras del voice pipeline.
+* Confidence scoring.
+* Undo.
+* Soft delete.
+* Analítica básica.
+
+---
+
+# 60. MVP 3
+
+Posteriormente:
+
+* Recordatorios.
+* Recurrentes.
+* Notificaciones.
+* Subtareas.
+* Tags.
+* Attachments.
+* Calendar.
+* Inteligencia personalizada.
+* Automatizaciones.
+
+---
+
+# 61. ROADMAP DE DESARROLLO
+
+## FASE 0 — Arquitectura
+
+Definir:
+
+* Repositorio.
+* Framework.
+* Arquitectura frontend.
+* Arquitectura backend.
+* DB.
+* Contrato con `carlosrevert_accounts`.
+* API.
+* Sistema de themes.
+
+**Resultado:**
+
+Arquitectura técnica congelada.
+
+---
+
+# FASE 1 — Auth
+
+Implementar:
+
+```text
+carlosrevert_accounts
+      ↓
+TaskFlow
+```
+
+Validar:
+
+* Login.
+* Logout.
+* Sesión.
+* Usuario actual.
+* Autorización.
+
+---
+
+# FASE 2 — Data Model
+
+Crear:
+
+```text
+lists
+tasks
+task_events
+voice_sessions
+```
+
+Implementar migraciones.
+
+Crear índices.
+
+Definir UUID.
+
+---
+
+# FASE 3 — CRUD BÁSICO
+
+Implementar:
+
+```text
+Create List
+Update List
+Delete List
+
+Create Task
+Update Task
+Delete Task
+Complete Task
+Reopen Task
+Move Task
+```
+
+---
+
+# FASE 4 — UI PRINCIPAL
+
+Crear:
+
+```text
+Dashboard
+Sidebar
+Mobile navigation
+Task cards
+Task editor
+List switcher
+```
+
+Prioridad absoluta:
+
+**UX rápida.**
+
+---
+
+# FASE 5 — HISTORIAL
+
+Implementar:
+
+```text
+List History
+Global History
+Timeline
+```
+
+Con eventos.
+
+---
+
+# FASE 6 — THEME ENGINE
+
+Crear sistema:
+
+```text
+ThemeProvider
+Design Tokens
+CSS Variables
+```
+
+Primer tema:
+
+```text
+STARK
+```
+
+Después crear un segundo tema sencillo para demostrar desacoplamiento.
+
+---
+
+# FASE 7 — STT
+
+Implementar:
+
+```text
+Audio capture
+Upload
+STT
+Transcript
+```
+
+Primero sin LLM.
+
+Validar:
+
+* Calidad.
+* Latencia.
+* Idioma.
+* Errores.
+* Timeout.
+
+---
+
+# FASE 8 — LLM TASK EXTRACTION
+
+Implementar:
+
+```text
+Transcript
+    ↓
+Prompt
+    ↓
+Structured JSON
+    ↓
+Schema Validation
+```
+
+Crear tests con múltiples ejemplos reales.
+
+---
+
+# FASE 9 — SMART ROUTING
+
+Añadir:
+
+```text
+Available lists
++
+Current list
++
+Transcript
+```
+
+Resultado:
+
+```text
+Task
+→ List
+```
+
+---
+
+# FASE 10 — VOICE REVIEW
+
+Construir:
+
+```text
+Voice Review Screen
+```
+
+Permitir corregir antes de guardar.
+
+---
+
+# FASE 11 — DEVICE STORAGE
+
+Implementar:
+
+```text
+IndexedDB
+```
+
+Crear repositorio abstracto:
+
+```text
+TaskRepository
+ListRepository
+HistoryRepository
+```
+
+Con dos implementaciones:
+
+```text
+CloudRepository
+LocalRepository
+```
+
+Esto es muy importante.
+
+La UI nunca debería saber dónde se guardan físicamente los datos.
+
+---
+
+# FASE 12 — STORAGE SWITCH
+
+Implementar:
+
+```text
+Cloud → Device
+Device → Cloud
+```
+
+Incluyendo:
+
+* Export temporal.
+* Validación.
+* Merge.
+* Confirmación.
+* Integridad.
+
+---
+
+# FASE 13 — SYNC ENGINE
+
+Implementar:
+
+```text
+Local changes
+↓
+Queue
+↓
+Server
+↓
+Merge
+```
+
+Resolver conflictos.
+
+Mostrar estado al usuario.
+
+---
+
+# FASE 14 — PWA / OFFLINE
+
+Implementar:
+
+* Service Worker.
+* Offline cache.
+* Installability.
+* Offline mode.
+* Recovery.
+
+---
+
+# FASE 15 — HARDENING
+
+Revisar:
+
+* Seguridad.
+* Autorización.
+* Rate limiting.
+* Validación.
+* Prompt injection.
+* Eliminación.
+* Recuperación.
+* Backups.
+* Observabilidad.
+* Errores.
+
+---
+
+# 62. ARQUITECTURA DE CAPAS RECOMENDADA
+
+Una separación muy importante:
+
+```text
+UI
+ ↓
+Application Layer
+ ↓
+Domain Layer
+ ↓
+Repository Interface
+ ↓
+Cloud / IndexedDB
+```
+
+Ejemplo:
+
+```text
+createTask()
+completeTask()
+moveTask()
+processVoice()
+sync()
+```
+
+La lógica de negocio no debe estar mezclada con componentes visuales.
+
+---
+
+# 63. REPOSITORY ABSTRACTION
+
+Conceptualmente:
+
+```typescript
+interface TaskRepository {
+  getAll(): Promise<Task[]>
+  getById(id: string): Promise<Task>
+  create(task: Task): Promise<Task>
+  update(task: Task): Promise<Task>
+  delete(id: string): Promise<void>
+}
+```
+
+Implementaciones:
+
+```text
+ApiTaskRepository
+IndexedDbTaskRepository
+```
+
+Esto hará posible cambiar el backend o modo de almacenamiento sin rehacer la aplicación.
+
+---
+
+# 64. DOMINIO CENTRAL
+
+Las entidades fundamentales son:
+
+```text
+User
+List
+Task
+TaskEvent
+VoiceSession
+SyncOperation
+Theme
+```
+
+Pero las cuatro esenciales son:
+
+```text
+List
+Task
+TaskEvent
+SyncOperation
+```
+
+---
+
+# 65. REGLA DE ORO DE LA ARQUITECTURA
+
+La aplicación debe comportarse igual independientemente de dónde estén los datos.
+
+Esto:
+
+```text
+Cloud
+```
+
+y esto:
+
+```text
+Device
+```
+
+deben producir prácticamente la misma experiencia.
+
+La diferencia debe ser exclusivamente:
+
+```text
+dónde viven los datos
+y
+si se sincronizan
+```
+
+---
+
+# 66. EXPERIENCIA DE PRIVACIDAD
+
+En todo momento el usuario debe comprender:
+
+### Cloud
+
+```text
+☁ Tus datos se sincronizan con tu cuenta.
+```
+
+### Device
+
+```text
+🔒 Tus datos permanecen en este dispositivo.
+```
+
+No debe existir un estado ambiguo.
+
+---
+
+# 67. DECISIONES QUE QUEDAN FIJADAS
+
+Para evitar problemas de arquitectura posteriores:
+
+### ✅ Listas independientes de tareas
+
+Una tarea pertenece a una lista.
+
+### ✅ Inbox permanente
+
+Existe siempre.
+
+### ✅ Historial separado
+
+No mezclar completadas con pendientes.
+
+### ✅ Event log interno
+
+Para trazabilidad.
+
+### ✅ UUID
+
+Identificación global.
+
+### ✅ Soft delete
+
+Preparado para recuperación/sincronización.
+
+### ✅ IndexedDB
+
+Para almacenamiento local.
+
+### ✅ `localStorage`
+
+Sólo para preferencias pequeñas.
+
+### ✅ Repository abstraction
+
+Cloud y Device separados de la UI.
+
+### ✅ LLM con JSON estructurado
+
+Nunca texto libre directamente a DB.
+
+### ✅ Revisión AI
+
+Cuando la confianza sea baja.
+
+### ✅ Cloud ↔ Device
+
+Con proceso explícito de sincronización.
+
+### ✅ Theme Engine
+
+Estética desacoplada de la lógica.
+
+### ✅ PWA
+
+Producto diseñado para web + móvil.
+
+---
+
+# 68. CONCEPTO FINAL DEL PRODUCTO
+
+La aplicación debe terminar ofreciendo esta experiencia:
+
+```text
+                TASKFLOW
+                   │
+          ┌────────┴────────┐
+          │                 │
+       MANUAL             VOICE
+          │                 │
+          │          Audio → STT
+          │                 │
+          │                LLM
+          │                 │
+          │          Task extraction
+          │                 │
+          │          Smart routing
+          │                 │
+          └────────┬────────┘
+                   │
+                 TASKS
+                   │
+       ┌───────────┼───────────┐
+       │           │           │
+      Casa    Programación   Trabajo
+       │           │           │
+       └───────────┼───────────┘
+                   │
+                PENDING
+                   │
+                ✓ DONE
+                   │
+               HISTORY
+```
+
+Y en paralelo:
+
+```text
+             STORAGE ENGINE
+                    │
+            ┌───────┴───────┐
+            │               │
+          CLOUD           DEVICE
+            │               │
+       Multi-device      Private
+       Sync              Offline
+```
+
+---
+
+# 69. OBJETIVO DE LA PRIMERA VERSIÓN
+
+La primera versión no debe intentar convertirse en Notion, Trello, Todoist y un asistente de IA simultáneamente.
+
+Debe hacer **una cosa extraordinariamente bien**:
+
+> **Permitir al usuario capturar cualquier tarea, incluso hablando de forma natural, y convertirla automáticamente en una lista de tareas limpia, organizada y accionable.**
+
+La experiencia objetivo es:
+
+> **"Lo pienso → lo digo → la aplicación lo entiende → aparece donde corresponde → lo hago → check → desaparece de pendientes → queda registrado para siempre en mi historial."**
+
+Éste debe ser el núcleo alrededor del cual se construya todo el producto.
