@@ -7,7 +7,7 @@ Phase 1
 1.1 - Estructura y toolchain
 
 ## Current Task
- TF-0105 - Separate environment variables and document local configuration.
+ TF-0106 - Create the initial CI pipeline.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -21,6 +21,7 @@ Phase 1
 - TF-0102: Next.js strict foundation, lockfile and web checks validated
 - TF-0103: Django/DRF settings, configurable database and health test validated
 - TF-0104: development Compose built, started and checked over HTTP
+- TF-0105: environment template, Compose interpolation and secret boundaries validated
 
 ## In Progress
 - Phase 1 Foundation
@@ -43,4 +44,4 @@ Phase 0 PASS with documented exception: application-dependent HTTPS smoke moved 
 75b169d - docs(phase0): close discovery and unblock foundation
 
 ## Next Task
-TF-0105 - Separate environment variables and document local configuration.
+TF-0106 - Create the initial CI pipeline.

@@ -475,6 +475,9 @@ y probado mediante HTTP.
 
 **TF-0105 [P1]** Separar variables de entorno.
 
+**Status:** COMPLETED. `.env.example` y la guia de entorno separan puertos,
+configuracion, proveedores futuros y secretos exclusivos de API/worker.
+
 - **CREATE:** `.env.example`, `docs/development/environment.md`.
 - **Variables:** `TASKFLOW_PUBLIC_URL=https://taskflow.carlosrevert.es`, `WEB_PORT=10700`, `API_PORT=10701`, `POSTGRES_PORT=10710`, `REDIS_PORT=10720`, DB, Redis, Accounts, timeouts, `ACCOUNTS_TASKFLOW_SERVICE_KEY` solo backend/worker, proveedores AI, storage y logging.
 - **Accounts:** añadir `https://taskflow.carlosrevert.es` a `CSRF_TRUSTED_ORIGINS`. CORS no forma parte del flujo de usuario porque el proxy es same-origin; no ampliar `CORS_ALLOWED_ORIGINS` salvo una integración futura explícita.
