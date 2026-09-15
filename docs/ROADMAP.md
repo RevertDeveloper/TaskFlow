@@ -487,6 +487,9 @@ configuracion, proveedores futuros y secretos exclusivos de API/worker.
 
 **TF-0106 [P0]** Crear pipeline inicial.
 
+**Status:** COMPLETED. El workflow ejecuta checks web, API, schemas y Compose;
+los mismos comandos fueron verificados localmente y dentro de la imagen API.
+
 - **CREATE:** `.github/workflows/ci.yml`.
 - **Checks:** frontend lint/typecheck/test/build; backend ruff/typecheck/test/check; schemas; compose config.
 - **Validar:** pipeline verde en pull request.

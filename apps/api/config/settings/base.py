@@ -68,7 +68,7 @@ def database_config() -> dict[str, object]:
 
 DATABASES = {"default": database_config()}
 
-AUTH_PASSWORD_VALIDATORS = []
+AUTH_PASSWORD_VALIDATORS: list[dict[str, object]] = []
 LANGUAGE_CODE = "es"
 TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Madrid")
 USE_I18N = True
