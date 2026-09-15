@@ -173,3 +173,16 @@ Before moving from Phase 0 to Foundation, the following must be validated in a r
 ## Status
 
 This document is approved as the fact-based contract for Phase 0 discovery. The remaining external validation items are environment-dependent and remain blocked until the relevant staging or production configuration exists.
+
+## Phase 2 implementation notes
+
+- TaskFlow uses `apps.authentication.domain.AuthenticatedPrincipal` as the
+  normalized server-side identity and maps Accounts `id` to `external_user_id`.
+- `/api/v1/auth/me/` is revalidated per request through the Accounts client;
+  identity is not cached and Accounts failures are fail-closed.
+- TaskFlow emits its own `taskflowcsrftoken`; Accounts CSRF material is only
+  forwarded inside the server-side auth proxy.
+- Auth proxy routes are allowlisted under `/api/accounts/` and do not forward
+  service keys, authorization headers or upstream redirects.
+- The web client never stores session data or tokens in localStorage; it uses
+  credentialed same-origin requests and only allows local `next` paths.

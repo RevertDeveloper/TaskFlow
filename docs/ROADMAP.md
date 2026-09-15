@@ -527,9 +527,18 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **Risk:** Critical.
 
+**Status:** IN PROGRESS. El contrato de identidad, el adapter server-side,
+CSRF propio, proxy allowlistado y cliente web están implementados y probados
+con fixtures contractuales. Permanecen pendientes la validación HTTPS real de
+login/logout, las pruebas A/B sobre recursos de dominio todavía inexistentes y
+el E2E contra staging de Accounts.
+
 ### 2.1 - AccountsSessionAdapter
 
 **TF-0201 [P0]** Definir el puerto de identidad.
+
+**Status:** COMPLETED. El principal normalizado valida `Accounts.User.id` como
+identidad externa positiva y no acepta identidad enviada por el navegador.
 
 - **CREATE:** `apps/api/apps/authentication/domain/ports.py`, `apps/api/apps/authentication/domain/models.py`.
 - **Modelo minimo:** `external_user_id`, `email`, `username`, `display_name`, `plan`, `email_verified`.
@@ -537,11 +546,20 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **TF-0202 [P0]** Implementar cliente server-side de `/api/v1/auth/me/`.
 
+**Status:** COMPLETED. Cliente con timeout configurable, TLS fuera de local,
+forwarding exclusivo de cookie, sin redirects y errores fail-closed; cubierto
+con fixtures de respuestas anónimas, autenticadas, inválidas, 401/403/5xx y
+timeout.
+
 - **CREATE:** `apps/api/apps/authentication/infrastructure/accounts_client.py`.
 - **Requirements:** reenviar solo cookie necesaria, timeout configurable, TLS, no seguir redirects inseguros, no loggear cookies ni payload privado.
 - **Responses:** anonimo, autenticado, malformed response, timeout, 5xx.
 
 **TF-0202a [P0]** Implementar el proxy de autenticacion hacia Accounts.
+
+**Status:** IN PROGRESS. Proxy allowlistado, filtrado de headers, cookies de
+respuesta y no-cache están implementados y probados localmente; la aceptación
+de login/register/logout/verificación queda pendiente de staging HTTPS.
 
 - **CREATE:** `apps/api/apps/authentication/infrastructure/accounts_auth_proxy.py` y rutas internas `/api/accounts/{csrf,login,logout,register,verify-email,verify-email/resend}`.
 - **Behavior:** el navegador llama al origen TaskFlow; API reenvia a Accounts la cookie y el CSRF necesario, filtra headers hop-by-hop y devuelve solo status/payload permitido.
@@ -551,11 +569,19 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **TF-0203 [P0]** Implementar `AccountsSessionAdapter` para DRF.
 
+**Status:** COMPLETED. `request.user` solo recibe el principal normalizado por
+Accounts; anonimato no autentica, caída de Accounts responde 503 y las
+mutaciones autenticadas exigen el CSRF propio de TaskFlow.
+
 - **CREATE:** `apps/api/apps/authentication/infrastructure/accounts_authentication.py`, `permissions.py`, `services.py`.
 - **Requirements:** `request.user` sea un principal normalizado; no aceptar `user_id` de body/query/header; Accounts unavailable produce fallo cerrado en recursos privados.
 - **Validar:** una sesion valida de Accounts permite acceder; anonimato devuelve 401; fallo de Accounts no filtra datos.
 
 **TF-0204 [P0]** Implementar endpoint propio de CSRF para el API TaskFlow y documentar el flujo de POST.
+
+**Status:** COMPLETED. `/api/v1/auth/csrf/` emite `taskflowcsrftoken` y
+`/api/v1/auth/me/` expone únicamente el estado normalizado; el CSRF de Accounts
+se reenvía solo dentro del proxy.
 
 - **CREATE:** `apps/api/apps/authentication/api.py`, ruta `/api/v1/auth/csrf/` y endpoint `/api/v1/auth/me/` de TaskFlow.
 - **Behavior:** el frontend obtiene el CSRF de TaskFlow para sus mutaciones; el backend obtiene el CSRF de Accounts cuando proxifica un POST a Accounts.
@@ -565,11 +591,18 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **TF-0205 [P0]** Implementar cliente de login/logout/register delegado.
 
+**Status:** IN PROGRESS. Cliente web implementado con `credentials: include`,
+CSRF previo a POST, sin localStorage y `next` allowlistado localmente; falta
+E2E con sesión real y logout global en staging.
+
 - **CREATE:** `apps/web/src/infrastructure/accounts/`, `apps/web/src/features/auth/`.
 - **Requirements:** `credentials: include`, obtener CSRF antes de POST, no guardar token en localStorage, redireccion `next` allowlist.
 - **Validar:** login en Accounts se refleja en TaskFlow; logout desde Accounts invalida TaskFlow al recargar.
 
 **TF-0206 [P0]** Definir estados UI de autenticacion.
+
+**Status:** COMPLETED. `AuthBoundary` bloquea contenido privado durante loading,
+anonimato, email pendiente, cuenta bloqueada o Accounts no disponible.
 
 - **CREATE:** `apps/web/src/domain/auth/`, `apps/web/src/features/auth/components/AuthBoundary.tsx`.
 - **Estados:** loading, anonymous, authenticated, email pending, blocked/inactive, accounts unavailable.
@@ -579,15 +612,26 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **TF-0207 [P0]** Cubrir autenticacion backend.
 
+**Status:** COMPLETED. 33 tests backend cubren normalización, adapter, proxy,
+CSRF, permisos, payloads inválidos, timeout, 401/403/5xx, cookies ausentes y
+redirects.
+
 - **CREATE:** `apps/api/apps/authentication/tests/test_accounts_adapter.py`, `test_permissions.py`.
 - **Cases:** `/me/` anonimo, usuario valido, payload invalido, timeout, 401/403/5xx, cookies ausentes y redireccion inesperada.
 
 **TF-0208 [P0]** Crear pruebas de aislamiento de usuario.
 
+**Status:** BLOCKED. Las entidades y endpoints de listas, tareas, historial,
+sync y voz aún no existen; se implementarán con las pruebas A/B requeridas en
+Phase 3/4 antes de cerrar este gate.
+
 - **CREATE:** `apps/api/tests/test_multi_tenant_isolation.py`.
 - **Cases:** User A no puede leer/mutar/exportar/sincronizar historial, listas, tareas, sesiones de voz u operaciones de User B; UUID guessing siempre falla con la politica elegida.
 
 **TF-0209 [P1]** E2E de sesion real en entorno de integracion.
+
+**Status:** BLOCKED. Requiere staging HTTPS operativo con credenciales/fixtures
+de Accounts; no se usarán credenciales reales en el repositorio ni en logs.
 
 - **CREATE:** `apps/web/e2e/auth.spec.ts`, fixtures de Accounts documentadas.
 - **Cases:** login, logout, expiracion, cuenta bloqueada, sesion iniciada en otro subdominio, CSRF y refresh; el navegador solo usa `taskflow.carlosrevert.es`.
@@ -602,11 +646,15 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 ### QUALITY GATE
 
-- [ ] Adapter probado contra respuestas reales o fixtures contractuales de Accounts.
+- [x] Adapter probado contra fixtures contractuales de Accounts.
 - [ ] Login/logout/expired session verificados.
 - [ ] Pruebas A/B de aislamiento verdes.
-- [ ] No hay JWT ni secreto duplicado.
-- [ ] Contrato documentado aprobado por el responsable de Accounts.
+- [x] No hay JWT ni secreto duplicado.
+- [x] Contrato documentado aprobado por el responsable de Accounts.
+
+**Evidencia local:** backend `pytest` 33 passed y `ruff check` limpio; frontend
+Vitest 4 passed, TypeScript, ESLint y build Next.js limpios. `mypy` no pudo
+ejecutarse porque no está instalado en el entorno virtual disponible.
 
 ### Definition of Done
 
