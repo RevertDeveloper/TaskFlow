@@ -52,7 +52,7 @@ pass. Resource ownership tests belong to their resource phases; real staging
 auth is deferred to Phase 16.
 
 ## Last Commit
-0ccb9dc - feat(auth): integrate Accounts session boundary
+87c11ef - docs(roadmap): align phase dependencies
 
 ## Next Task
 Implement TF-0301 and TF-0302. Add ownership tests with each domain resource;
