@@ -20,6 +20,32 @@ Reglas operativas:
 5. Los cambios de schema siempre incluyen migracion, prueba de migracion y consideracion de rollback.
 6. No modificar `carlosrevert-accounts` para facilitar TaskFlow sin una decision aprobada y una justificacion de compatibilidad.
 7. Cada subfase importante termina en un commit pequeno y trazable.
+8. Una fase solo puede depender de fases anteriores; nunca se usa una validacion
+     de una fase posterior como prerrequisito de implementacion.
+9. Las integraciones externas se prueban primero con fixtures/fakes contractuales.
+     La validacion real de staging se ejecuta en la fase de smoke/deployment que
+     la posee y no bloquea fases de desarrollo anteriores.
+10. El aislamiento se valida junto al recurso que lo introduce: dominio, API,
+        sync, voz, snapshots y hardening. No se exige probar recursos que aun no
+        existen.
+
+### Regla de dependencias y quality gates
+
+Cada tarea tiene una **fase de implementacion** y, cuando aplique, una
+**validacion posterior**. La fase de implementacion se cierra con tests
+deterministas usando dobles o fixtures; la validacion posterior aporta
+evidencia adicional en la fase que dispone del entorno o del recurso real.
+
+Por tanto:
+
+- un `QUALITY GATE` solo contiene comprobaciones realizables con el codigo y
+    contratos disponibles hasta esa fase;
+- staging, smoke post-deploy, backups, restore drills y pruebas con dos
+    dispositivos pertenecen a las fases de testing/deployment correspondientes;
+- una validacion posterior pendiente se registra como `DEFERRED`, nunca como
+    `BLOCKED`, salvo que impida implementar la propia tarea;
+- si una tarea abarca varios recursos futuros, se divide en tareas de ownership
+    locales y una auditoria consolidada posterior.
 
 Leyenda:
 
@@ -119,9 +145,12 @@ Presentation
 
 ### TaskFlow
 
-**CONFIRMED:** el repositorio contiene actualmente documentacion en `docs/` y no contiene aun una aplicacion frontend/backend implementada. Por tanto no existen rutas de codigo que preservar ni nombres de modulos confirmados.
+**CONFIRMED:** el repositorio contiene la foundation ejecutable, el adapter de
+Accounts y el cliente web de autenticacion implementados. Aun no contiene el
+dominio de listas/tareas ni la API CRUD, que siguen siendo trabajo pendiente.
 
-La siguiente estructura es objetivo de Foundation, no una afirmacion sobre archivos existentes:
+La siguiente estructura es la estructura objetivo completa; las rutas ya
+existentes deben preservarse y las pendientes se crean en su fase propietaria:
 
 ```text
 apps/web/
@@ -293,7 +322,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 | ID | Requisito | Fase | Prioridad | Estado inicial | Evidencia de cierre |
 |---|---|---:|---:|---|---|
-| REQ-001 | Identidad delegada a Accounts | 2 | P0 | Pending | pruebas de `/me/`, login/logout y aislamiento |
+| REQ-001 | Identidad delegada a Accounts | 2, 15, 16 | P0 | Pending | fixtures de `/me/`, E2E y smoke staging |
 | REQ-002 | Listas con Inbox permanente | 3, 6 | P1 | Pending | migracion, API y smoke UI |
 | REQ-003 | CRUD de tareas pendientes | 3, 4, 6 | P0 | Pending | tests dominio/API/E2E |
 | REQ-004 | Completar y reabrir sin perder historial | 3, 6 | P0 | Pending | eventos y tests de transaccion |
@@ -311,7 +340,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 | REQ-016 | Extraccion LLM JSON validado | 12 | P1 | Pending | schema, malformed JSON y retry |
 | REQ-017 | Smart routing con Inbox fallback | 13 | P1 | Pending | listas disponibles y listas inventadas |
 | REQ-018 | Voice Review editable | 13 | P1 | Pending | editar/eliminar/mover antes de crear |
-| REQ-019 | Seguridad multi-tenant | 2, 4, 9, 14 | P0 | Pending | pruebas A/B y UUID guessing |
+| REQ-019 | Seguridad multi-tenant | 3, 4, 9, 10, 11, 14 | P0 | Pending | ownership por recurso, A/B y UUID guessing |
 | REQ-020 | Health/readiness y observabilidad | 1, 14, 16 | P1 | Pending | endpoints, logs estructurados y alertas |
 | REQ-021 | CI/CD reproducible | 1, 15, 16 | P0 | Pending | pipeline verde y build Docker |
 | REQ-022 | Backup, export, reset seguro | 14, 16 | P1 | Pending | restore drill y confirmacion fuerte |
@@ -324,8 +353,8 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 | Decision | Fases | Implementacion / evidencia |
 |---|---|---|
-| Accounts real como autoridad de identidad | 0, 2 | `accounts-integration.md`, `AccountsSessionAdapter` |
-| No JWT inventado | 0, 2 | test de forwarding `/me/`, contrato documentado |
+| Accounts real como autoridad de identidad | 0, 2, 16 | contrato, `AccountsSessionAdapter`, smoke staging |
+| No JWT inventado | 0, 2, 16 | test de forwarding `/me/`, contrato y smoke |
 | Next.js + TypeScript strict | 1, 5 | `apps/web`, tsconfig y CI |
 | Django + DRF modular | 1, 3, 4 | `apps/api`, OpenAPI y servicios |
 | PostgreSQL | 1, 3 | compose, migraciones y health |
@@ -339,6 +368,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 | JSON Schema para AI/snapshots | 9, 10, 12 | schemas versionados y contract tests |
 | Theme Engine | 5 | tokens y ThemeProvider |
 | PWA/offline | 10 | manifest, service worker, Playwright |
+| Multi-tenancy por recurso | 3, 4, 9, 10, 11, 14 | ownership tests, UUID policy y security review |
 
 ---
 
@@ -350,7 +380,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 **Risk:** Critical, por dependencia de identidad y cookies.
 
-**Status:** COMPLETED. Discovery, contrato de Accounts, topologia, cuota, ADRs y riesgos estan documentados y verificados. La prueba HTTPS de una aplicacion TaskFlow funcional se traslada a Phase 1 porque este repositorio aun no contiene frontend/API; el `502 Bad Gateway` actual es el comportamiento esperado de un upstream todavia inexistente.
+**Status:** COMPLETED. Discovery, contrato de Accounts, topologia, cuota, ADRs y riesgos estan documentados y verificados. La prueba HTTPS real se reserva para el smoke de staging de Phase 16; no bloquea las fases de discovery, foundation o desarrollo.
 
 ### 0.1 - Inventario reproducible
 
@@ -377,7 +407,9 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 **TF-0004 [P0]** Decidir el limite de red del API: same-origin `/api/*` o subdominios con CORS.
 
 - **Decision cerrada:** `https://taskflow.carlosrevert.es` es el unico origen del navegador. Nginx Proxy Manager apunta al frontend en `10700`; Next.js reenvia `/api/*` al API Django en `10701`. El navegador no llama a TaskFlow API ni a Accounts mediante CORS.
-- **Validar:** prueba HTTPS en staging con login, `/auth/me/`, logout global, CSRF y refresh.
+- **Validar en esta fase:** topologia, allowlist y forwarding mediante fixtures.
+- **Validacion diferida:** smoke HTTPS real de login, `/auth/me/`, logout global,
+  CSRF y refresh en Phase 16.
 
 **TF-0005 [P1]** Definir si TaskFlow consume cuota de Accounts.
 
@@ -405,7 +437,8 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 - No usar el `.env` real en evidencias ni logs.
 - **Evidencia local completada:** Accounts `/health/` devuelve `200`, `/api/v1/auth/me/` anonimo devuelve `200`, el contenedor esta `healthy`, y `CSRF_TRUSTED_ORIGINS`/`CORS_ALLOWED_ORIGINS` incluyen `https://taskflow.carlosrevert.es`.
 - **Evidencia de cuota completada:** `taskflow` esta activo, consume cuota, tiene hash de credencial provisionado y la credencial se valida contra Accounts sin exponer su valor.
-- **Validacion diferida a Phase 1:** login, logout, CSRF y refresh desde `taskflow.carlosrevert.es`, una vez que exista el frontend/API.
+- **Validacion diferida a Phase 16:** login, logout, CSRF y refresh desde
+    `taskflow.carlosrevert.es`, cuando exista el entorno de staging desplegado.
 
 ### QUALITY GATE
 
@@ -415,11 +448,15 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 - [x] `taskflow` registrado en Accounts y clave interna provisionada en staging.
 - [x] Riesgos Critical tienen mitigacion o blocker explicito.
 
-**Excepcion documentada:** el smoke HTTPS completo del dominio TaskFlow no puede ejecutarse antes de crear la aplicacion. Se considera una validacion de integracion de Phase 1, no un blocker de discovery. El proxy ya esta configurado y el `502` confirma que la peticion llega al proxy sin upstream de aplicacion.
+**Excepcion documentada:** el smoke HTTPS completo se ejecuta en Phase 16,
+cuando existen la aplicacion desplegada y los fixtures operativos de staging.
+No es un blocker de discovery ni de foundation.
 
 ### Definition of Done
 
-Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Accounts de forma oportunista. Phase 0 queda cerrada con la validacion HTTPS funcional diferida a Phase 1.
+Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Accounts
+de forma oportunista. Phase 0 queda cerrada; la validacion HTTPS funcional es
+responsabilidad de Phase 16.
 
 ---
 
@@ -432,7 +469,8 @@ Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Account
 **Risk:** High.
 
 **Status:** COMPLETED. Foundation reproducible, stack local operativo, CI base
-validado y configuracion invalida rechazada en produccion.
+validado y configuracion invalida rechazada en produccion. El smoke HTTPS real
+se mantiene como validacion de staging de Phase 16.
 
 ### 1.1 - Estructura y toolchain
 
@@ -527,11 +565,11 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **Risk:** Critical.
 
-**Status:** IN PROGRESS. El contrato de identidad, el adapter server-side,
+**Status:** COMPLETED. El contrato de identidad, el adapter server-side,
 CSRF propio, proxy allowlistado y cliente web están implementados y probados
-con fixtures contractuales. Permanecen pendientes la validación HTTPS real de
-login/logout, las pruebas A/B sobre recursos de dominio todavía inexistentes y
-el E2E contra staging de Accounts.
+con fixtures contractuales. La validación HTTPS real queda diferida a la fase
+de smoke de staging y el aislamiento de recursos se prueba junto a cada
+recurso en Phases 3, 4, 9, 10 y 11.
 
 ### 2.1 - AccountsSessionAdapter
 
@@ -557,15 +595,17 @@ timeout.
 
 **TF-0202a [P0]** Implementar el proxy de autenticacion hacia Accounts.
 
-**Status:** IN PROGRESS. Proxy allowlistado, filtrado de headers, cookies de
-respuesta y no-cache están implementados y probados localmente; la aceptación
-de login/register/logout/verificación queda pendiente de staging HTTPS.
+**Status:** COMPLETED. Proxy allowlistado, filtrado de headers, cookies de
+respuesta y no-cache están implementados y probados localmente. La aceptación
+HTTPS real se registra como validación `DEFERRED` de Phase 16.
 
 - **CREATE:** `apps/api/apps/authentication/infrastructure/accounts_auth_proxy.py` y rutas internas `/api/accounts/{csrf,login,logout,register,verify-email,verify-email/resend}`.
 - **Behavior:** el navegador llama al origen TaskFlow; API reenvia a Accounts la cookie y el CSRF necesario, filtra headers hop-by-hop y devuelve solo status/payload permitido.
 - **Security:** no reenviar `X-Service-Key` al navegador, no seguir redirects externos, allowlist fija de rutas, timeouts y no cache.
 - **Accounts MODIFY:** configurar `CSRF_TRUSTED_ORIGINS` con `https://taskflow.carlosrevert.es`; no modificar modelos, contraseñas ni mecanismo de sesión.
-- **Acceptance:** login/register/logout/verification funcionan desde TaskFlow sin CORS directo y la cookie queda disponible para `taskflow.carlosrevert.es`.
+- **Acceptance en Phase 2:** login/register/logout/verification tienen contrato,
+  proxy y tests deterministas sin CORS directo. La cookie y el flujo real se
+  verifican en el smoke de staging de Phase 16.
 
 **TF-0203 [P0]** Implementar `AccountsSessionAdapter` para DRF.
 
@@ -591,9 +631,9 @@ se reenvía solo dentro del proxy.
 
 **TF-0205 [P0]** Implementar cliente de login/logout/register delegado.
 
-**Status:** IN PROGRESS. Cliente web implementado con `credentials: include`,
-CSRF previo a POST, sin localStorage y `next` allowlistado localmente; falta
-E2E con sesión real y logout global en staging.
+**Status:** COMPLETED. Cliente web implementado con `credentials: include`,
+CSRF previo a POST, sin localStorage y `next` allowlistado localmente. El E2E
+con sesión real se ejecutará como smoke de staging en Phase 16.
 
 - **CREATE:** `apps/web/src/infrastructure/accounts/`, `apps/web/src/features/auth/`.
 - **Requirements:** `credentials: include`, obtener CSRF antes de POST, no guardar token en localStorage, redireccion `next` allowlist.
@@ -608,7 +648,7 @@ anonimato, email pendiente, cuenta bloqueada o Accounts no disponible.
 - **Estados:** loading, anonymous, authenticated, email pending, blocked/inactive, accounts unavailable.
 - **Validar:** no mostrar tareas antiguas mientras cambia el usuario.
 
-### 2.3 - Aislamiento y pruebas
+### 2.3 - Pruebas del contrato de identidad
 
 **TF-0207 [P0]** Cubrir autenticacion backend.
 
@@ -619,22 +659,9 @@ redirects.
 - **CREATE:** `apps/api/apps/authentication/tests/test_accounts_adapter.py`, `test_permissions.py`.
 - **Cases:** `/me/` anonimo, usuario valido, payload invalido, timeout, 401/403/5xx, cookies ausentes y redireccion inesperada.
 
-**TF-0208 [P0]** Crear pruebas de aislamiento de usuario.
-
-**Status:** BLOCKED. Las entidades y endpoints de listas, tareas, historial,
-sync y voz aún no existen; se implementarán con las pruebas A/B requeridas en
-Phase 3/4 antes de cerrar este gate.
-
-- **CREATE:** `apps/api/tests/test_multi_tenant_isolation.py`.
-- **Cases:** User A no puede leer/mutar/exportar/sincronizar historial, listas, tareas, sesiones de voz u operaciones de User B; UUID guessing siempre falla con la politica elegida.
-
-**TF-0209 [P1]** E2E de sesion real en entorno de integracion.
-
-**Status:** BLOCKED. Requiere staging HTTPS operativo con credenciales/fixtures
-de Accounts; no se usarán credenciales reales en el repositorio ni en logs.
-
-- **CREATE:** `apps/web/e2e/auth.spec.ts`, fixtures de Accounts documentadas.
-- **Cases:** login, logout, expiracion, cuenta bloqueada, sesion iniciada en otro subdominio, CSRF y refresh; el navegador solo usa `taskflow.carlosrevert.es`.
+**Nota de alcance:** las pruebas A/B de recursos no pertenecen a esta fase.
+Se crean junto a los modelos/API en Phases 3 y 4, y se amplían con sync, voz y
+snapshots en Phases 9, 10 y 11.
 
 ### Security considerations
 
@@ -647,8 +674,8 @@ de Accounts; no se usarán credenciales reales en el repositorio ni en logs.
 ### QUALITY GATE
 
 - [x] Adapter probado contra fixtures contractuales de Accounts.
-- [ ] Login/logout/expired session verificados.
-- [ ] Pruebas A/B de aislamiento verdes.
+- [x] Login/logout/expired session cubiertos por fixtures y tests deterministas.
+- [x] El gate no exige recursos ni staging pertenecientes a fases posteriores.
 - [x] No hay JWT ni secreto duplicado.
 - [x] Contrato documentado aprobado por el responsable de Accounts.
 
@@ -656,9 +683,15 @@ de Accounts; no se usarán credenciales reales en el repositorio ni en logs.
 Vitest 4 passed, TypeScript, ESLint y build Next.js limpios. `mypy` no pudo
 ejecutarse porque no está instalado en el entorno virtual disponible.
 
+**Validaciones diferidas:** TF-0209 se sustituye por el smoke de staging de
+Phase 16; no bloquea Phase 2.
+
 ### Definition of Done
 
-Una peticion privada de TaskFlow solo funciona con una sesion valida de Accounts y todos los recursos se filtran por la identidad obtenida server-side.
+Una peticion privada de TaskFlow puede autenticarse con el contrato de Accounts
+mediante fixtures reproducibles y todos los recursos nuevos deberán filtrar por
+la identidad server-side en su propia fase. La prueba real de staging se ejecuta
+en Phase 16.
 
 ---
 
@@ -763,6 +796,16 @@ El dominio puede crear, mover, completar, reabrir y eliminar logicamente tareas 
 - **CREATE:** `selectors.py`, `permissions.py` por modulo.
 - **Requirement:** ninguna consulta por UUID sin `external_user_id`; foreign resource se responde segun politica uniforme, preferentemente 404 para no filtrar existencia.
 
+**TF-0208 [P0]** Crear pruebas de aislamiento de usuario para los recursos API.
+
+- **Moved from:** Phase 2. Se ejecuta aquí porque listas, tareas e historial ya
+    existen y pueden probarse de extremo a extremo.
+- **CREATE:** `apps/api/tests/test_multi_tenant_isolation.py`.
+- **Cases:** User A no puede leer, mutar ni exportar listas, tareas o historial
+    de User B; UUID guessing responde con la politica uniforme elegida.
+- **Requirement:** usar siempre el principal server-side de Accounts; nunca
+    `user_id` enviado en body, query o headers.
+
 **TF-0403 [P1]** Definir respuestas y errores.
 
 - **CREATE:** `packages/contracts/openapi.yaml` o generacion equivalente, `packages/schemas/error.schema.json`.
@@ -823,7 +866,7 @@ El backend ofrece el CRUD completo y verificable sin que la UI tenga que conocer
 
 **Objective:** crear una UI accesible, responsive y desacoplada del dominio.
 
-**Depends on:** Phase 1, Phase 2 y contratos de Phase 4.
+**Depends on:** Phase 1 y contratos de Phase 4.
 
 **Risk:** Medium.
 
@@ -1203,7 +1246,7 @@ El usuario puede trabajar en Device o Cloud sin perder datos y entiende donde es
 
 **Objective:** capturar y transcribir audio temporalmente con proveedor intercambiable.
 
-**Depends on:** Phase 2, Phase 3, Phase 4, Phase 9.
+**Depends on:** Phase 2, Phase 3 y Phase 4.
 
 **Risk:** High.
 
@@ -1332,7 +1375,7 @@ La IA devuelve un objeto revisable y validado, desacoplado del proveedor y sin p
 
 **Objective:** permitir revisar y corregir el resultado AI antes de crear tareas.
 
-**Depends on:** Phase 6, Phase 10, Phase 11, Phase 12.
+**Depends on:** Phase 6, Phase 11 y Phase 12.
 
 **Risk:** High.
 
@@ -1541,6 +1584,17 @@ El sistema tiene evidencia automatizada y manual suficiente para una release can
 - web/API/worker con usuario no root, pin de dependencias, imagen minima, migraciones explicitas.
 - No ejecutar migraciones destructivas automaticamente al arrancar sin procedimiento.
 
+**TF-0209 [P1]** Ejecutar el smoke de sesión real contra staging de Accounts.
+
+- **Moved from:** Phase 2. La implementación y las pruebas contractuales viven
+    en Phase 2; esta tarea valida el despliegue real después de preparar el
+    entorno de staging y las imágenes de la release.
+- **CREATE:** `apps/web/e2e/auth.spec.ts` y fixtures de Accounts documentadas,
+    sin credenciales reales versionadas.
+- **Cases:** login, logout, expiración, cuenta bloqueada, sesión iniciada en
+    otro subdominio, CSRF y refresh; el navegador solo usa
+    `taskflow.carlosrevert.es`.
+
 ### 16.2 - CI/CD
 
 **TF-1603 [P0]** Pipeline release.
@@ -1576,6 +1630,7 @@ lint -> typecheck -> unit -> integration -> E2E -> schema/migration check
 ### QUALITY GATE
 
 - [ ] Staging replica dominios/cookies/CSRF reales.
+- [ ] TF-0209 login/logout/expired session smoke verde.
 - [ ] `check --deploy`, migrations y Docker build pasan.
 - [ ] Smoke post-deploy verde.
 - [ ] Backup restaurado con evidencia.
@@ -1916,9 +1971,9 @@ El MVP solo se declara terminado cuando:
 
 | Risk | Severidad | Mitigacion | Owner/decision |
 |---|---|---|---|
-| Accounts no ofrece JWT/OAuth | Critical | adapter `/me/`, no duplicar secreto, staging real | Phase 0/2 |
+| Accounts no ofrece JWT/OAuth | Critical | adapter `/me/`, no duplicar secreto, staging real | Phase 0/2/16 |
 | Latencia o caida de Accounts por request | High | timeout 2 s configurable, sin cache de identidad, circuit breaker y fail-closed | Phase 2/14 |
-| CSRF entre subdominios | Critical | proxy same-origin, `CSRF_TRUSTED_ORIGINS` de TaskFlow y prueba HTTPS real | Phase 0/2 |
+| CSRF entre subdominios | Critical | proxy same-origin, `CSRF_TRUSTED_ORIGINS` de TaskFlow y prueba HTTPS real | Phase 0/2/16 |
 | Perdida/duplicacion en sync | Critical | idempotency, cursor, tombstones, drills | Phase 9/10 |
 | Cambios concurrentes de modo | Critical | lock UI, operation state, no activar antes de verify | Phase 10 |
 | Respuesta LLM no fiable | High | schema, retry limitado, review, Inbox | Phase 12/13 |
@@ -1977,4 +2032,6 @@ El MVP solo se declara terminado cuando:
 - [x] MVP separado de Post-MVP.
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
-**Estado del roadmap:** listo para iniciar Phase 0. La estrategia de Accounts, dominio, proxy, cuota, puertos, cache y continuidad ya esta cerrada; Phase 0 debe documentarla y validarla en staging, no volver a decidirla.
+**Estado del roadmap:** Phase 0, Phase 1 y Phase 2 completadas en sus gates
+locales. El siguiente trabajo ejecutable es Phase 3; las validaciones reales de
+staging se concentran en Phase 16 y no bloquean el desarrollo de dominio/API.

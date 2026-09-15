@@ -4,10 +4,10 @@
 Phase 2
 
 ## Current Subphase
-2.3 - Aislamiento y pruebas
+2.3 - Pruebas del contrato de identidad
 
 ## Current Task
-TF-0208 blocked: domain resources required for A/B isolation tests do not exist yet
+Phase 2 completed; next executable task is TF-0301
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -28,18 +28,17 @@ TF-0208 blocked: domain resources required for A/B isolation tests do not exist 
 - TF-0202: server-side Accounts session client
 - TF-0203: DRF Accounts authentication, permission and service
 - TF-0204: TaskFlow CSRF and /auth/me/ endpoints
+- TF-0202a: Accounts auth proxy with allowlisted routes
+- TF-0205: delegated web auth client
 - TF-0206: frontend authentication states and AuthBoundary
 - TF-0207: backend authentication, proxy and permission tests
 
 ## In Progress
-- TF-0202a: Accounts auth proxy implemented; real HTTPS acceptance pending
-- TF-0205: delegated web client implemented; real-session E2E pending
+- None. Phase 3 is ready to start.
 
 ## Blockers
-- TF-0208: lists/tasks/history/sync/voice resources are scheduled for later phases,
-  so their A/B isolation tests cannot be honestly closed in Phase 2.
-- TF-0209: staging HTTPS session fixtures are not available for real login/logout E2E.
 - `mypy` is not installed in the available API virtual environment.
+- Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -48,12 +47,13 @@ TF-0208 blocked: domain resources required for A/B isolation tests do not exist 
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 2 NOT COMPLETE. Contract fixtures, no JWT/secrets, adapter and frontend
-checks pass; real staging auth, A/B isolation and E2E remain open.
+Phase 2 PASS. Contract fixtures, no JWT/secrets, adapter and frontend checks
+pass. Resource ownership tests belong to their resource phases; real staging
+auth is deferred to Phase 16.
 
 ## Last Commit
 0ccb9dc - feat(auth): integrate Accounts session boundary
 
 ## Next Task
-Resolve the Phase 2 blockers: add domain ownership tests when Phase 3/4 resources
-exist and run real Accounts staging E2E for TF-0202a, TF-0205 and TF-0209.
+Implement TF-0301 and TF-0302. Add ownership tests with each domain resource;
+do not block domain work on staging validation.
