@@ -20,10 +20,12 @@ Discovery and architecture validation for the external Accounts contract; roadma
 
 ## In Progress
 - External environment validation of `taskflow` in Accounts staging/production
+- Configure and verify the TaskFlow proxy upstream; public HTTPS currently returns `502 Bad Gateway`
 
 ## Blockers
-- `taskflow` client registration and service key provisioning in Accounts are environment-dependent and not verifiable from this repository
-- Browser and proxy validation of same-origin topology cannot be fully proven without the target staging environment
+- Public TaskFlow HTTPS currently returns `502 Bad Gateway`, so the proxy upstream is not serving a TaskFlow application yet
+- Browser and proxy validation of same-origin topology cannot be completed while the TaskFlow upstream is unavailable
+- Service key provisioning and authenticated quota calls in staging remain unverified from this repository
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -32,10 +34,10 @@ Discovery and architecture validation for the external Accounts contract; roadma
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 0 discovery gate: contract validation and architecture decisions are documented, but the environment-dependent external validation remains blocked
+Phase 0 discovery gate: Accounts anonymous `/auth/me/` smoke check passes, but the TaskFlow origin returns `502 Bad Gateway`; gate remains FAIL/PENDING
 
 ## Last Commit
-5c9ec6d - Actualizacion de roadmap con mejoras y inclusion de current_state
+0daafcc - docs(phase0): add accounts discovery and architecture artifacts
 
 ## Next Task
 Phase 1 can begin only after the external Accounts registration and staging validation are either completed or explicitly documented as a project blocker.

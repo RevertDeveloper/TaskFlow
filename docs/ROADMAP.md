@@ -350,7 +350,7 @@ Un servicio web Next.js, un servicio API Django, un worker Celery, PostgreSQL y 
 
 **Risk:** Critical, por dependencia de identidad y cookies.
 
-**Status:** Discovery verificada y documentada; la fase no se considera cerrada totalmente hasta que la validacion externa de `taskflow` en Accounts y la topologia staging/proxy esten confirmadas. Existe un bloqueo explicito del entorno externo, no de la implementacion local.
+**Status:** Discovery verificada y documentada; el cliente `taskflow` fue creado en el panel de Accounts segun validacion operativa del responsable. La fase sigue bloqueada porque `https://taskflow.carlosrevert.es` devuelve `502 Bad Gateway` y aun no puede validarse el flujo HTTPS completo de staging.
 
 ### 0.1 - Inventario reproducible
 
