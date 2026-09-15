@@ -435,6 +435,9 @@ Foundation puede iniciar sin reinterpretar la autenticacion ni modificar Account
 
 **TF-0101 [P0]** Crear la estructura aprobada.
 
+**Status:** COMPLETED. Las rutas base del monorepo estan creadas y versionables;
+la guia de desarrollo documenta el uso de variables de entorno sin secretos.
+
 - **CREATE:** `apps/web/`, `apps/api/`, `packages/contracts/`, `packages/schemas/`, `infra/docker/`, `docs/development/`, `tests/`.
 - **Validar:** README de desarrollo explica como arrancar sin secretos reales.
 
