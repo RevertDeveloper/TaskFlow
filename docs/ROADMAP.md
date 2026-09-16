@@ -703,14 +703,26 @@ en Phase 16.
 
 **Risk:** High.
 
+**Status:** COMPLETED. El dominio, las migraciones, los servicios transaccionales,
+el historial y las entidades MVP de sync/voz están implementados. La validación
+local de la fase pasa con 50 tests, Ruff, `manage.py check` y comprobación de
+migraciones sin cambios pendientes.
+
 ### 3.1 - Database foundation
 
 **TF-0301 [P0]** Crear app modular de dominio.
+
+**Status:** COMPLETED. Se crearon las apps `common`, `lists`, `tasks`, `history`,
+`sync` y `voice` con límites de modelo, selectors, servicios y permisos.
 
 - **CREATE:** `apps/api/apps/lists/`, `tasks/`, `history/`, `sync/`, `voice/`, `common/`.
 - Cada modulo contiene, cuando aplique: `models.py`, `selectors.py`, `services/`, `permissions.py`, `serializers.py`, `api.py`, `tests/`.
 
 **TF-0302 [P0]** Definir UUID, timestamps, `external_user_id` y auditoria.
+
+**Status:** COMPLETED. Los modelos usan UUID global, timestamps timezone-aware,
+`PositiveBigIntegerField` validado para `external_user_id` e índices por usuario;
+la prueba de migración aplica, revierte y reaplica el esquema.
 
 - **CREATE:** migracion inicial y `common/models.py` o mixins pequenos.
 - **Requirements:** `created_at`, `updated_at` timezone-aware; indexes por usuario y estado; no FK a una tabla local de usuarios salvo decision posterior.
@@ -720,12 +732,18 @@ en Phase 16.
 
 **TF-0303 [P1]** Implementar `List` y Inbox.
 
+**Status:** COMPLETED. Inbox es idempotente, único por usuario y protegido; se
+permiten nombres duplicados entre listas no sistémicas.
+
 - **Fields MVP:** id, external_user_id, name, description opcional, emoji/color opcionales, position, is_archived, is_system, timestamps.
 - **Service:** `EnsureInboxForUser` idempotente.
 - **Invariants:** Inbox no se elimina ni archiva; nombre valido; ownership obligatorio.
 - **Tests:** creacion, duplicado permitido o politica decidida, Inbox por usuario, foreign access.
 
 **TF-0304 [P1]** Implementar servicios de lista.
+
+**Status:** COMPLETED. Crear, actualizar, reordenar y eliminar son transaccionales;
+el borrado mueve las tareas a Inbox y no elimina tareas silenciosamente.
 
 - **CREATE:** `apps/api/apps/lists/services/create_list.py`, `update_list.py`, `delete_list.py`, `reorder_lists.py`.
 - **Validar:** transaccion, posiciones estables, archivo de lista no borra tareas silenciosamente; definir destino Inbox.
@@ -734,11 +752,17 @@ en Phase 16.
 
 **TF-0305 [P0]** Implementar `Task`.
 
+**Status:** COMPLETED. Se implementaron campos, estados, fuentes, soft delete,
+validación de ownership de lista e índices requeridos.
+
 - **Fields MVP:** id, external_user_id, list_id, title, description, status (`pending`/`completed`), source (`manual`/`voice`/`ai`/`import`), position, created_at, updated_at, completed_at, deleted_at.
 - **Invariants:** title no vacio, list del mismo usuario, completed_at coherente con status.
 - **Indexes:** `(external_user_id,status)`, `(external_user_id,list_id,status)`, `(external_user_id,updated_at)`.
 
 **TF-0306 [P0]** Implementar casos de uso.
+
+**Status:** COMPLETED. Crear, editar, completar, reabrir, mover y eliminar
+lógicamente son idempotentes donde corresponde y registran eventos atómicos.
 
 - **CREATE:** `create_task.py`, `update_task.py`, `complete_task.py`, `reopen_task.py`, `move_task.py`, `delete_task.py`.
 - **Regla:** completar no destruye; reabrir limpia `completed_at`; cada mutacion relevante crea evento en la misma transaccion.
@@ -748,6 +772,9 @@ en Phase 16.
 
 **TF-0307 [P1]** Implementar `TaskEvent`.
 
+**Status:** COMPLETED. El event log conserva `task_id` sin FK, restringe tipos de
+evento y nunca guarda audio, prompts ni respuestas de proveedores.
+
 - **Fields:** id, external_user_id, task_id nullable si se conserva evento tras delete, event_type, payload JSON validado, created_at.
 - **Events MVP:** `TASK_CREATED`, `TASK_UPDATED`, `TASK_COMPLETED`, `TASK_REOPENED`, `TASK_MOVED`, `TASK_DELETED`, `TASK_RESTORED`, `LIST_*` necesarios.
 - **Privacy:** no guardar audio, prompts ni respuestas LLM en payload.
@@ -756,22 +783,30 @@ en Phase 16.
 
 **TF-0308 [P1]** Crear modelos de `SyncOperation` y `VoiceSession` solo con campos MVP.
 
+**Status:** COMPLETED. Sync tiene idempotency key única por usuario y voz solo
+persiste estado/metadatos no sensibles, sin audio permanente.
+
 - **SyncOperation:** id, external_user_id, device_id, entity_type/id, operation, client_version, occurred_at, processed_at, idempotency key, payload version.
 - **VoiceSession:** id, external_user_id, status, transcript retention flag, provider metadata no sensible, timestamps, error code.
 - **No hacer:** guardar audio permanente en esta fase.
 
 ### QUALITY GATE
 
-- [ ] Migraciones aplican desde cero.
-- [ ] Pruebas de dominio y ownership verdes.
-- [ ] Inbox idempotente y protegida.
-- [ ] Eventos se crean atomicamente.
-- [ ] No existen credenciales ni datos privados en payloads/logs.
-- [ ] Indices y politica de soft delete documentados.
+- [x] Migraciones aplican desde cero.
+- [x] Pruebas de dominio y ownership verdes.
+- [x] Inbox idempotente y protegida.
+- [x] Eventos se crean atomicamente.
+- [x] No existen credenciales ni datos privados en payloads/logs.
+- [x] Indices y politica de soft delete documentados.
 
 ### Definition of Done
 
 El dominio puede crear, mover, completar, reabrir y eliminar logicamente tareas con historial trazable, sin depender de React ni de un proveedor externo.
+
+**Evidence:** `apps/api` ejecuta 50 tests verdes, Ruff sin errores,
+`manage.py check` sin incidencias y `makemigrations --check --dry-run` sin
+cambios pendientes. La política de persistencia está documentada en
+`docs/architecture/domain-persistence.md`.
 
 ---
 

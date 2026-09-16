@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 2
+Phase 3 completed; next executable task is TF-0401
 
 ## Current Subphase
-2.3 - Pruebas del contrato de identidad
+3.5 - Sync and voice entities
 
 ## Current Task
-Phase 2 completed; next executable task is TF-0301
+Phase 3 completed; next executable task is TF-0401
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -32,9 +32,17 @@ Phase 2 completed; next executable task is TF-0301
 - TF-0205: delegated web auth client
 - TF-0206: frontend authentication states and AuthBoundary
 - TF-0207: backend authentication, proxy and permission tests
+- TF-0301: modular domain apps created
+- TF-0302: UUID, ownership, timestamps, indexes and migrations
+- TF-0303: List and protected Inbox domain
+- TF-0304: transactional list services
+- TF-0305: Task model and invariants
+- TF-0306: transactional task use cases
+- TF-0307: TaskEvent audit log
+- TF-0308: SyncOperation and VoiceSession MVP entities
 
 ## In Progress
-- None. Phase 3 is ready to start.
+- None. Phase 3 quality gate passed.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -47,13 +55,13 @@ Phase 2 completed; next executable task is TF-0301
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 2 PASS. Contract fixtures, no JWT/secrets, adapter and frontend checks
-pass. Resource ownership tests belong to their resource phases; real staging
-auth is deferred to Phase 16.
+Phase 3 PASS. 50 API tests, domain ownership and transaction tests, migration
+up/down evidence, Ruff, Django check and migration drift check pass. Real
+Accounts staging auth remains deferred to Phase 16.
 
 ## Last Commit
-87c11ef - docs(roadmap): align phase dependencies
+Pending Phase 3 commit.
 
 ## Next Task
-Implement TF-0301 and TF-0302. Add ownership tests with each domain resource;
-do not block domain work on staging validation.
+Implement TF-0401: versioned REST API for lists, tasks and history. Preserve
+server-side Accounts identity and the selectors established in Phase 3.

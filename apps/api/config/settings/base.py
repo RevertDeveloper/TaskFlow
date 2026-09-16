@@ -15,6 +15,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.staticfiles",
     "rest_framework",
+    "apps.common.apps.CommonConfig",
+    "apps.lists.apps.ListsConfig",
+    "apps.tasks.apps.TasksConfig",
+    "apps.history.apps.HistoryConfig",
+    "apps.sync.apps.SyncConfig",
+    "apps.voice.apps.VoiceConfig",
 ]
 
 MIDDLEWARE = [
