@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 4 in progress; subphase 4.1 completed
+Phase 4 completed; Phase 5 is next
 
 ## Current Subphase
-4.2 - Contract testing
+4.3 - Health and operational API completed
 
 ## Current Task
-Implement TF-0403: define the response/error envelope and versioned schema contract
+Phase 4 Quality Gate completed; next task is TF-0501
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -43,9 +43,14 @@ Implement TF-0403: define the response/error envelope and versioned schema contr
 - TF-0401: versioned REST API for lists, tasks and history
 - TF-0402: selectors and module-level authenticated permissions
 - TF-0208: API multi-tenant isolation tests
+- TF-0403: response/error envelopes and schema contract
+- TF-0404: generated and CI-validated OpenAPI contract
+- TF-0405: pagination and filters
+- TF-0406: health and readiness endpoints
+- TF-0407: request ID and structured error correlation
 
 ## In Progress
-- Phase 4.1 is complete; Phase 4.2 contract work is next.
+- Phase 4 is complete; Phase 5 frontend foundation is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -58,12 +63,11 @@ Implement TF-0403: define the response/error envelope and versioned schema contr
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 3 PASS. 55 API tests, domain ownership and transaction tests, migration
-up/down evidence, Ruff, Django check and migration drift check pass. Real
-Accounts staging auth remains deferred to Phase 16.
+Phase 4 PASS. 64 API tests, contract validation, OpenAPI generation, Ruff and
+Django checks pass. Real Accounts staging auth remains deferred to Phase 16.
 
 ## Last Commit
-Pending commit for Phase 4.1 API surface and isolation
+2b11e44 (Phase 4.1 API surface and isolation)
 
 ## Next Task
-Implement TF-0403: define response/error envelopes and the OpenAPI/schema contract.
+Implement TF-0501: create the frontend app shell.

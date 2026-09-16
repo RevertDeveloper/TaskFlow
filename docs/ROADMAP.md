@@ -803,7 +803,7 @@ persiste estado/metadatos no sensibles, sin audio permanente.
 
 El dominio puede crear, mover, completar, reabrir y eliminar logicamente tareas con historial trazable, sin depender de React ni de un proveedor externo.
 
-**Evidence:** `apps/api` ejecuta 50 tests verdes, Ruff sin errores,
+**Evidence:** `apps/api` ejecuta 64 tests verdes, Ruff sin errores,
 `manage.py check` sin incidencias y `makemigrations --check --dry-run` sin
 cambios pendientes. La política de persistencia está documentada en
 `docs/architecture/domain-persistence.md`.
@@ -818,8 +818,9 @@ cambios pendientes. La política de persistencia está documentada en
 
 **Risk:** High.
 
-**Status:** IN PROGRESS. La subfase 4.1 y el aislamiento API estan completados;
-OpenAPI, paginacion contractual, readiness y request correlation siguen pendientes.
+**Status:** COMPLETED. La API REST versionada, el aislamiento multiusuario,
+OpenAPI, paginacion, filtros, readiness y request correlation estan completados
+y validados por la suite API y CI.
 
 ### 4.1 - API surface
 
@@ -860,6 +861,8 @@ desconocidos, historial por lista y ausencia de identidad del navegador.
 - **CREATE:** `packages/contracts/openapi.yaml` o generacion equivalente, `packages/schemas/error.schema.json`.
 - **Formato:** `data`, `meta`, error con `code`, `message`, `details` sin secretos.
 - **Status:** 200, 201, 202, 204, 400, 401, 403, 404, 409, 422, 429, 5xx segun caso.
+- **Status:** COMPLETED. Envelope implementado en la API, schema de errores validado
+    con Draft 2020-12 y tests contractuales cubren la forma publica.
 
 ### 4.2 - Contract testing
 
@@ -868,12 +871,17 @@ desconocidos, historial por lista y ausencia de identidad del navegador.
 - **CREATE:** `docs/api/openapi.yaml` generado o artefacto versionado.
 - **Tests:** schema lint, response validation y compatibilidad backward.
 - **Frontend:** generar tipos o cliente tipado a partir del contrato aprobado.
+- **Status:** COMPLETED. El artefacto se genera con `spectacular --validate`,
+  se comprueba en tests y CI detecta drift del YAML versionado.
 
 **TF-0405 [P1]** Implementar paginacion y filtros.
 
 - Pendientes por lista/estado.
 - Historial por cursor o paginacion estable con `created_at,id`.
 - Limites maximos; nunca devolver miles de tareas sin paginar.
+- **Status:** COMPLETED. Las colecciones usan paginacion page-number con
+    default 20 y maximo 100; listas, tareas e historial tienen filtros y orden
+    estable, con tests API de pagina, limite y filtros invalidos.
 
 ### 4.3 - Health and operational API
 
@@ -882,12 +890,18 @@ desconocidos, historial por lista y ausencia de identidad del navegador.
 - `/health`: proceso vivo, sin afirmar dependencias listas.
 - `/ready`: DB, Redis si obligatorio para el proceso, migraciones y configuracion critica.
 - **Tests:** dependency down devuelve 503 sin detalles internos.
+- **Status:** COMPLETED. `/api/health` comprueba liveness sin dependencias y
+    `/api/ready` comprueba configuracion, base de datos y migraciones; Redis no es
+    obligatorio en esta fase.
 
 **TF-0407 [P1]** Añadir request id y error correlation.
 
 - **CREATE:** middleware y logging estructurado.
 - **Headers:** aceptar/generar `X-Request-ID`, devolverlo en respuestas.
 - No incluir cookies, tokens, transcripciones o cuerpos privados.
+- **Status:** COMPLETED. El middleware valida IDs recibidos, genera UUID cuando
+    faltan o son invalidos, devuelve el header incluso en errores y emite logs JSON
+    con metadatos operativos sin datos privados.
 
 ### Tests y manual QA
 
@@ -899,11 +913,11 @@ desconocidos, historial por lista y ausencia de identidad del navegador.
 
 ### QUALITY GATE
 
-- [ ] OpenAPI generado y validado.
-- [ ] Todas las rutas privadas tienen adapter/permission.
-- [ ] Foreign UUID no filtra datos.
-- [ ] Health/readiness diferenciados.
-- [ ] Tests API y contract green.
+- [x] OpenAPI generado y validado.
+- [x] Todas las rutas privadas tienen adapter/permission.
+- [x] Foreign UUID no filtra datos.
+- [x] Health/readiness diferenciados.
+- [x] Tests API y contract green: 64 tests aprobados, Ruff y Django checks limpios.
 
 ### Definition of Done
 

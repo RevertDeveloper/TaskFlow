@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
 from apps.authentication.domain.models import AuthenticatedPrincipal
 from apps.common.api import TaskFlowAPIView, paginated_response
 from apps.common.exceptions import ResourceNotFound
@@ -10,6 +12,12 @@ from .selectors import events_for_list, events_for_user
 from .serializers import HistoryOutputSerializer
 
 
+@extend_schema_view(
+    get=extend_schema(
+        operation_id="history_list",
+        responses={200: HistoryOutputSerializer(many=True)},
+    )
+)
 class HistoryView(TaskFlowAPIView):
     permission_classes = (CanAccessHistory,)
 
@@ -21,6 +29,12 @@ class HistoryView(TaskFlowAPIView):
         return paginated_response(request, queryset, HistoryOutputSerializer)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        operation_id="lists_history_list",
+        responses={200: HistoryOutputSerializer(many=True)},
+    )
+)
 class ListHistoryView(TaskFlowAPIView):
     permission_classes = (CanAccessHistory,)
 

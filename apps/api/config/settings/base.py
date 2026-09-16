@@ -15,6 +15,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "apps.common.apps.CommonConfig",
     "apps.lists.apps.ListsConfig",
     "apps.tasks.apps.TasksConfig",
@@ -24,6 +25,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "apps.common.middleware.RequestCorrelationMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -34,6 +36,21 @@ MIDDLEWARE = [
 # TaskFlow has its own CSRF boundary; Accounts' CSRF cookie is never validated
 # with TaskFlow secrets.
 CSRF_COOKIE_NAME = "taskflowcsrftoken"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"request_id": {"()": "apps.common.middleware.RequestIdLogFilter"}},
+    "formatters": {"json": {"()": "apps.common.middleware.JsonLogFormatter"}},
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_id"],
+            "formatter": "json",
+        }
+    },
+    "root": {"handlers": ["console"], "level": "INFO"},
+}
 
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
@@ -92,5 +109,13 @@ REST_FRAMEWORK = {
         "apps.authentication.infrastructure.accounts_authentication.AccountsSessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.common.api.taskflow_exception_handler",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "TaskFlow API",
+    "DESCRIPTION": "API versionada para listas, tareas e historial de TaskFlow.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }

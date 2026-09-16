@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework.exceptions import ValidationError
 
 from apps.authentication.domain.models import AuthenticatedPrincipal
@@ -15,6 +16,17 @@ from .services.ensure_inbox import ensure_inbox_for_user
 from .services.update_list import update_list
 
 
+@extend_schema_view(
+    get=extend_schema(
+        operation_id="lists_list",
+        responses={200: ListOutputSerializer(many=True)},
+    ),
+    post=extend_schema(
+        operation_id="lists_create",
+        request=ListCreateSerializer,
+        responses={201: ListOutputSerializer},
+    ),
+)
 class ListCollectionView(TaskFlowAPIView):
     permission_classes = (CanAccessLists,)
 
@@ -36,6 +48,15 @@ class ListCollectionView(TaskFlowAPIView):
         return success_response(ListOutputSerializer(task_list).data, status_code=201)
 
 
+@extend_schema_view(
+    get=extend_schema(operation_id="lists_retrieve", responses={200: ListOutputSerializer}),
+    patch=extend_schema(
+        operation_id="lists_partial_update",
+        request=ListUpdateSerializer,
+        responses={200: ListOutputSerializer},
+    ),
+    delete=extend_schema(operation_id="lists_destroy", responses={204: None}),
+)
 class ListDetailView(TaskFlowAPIView):
     permission_classes = (CanAccessLists,)
 

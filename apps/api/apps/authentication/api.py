@@ -1,6 +1,9 @@
 from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +12,9 @@ from .domain.models import AuthenticatedPrincipal
 from .infrastructure.accounts_auth_proxy import AccountsAuthProxy, AccountsProxyError
 
 
+@extend_schema_view(
+    get=extend_schema(operation_id="auth_csrf_retrieve", responses={200: OpenApiTypes.OBJECT})
+)
 class CsrfView(APIView):
     permission_classes = (AllowAny,)
 
@@ -17,6 +23,9 @@ class CsrfView(APIView):
         return Response({"detail": "CSRF cookie set"})
 
 
+@extend_schema_view(
+    get=extend_schema(operation_id="auth_me_retrieve", responses={200: OpenApiTypes.OBJECT})
+)
 class MeView(APIView):
     permission_classes = (AllowAny,)
 
@@ -27,6 +36,7 @@ class MeView(APIView):
         return Response({"authenticated": True, "user": principal_payload(principal)})
 
 
+@extend_schema(exclude=True)
 class AccountsAuthProxyView(APIView):
     permission_classes = (AllowAny,)
     proxy = AccountsAuthProxy()
@@ -69,3 +79,14 @@ def principal_payload(principal: AuthenticatedPrincipal) -> dict[str, object]:
         "last_name": "",
         "plan": principal.plan,
     }
+
+
+class AccountsSessionAuthenticationScheme(OpenApiAuthenticationExtension):
+    target_class = (
+        "apps.authentication.infrastructure.accounts_authentication."
+        "AccountsSessionAuthentication"
+    )
+    name = "taskflowSession"
+
+    def get_security_definition(self, auto_schema):  # type: ignore[no-untyped-def]
+        return {"type": "apiKey", "in": "cookie", "name": "sessionid"}

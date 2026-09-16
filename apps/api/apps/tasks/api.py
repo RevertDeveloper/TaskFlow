@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework.exceptions import ValidationError
 
 from apps.authentication.domain.models import AuthenticatedPrincipal
@@ -19,6 +20,17 @@ from .services import (
 )
 
 
+@extend_schema_view(
+    get=extend_schema(
+        operation_id="tasks_list",
+        responses={200: TaskOutputSerializer(many=True)},
+    ),
+    post=extend_schema(
+        operation_id="tasks_create",
+        request=TaskCreateSerializer,
+        responses={201: TaskOutputSerializer},
+    ),
+)
 class TaskCollectionView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
@@ -42,6 +54,15 @@ class TaskCollectionView(TaskFlowAPIView):
         return success_response(TaskOutputSerializer(task).data, status_code=201)
 
 
+@extend_schema_view(
+    get=extend_schema(operation_id="tasks_retrieve", responses={200: TaskOutputSerializer}),
+    patch=extend_schema(
+        operation_id="tasks_partial_update",
+        request=TaskUpdateSerializer,
+        responses={200: TaskOutputSerializer},
+    ),
+    delete=extend_schema(operation_id="tasks_destroy", responses={204: None}),
+)
 class TaskDetailView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
@@ -70,6 +91,13 @@ class TaskDetailView(TaskFlowAPIView):
         return get_owned_task(_external_user_id(request), _parse_uuid(task_id))
 
 
+@extend_schema_view(
+    post=extend_schema(
+        operation_id="tasks_complete",
+        request=None,
+        responses={200: TaskOutputSerializer},
+    )
+)
 class TaskCompleteView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
@@ -78,6 +106,13 @@ class TaskCompleteView(TaskFlowAPIView):
         return success_response(TaskOutputSerializer(task).data)
 
 
+@extend_schema_view(
+    post=extend_schema(
+        operation_id="tasks_reopen",
+        request=None,
+        responses={200: TaskOutputSerializer},
+    )
+)
 class TaskReopenView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 

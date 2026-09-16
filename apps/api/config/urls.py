@@ -1,4 +1,5 @@
 from django.urls import path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.authentication.api import AccountsAuthProxyView, CsrfView, MeView
 from apps.history.api import HistoryView, ListHistoryView
@@ -9,10 +10,14 @@ from apps.tasks.api import (
     TaskDetailView,
     TaskReopenView,
 )
-from config.health import health
+from config.health import health, readiness
 
 urlpatterns = [
     path("health/", health, name="health"),
+    path("api/health", health, name="api-health"),
+    path("api/ready", readiness, name="api-ready"),
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/v1/auth/csrf/", CsrfView.as_view(), name="taskflow-auth-csrf"),
     path("api/v1/auth/me/", MeView.as_view(), name="taskflow-auth-me"),
     path("api/v1/lists/", ListCollectionView.as_view(), name="taskflow-lists"),

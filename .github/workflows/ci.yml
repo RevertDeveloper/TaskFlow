@@ -71,6 +71,11 @@ jobs:
       - name: Django checks
         run: python manage.py check
 
+      - name: OpenAPI contract
+        run: |
+          python manage.py spectacular --file ../../docs/api/openapi.yaml --validate
+          git diff --exit-code -- ../../docs/api/openapi.yaml
+
       - name: Tests
         run: python -m pytest
 

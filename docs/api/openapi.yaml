@@ -1,0 +1,591 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow API
+  version: 1.0.0
+  description: API versionada para listas, tareas e historial de TaskFlow.
+paths:
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/history/:
+    get:
+      operationId: history_list
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistoryOutput'
+          description: ''
+  /api/v1/lists/:
+    get:
+      operationId: lists_list
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListOutput'
+          description: ''
+    post:
+      operationId: lists_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ListCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ListCreate'
+        required: true
+      security:
+      - taskflowSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListOutput'
+          description: ''
+  /api/v1/lists/{list_id}/:
+    get:
+      operationId: lists_retrieve
+      parameters:
+      - in: path
+        name: list_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListOutput'
+          description: ''
+    patch:
+      operationId: lists_partial_update
+      parameters:
+      - in: path
+        name: list_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedListUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedListUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedListUpdate'
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListOutput'
+          description: ''
+    delete:
+      operationId: lists_destroy
+      parameters:
+      - in: path
+        name: list_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/lists/{list_id}/history/:
+    get:
+      operationId: lists_history_list
+      parameters:
+      - in: path
+        name: list_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistoryOutput'
+          description: ''
+  /api/v1/tasks/:
+    get:
+      operationId: tasks_list
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskOutput'
+          description: ''
+    post:
+      operationId: tasks_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+        required: true
+      security:
+      - taskflowSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskOutput'
+          description: ''
+  /api/v1/tasks/{task_id}/:
+    get:
+      operationId: tasks_retrieve
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskOutput'
+          description: ''
+    patch:
+      operationId: tasks_partial_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTaskUpdate'
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskOutput'
+          description: ''
+    delete:
+      operationId: tasks_destroy
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/tasks/{task_id}/complete/:
+    post:
+      operationId: tasks_complete
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskOutput'
+          description: ''
+  /api/v1/tasks/{task_id}/reopen/:
+    post:
+      operationId: tasks_reopen
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskOutput'
+          description: ''
+components:
+  schemas:
+    EventTypeEnum:
+      enum:
+      - TASK_CREATED
+      - TASK_UPDATED
+      - TASK_COMPLETED
+      - TASK_REOPENED
+      - TASK_MOVED
+      - TASK_DELETED
+      - TASK_RESTORED
+      - LIST_CREATED
+      - LIST_UPDATED
+      - LIST_ARCHIVED
+      - LIST_DELETED
+      type: string
+      description: |-
+        * `TASK_CREATED` - Task created
+        * `TASK_UPDATED` - Task updated
+        * `TASK_COMPLETED` - Task completed
+        * `TASK_REOPENED` - Task reopened
+        * `TASK_MOVED` - Task moved
+        * `TASK_DELETED` - Task deleted
+        * `TASK_RESTORED` - Task restored
+        * `LIST_CREATED` - List created
+        * `LIST_UPDATED` - List updated
+        * `LIST_ARCHIVED` - List archived
+        * `LIST_DELETED` - List deleted
+    HistoryOutput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        task_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        event_type:
+          allOf:
+          - $ref: '#/components/schemas/EventTypeEnum'
+          readOnly: true
+        payload:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - event_type
+      - id
+      - payload
+      - task_id
+    ListCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 1
+        description:
+          type: string
+        emoji:
+          type: string
+          maxLength: 16
+        color:
+          type: string
+          maxLength: 32
+        position:
+          type: integer
+          minimum: 0
+      required:
+      - name
+    ListOutput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        emoji:
+          type: string
+          readOnly: true
+        color:
+          type: string
+          readOnly: true
+        position:
+          type: integer
+          readOnly: true
+        is_archived:
+          type: boolean
+          readOnly: true
+        is_system:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - color
+      - created_at
+      - description
+      - emoji
+      - id
+      - is_archived
+      - is_system
+      - name
+      - position
+      - updated_at
+    PatchedListUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 120
+          minLength: 1
+        description:
+          type: string
+        emoji:
+          type: string
+          maxLength: 16
+        color:
+          type: string
+          maxLength: 32
+        position:
+          type: integer
+          minimum: 0
+        is_archived:
+          type: boolean
+    PatchedTaskUpdate:
+      type: object
+      properties:
+        list_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 500
+          minLength: 1
+        description:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        position:
+          type: integer
+          minimum: 0
+    SourceEnum:
+      enum:
+      - manual
+      - voice
+      - ai
+      - import
+      type: string
+      description: |-
+        * `manual` - Manual
+        * `voice` - Voice
+        * `ai` - AI
+        * `import` - Import
+    StatusEnum:
+      enum:
+      - pending
+      - completed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `completed` - Completed
+    TaskCreate:
+      type: object
+      properties:
+        list_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 500
+          minLength: 1
+        description:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        position:
+          type: integer
+          minimum: 0
+      required:
+      - list_id
+      - title
+    TaskOutput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        list_id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          readOnly: true
+        position:
+          type: integer
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - completed_at
+      - created_at
+      - deleted_at
+      - description
+      - id
+      - list_id
+      - position
+      - source
+      - status
+      - title
+      - updated_at
+  securitySchemes:
+    taskflowSession:
+      type: apiKey
+      in: cookie
+      name: sessionid
