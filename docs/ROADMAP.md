@@ -933,14 +933,25 @@ El backend ofrece el CRUD completo y verificable sin que la UI tenga que conocer
 
 **Risk:** Medium.
 
+**Status:** IN PROGRESS. TF-0501 y TF-0502 completadas con shell App Router,
+cliente API tipado y checks web verdes. TF-0503 a TF-0505 siguen pendientes.
+
 ### 5.1 - App shell
 
 **TF-0501 [P1]** Crear rutas App Router y shell.
+
+**Status:** COMPLETED. El shell privado usa `AuthBoundary`, no carga datos
+privados desde Server Components y expone dashboard, listas, historial y
+ajustes con estados de acceso y error recuperable.
 
 - **CREATE:** `apps/web/src/app/(auth)/`, `src/app/app/`, `src/app/app/dashboard/page.tsx`, `lists/`, `history/`, `settings/`, `src/app/error.tsx`.
 - **Regla:** server/client boundary explicita; no cargar datos privados en server cache publico.
 
 **TF-0502 [P1]** Crear cliente API tipado.
+
+**Status:** COMPLETED. El cliente usa `credentials: include`, CSRF propio,
+`X-Request-ID`, timeout cancelable, errores normalizados y tipos derivados del
+OpenAPI disponible.
 
 - **CREATE:** `src/infrastructure/api/httpClient.ts`, `src/infrastructure/api/generated/`.
 - **Requirements:** credentials, CSRF TaskFlow, normalized errors, request id, timeout y abort.

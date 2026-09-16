@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 4 completed; Phase 5 is next
+Phase 5 in progress
 
 ## Current Subphase
-4.3 - Health and operational API completed
+5.1 - App shell and typed API client completed
 
 ## Current Task
-Phase 4 Quality Gate completed; next task is TF-0501
+TF-0501 and TF-0502 completed; next task is TF-0503
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -48,9 +48,11 @@ Phase 4 Quality Gate completed; next task is TF-0501
 - TF-0405: pagination and filters
 - TF-0406: health and readiness endpoints
 - TF-0407: request ID and structured error correlation
+- TF-0501: App Router routes and authenticated app shell
+- TF-0502: typed TaskFlow API client with CSRF, timeout and request correlation
 
 ## In Progress
-- Phase 4 is complete; Phase 5 frontend foundation is next.
+- Phase 5 frontend foundation: TF-0503 theme engine, TF-0504 base UI controls and TF-0505 responsive navigation.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -63,11 +65,11 @@ Phase 4 Quality Gate completed; next task is TF-0501
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 4 PASS. 64 API tests, contract validation, OpenAPI generation, Ruff and
-Django checks pass. Real Accounts staging auth remains deferred to Phase 16.
+Phase 4 PASS. Phase 5 first slice checks pass: web lint, strict typecheck and
+6 Vitest tests. Real Accounts staging auth remains deferred to Phase 16.
 
 ## Last Commit
-2b11e44 (Phase 4.1 API surface and isolation)
+Pending: `feat(web): add app shell and typed api client`
 
 ## Next Task
-Implement TF-0501: create the frontend app shell.
+Implement TF-0503: create tokens and ThemeProvider.
