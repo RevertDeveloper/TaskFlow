@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { AuthBoundary } from "@/features/auth/components/AuthBoundary";
+import { TaskWorkspaceProvider } from "@/features/tasks/application/TaskWorkspaceProvider";
 
 type AppShellProps = {
   children: ReactNode;
@@ -19,11 +20,13 @@ export function AppShell({ children }: AppShellProps) {
       unavailable={<AuthMessage title="No podemos validar tu sesión." detail="Comprueba la conexión y vuelve a intentarlo." />}
       loading={<AuthMessage title="Preparando tu espacio…" detail="Validando la sesión." />}
     >
-      <div className="app-frame">
-        <Sidebar />
-        <main className="app-frame__main">{children}</main>
-        <MobileNav />
-      </div>
+      <TaskWorkspaceProvider>
+        <div className="app-frame">
+          <Sidebar />
+          <main className="app-frame__main">{children}</main>
+          <MobileNav />
+        </div>
+      </TaskWorkspaceProvider>
     </AuthBoundary>
   );
 }

@@ -3,27 +3,157 @@
 import { useState } from "react";
 
 import { ListSwitcher } from "@/components/navigation/ListSwitcher";
-
-const lists = [
-  { id: "inbox", name: "Inbox", emoji: "·" },
-  { id: "today", name: "Hoy", emoji: "○" },
-  { id: "ideas", name: "Ideas", emoji: "✦" },
-];
+import { CheckCircle2, ListFilter, RefreshCw, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { Toast } from "@/components/ui/Toast";
+import { useTaskWorkspace } from "@/features/tasks/application/TaskWorkspaceProvider";
+import { PendingCount } from "@/features/tasks/components/PendingCount";
+import { QuickTaskInput } from "@/features/tasks/components/QuickTaskInput";
+import { TaskBoard } from "@/features/tasks/components/TaskBoard";
+import { TaskEditor } from "@/features/tasks/components/TaskEditor";
+import type { Task } from "@/domain/task/models";
+import { useUiStore } from "@/stores/uiStore";
 
 export function DashboardView() {
-  const [activeListId, setActiveListId] = useState("inbox");
+  const { lists, tasks, loading, error, refresh, createTask, updateTask, completeTask, reopenTask, deleteTask } = useTaskWorkspace();
+  const activeListId = useUiStore((state) => state.activeListId);
+  const setActiveListId = useUiStore((state) => state.setActiveListId);
+  const editingTaskId = useUiStore((state) => state.editingTaskId);
+  const setEditingTaskId = useUiStore((state) => state.setEditingTaskId);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const inbox = lists.find((list) => list.isSystem) ?? lists[0];
+  const activeList = lists.find((list) => list.id === activeListId);
+  const pendingCount = tasks.filter((task) => task.status === "pending" && (!activeListId || task.listId === activeListId)).length;
+  const listOptions = [
+    { id: "all", name: "Todas", emoji: "✦" },
+    ...lists.filter((list) => !list.isArchived).map((list) => ({ id: list.id, name: list.name, emoji: list.emoji || "·" })),
+  ];
+  const selectedListId = activeListId ?? "all";
+  const editingTask = editingTaskId ? tasks.find((task) => task.id === editingTaskId) ?? null : null;
+
+  function openNewTask() {
+    setEditingTaskId(null);
+    setEditorOpen(true);
+  }
+
+  function openEditor(task: Task) {
+    setEditingTaskId(task.id);
+    setEditorOpen(true);
+  }
+
+  function closeEditor() {
+    setEditorOpen(false);
+    setEditingTaskId(null);
+  }
+
+  function selectList(id: string) {
+    setActiveListId(id === "all" ? null : id);
+  }
+
+  async function runAction(action: () => Promise<unknown>) {
+    setActionError(null);
+    try {
+      await action();
+    } catch (requestError) {
+      setActionError(requestError instanceof Error ? requestError.message : "No se pudo completar la acción.");
+    }
+  }
 
   return (
-    <section className="page-section" aria-labelledby="dashboard-title">
-      <p className="eyebrow">Espacio personal</p>
-      <h1 id="dashboard-title">Tus tareas, en claro.</h1>
-      <p className="page-lede">Captura lo importante y vuelve a lo que tienes entre manos.</p>
-      <ListSwitcher lists={lists} activeListId={activeListId} onChange={setActiveListId} />
-      <div className="empty-panel">
-        <p className="empty-panel__label">{lists.find((list) => list.id === activeListId)?.name}</p>
-        <h2>Tu bandeja aparecerá aquí.</h2>
-        <p>La gestión de tareas se conecta en la siguiente fase del producto.</p>
+    <section className="page-section dashboard-page" aria-labelledby="dashboard-title">
+      <header className="dashboard-header">
+        <div>
+          <p className="eyebrow">Espacio personal / Hoy</p>
+          <h1 id="dashboard-title">Pendientes que caben en la cabeza.</h1>
+          <p className="page-lede">Captura lo importante y vuelve a lo que tienes entre manos.</p>
+        </div>
+        <PendingCount count={pendingCount} />
+      </header>
+
+      <QuickTaskInput defaultListId={activeListId ?? inbox?.id ?? null} onCreate={createTask} />
+
+      <div className="dashboard-toolbar">
+        <div className="dashboard-toolbar__label">
+          <ListFilter size={16} aria-hidden="true" />
+          <span>{activeList ? activeList.name : "Todas las listas"}</span>
+        </div>
+        <div className="dashboard-toolbar__actions">
+          <Button variant="secondary" onClick={openNewTask} disabled={!inbox}>
+            <CheckCircle2 size={16} aria-hidden="true" />
+            Detallar tarea
+          </Button>
+          <Button variant="ghost" onClick={() => void refresh()} loading={loading}>
+            <RefreshCw size={16} aria-hidden="true" />
+            Actualizar
+          </Button>
+        </div>
       </div>
+
+      <ListSwitcher lists={listOptions} activeListId={selectedListId} onChange={selectList} />
+
+      {error ? (
+        <div className="workspace-error" role="alert">
+          <div>
+            <p className="eyebrow">No se pudo cargar el espacio</p>
+            <p>{error}</p>
+          </div>
+          <Button variant="secondary" onClick={() => void refresh()}>Reintentar</Button>
+        </div>
+      ) : loading ? (
+        <div className="task-board__loading" role="status" aria-live="polite">
+          <span className="ui-spinner" aria-hidden="true" /> Cargando tus tareas...
+        </div>
+      ) : (
+        <TaskBoard
+          lists={lists}
+          tasks={tasks}
+          activeListId={activeListId}
+          onComplete={(id) => void runAction(() => completeTask(id))}
+          onReopen={(id) => void runAction(() => reopenTask(id))}
+          onEdit={openEditor}
+          onDelete={setDeletingTask}
+        />
+      )}
+
+      {actionError ? <Toast tone="error" message={actionError} onDismiss={() => setActionError(null)} /> : null}
+
+      {editorOpen ? (
+        <TaskEditor
+          key={editingTask?.id ?? "new-task"}
+          open
+          task={editingTask}
+          lists={lists}
+          defaultListId={activeListId ?? inbox?.id ?? null}
+          onClose={closeEditor}
+          onCreate={createTask}
+          onUpdate={updateTask}
+        />
+      ) : null}
+
+      <Modal open={Boolean(deletingTask)} title="Eliminar tarea" onClose={() => setDeletingTask(null)}>
+        <div className="confirm-dialog">
+          <div className="confirm-dialog__icon" aria-hidden="true"><Trash2 size={20} /></div>
+          <p>Se quitará <strong>{deletingTask?.title}</strong> de tus pendientes. El historial conservará el evento.</p>
+          <div className="editor-form__actions">
+            <Button variant="ghost" onClick={() => setDeletingTask(null)}>Cancelar</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (deletingTask) {
+                  void runAction(() => deleteTask(deletingTask.id));
+                }
+                setDeletingTask(null);
+              }}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

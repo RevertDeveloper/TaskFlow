@@ -9,6 +9,8 @@
   --color-accent-strong: #d2f77f;
   --color-focus: #d2f77f;
   --color-danger: #ff8d81;
+  --color-warm: #f3bd72;
+  --color-accent-soft: rgba(155, 225, 93, 0.12);
   --color-glow: rgba(155, 225, 93, 0.15);
   --color-border: rgba(190, 227, 198, 0.17);
   --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.22);
@@ -40,6 +42,8 @@
   --color-accent-strong: #1e5438;
   --color-focus: #1e5438;
   --color-danger: #a33f32;
+  --color-warm: #a45b24;
+  --color-accent-soft: rgba(47, 111, 78, 0.1);
   --color-glow: rgba(83, 132, 92, 0.13);
   --color-border: rgba(23, 34, 29, 0.15);
   --shadow-panel: 0 24px 70px rgba(73, 57, 31, 0.12);
