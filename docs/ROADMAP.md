@@ -818,9 +818,16 @@ cambios pendientes. La política de persistencia está documentada en
 
 **Risk:** High.
 
+**Status:** IN PROGRESS. La subfase 4.1 y el aislamiento API estan completados;
+OpenAPI, paginacion contractual, readiness y request correlation siguen pendientes.
+
 ### 4.1 - API surface
 
 **TF-0401 [P0]** Crear `/api/v1/` para listas, tareas e historial.
+
+**Status:** COMPLETED. Las rutas REST versionadas delegan en serializers,
+selectors y servicios de dominio para listas, tareas, acciones de completar/
+reabrir y el historial global/por lista.
 
 - **CREATE:** `apps/api/config/urls.py`, urls por modulo, views delgadas.
 - **Endpoints MVP:** `GET/POST /lists`, `GET/PATCH/DELETE /lists/{id}`, `GET/POST /tasks`, `GET/PATCH/DELETE /tasks/{id}`, `POST /tasks/{id}/complete`, `POST /tasks/{id}/reopen`, `GET /history` y `/lists/{id}/history`.
@@ -828,10 +835,17 @@ cambios pendientes. La política de persistencia está documentada en
 
 **TF-0402 [P0]** Implementar selectors y permisos con filtro por usuario.
 
+**Status:** COMPLETED. Los selectors filtran por `external_user_id`, cada
+modulo tiene permiso privado propio y los endpoints no aceptan identidad del
+cliente.
+
 - **CREATE:** `selectors.py`, `permissions.py` por modulo.
 - **Requirement:** ninguna consulta por UUID sin `external_user_id`; foreign resource se responde segun politica uniforme, preferentemente 404 para no filtrar existencia.
 
 **TF-0208 [P0]** Crear pruebas de aislamiento de usuario para los recursos API.
+
+**Status:** COMPLETED. La suite API prueba lecturas, mutaciones, UUID
+desconocidos, historial por lista y ausencia de identidad del navegador.
 
 - **Moved from:** Phase 2. Se ejecuta aquí porque listas, tareas e historial ya
     existen y pueden probarse de extremo a extremo.

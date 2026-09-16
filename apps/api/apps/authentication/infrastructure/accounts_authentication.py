@@ -29,6 +29,9 @@ class AccountsSessionAuthentication(BaseAuthentication):
         self.enforce_csrf(request)
         return principal, None
 
+    def authenticate_header(self, request):  # type: ignore[no-untyped-def]
+        return "Session"
+
     def enforce_csrf(self, request) -> None:  # type: ignore[no-untyped-def]
         if request.method in {"GET", "HEAD", "OPTIONS", "TRACE"}:
             return

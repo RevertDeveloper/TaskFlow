@@ -92,4 +92,5 @@ REST_FRAMEWORK = {
         "apps.authentication.infrastructure.accounts_authentication.AccountsSessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "EXCEPTION_HANDLER": "apps.common.api.taskflow_exception_handler",
 }

@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 3 completed; next executable task is TF-0401
+Phase 4 in progress; subphase 4.1 completed
 
 ## Current Subphase
-3.5 - Sync and voice entities
+4.2 - Contract testing
 
 ## Current Task
-Phase 3 completed; next executable task is TF-0401
+Implement TF-0403: define the response/error envelope and versioned schema contract
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -40,9 +40,12 @@ Phase 3 completed; next executable task is TF-0401
 - TF-0306: transactional task use cases
 - TF-0307: TaskEvent audit log
 - TF-0308: SyncOperation and VoiceSession MVP entities
+- TF-0401: versioned REST API for lists, tasks and history
+- TF-0402: selectors and module-level authenticated permissions
+- TF-0208: API multi-tenant isolation tests
 
 ## In Progress
-- None. Phase 3 quality gate passed.
+- Phase 4.1 is complete; Phase 4.2 contract work is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -55,13 +58,12 @@ Phase 3 completed; next executable task is TF-0401
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 3 PASS. 50 API tests, domain ownership and transaction tests, migration
+Phase 3 PASS. 55 API tests, domain ownership and transaction tests, migration
 up/down evidence, Ruff, Django check and migration drift check pass. Real
 Accounts staging auth remains deferred to Phase 16.
 
 ## Last Commit
-462ed6d - feat(domain): implement core task domain
+Pending commit for Phase 4.1 API surface and isolation
 
 ## Next Task
-Implement TF-0401: versioned REST API for lists, tasks and history. Preserve
-server-side Accounts identity and the selectors established in Phase 3.
+Implement TF-0403: define response/error envelopes and the OpenAPI/schema contract.
