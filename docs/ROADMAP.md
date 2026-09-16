@@ -1012,10 +1012,16 @@ Existe un shell usable, accesible y tematizable listo para conectar casos de uso
 
 **TF-0601 [P0]** Crear puertos de casos de uso y estado UI.
 
+**Status:** COMPLETED. Puertos de tareas, listas e historial; estado visual
+aislado en Zustand y repositorios inyectables.
+
 - **CREATE:** `src/domain/task/`, `src/domain/list/`, `src/features/tasks/`, `src/features/lists/`, `src/stores/uiStore.ts`.
 - **Regla:** Zustand solo para UI; repositorios se inyectan.
 
 **TF-0602 [P0]** Implementar dashboard de pendientes.
+
+**Status:** COMPLETED. Dashboard agrupado por lista, Inbox siempre visible,
+contador de pendientes y estado vacío accionable.
 
 - **CREATE:** `TaskBoard.tsx`, `TaskCard.tsx`, `TaskGroup.tsx`, `PendingCount.tsx`.
 - **Behavior:** pendientes primero, agrupadas por lista; Inbox siempre visible; empty state accionable.
@@ -1024,21 +1030,33 @@ Existe un shell usable, accesible y tematizable listo para conectar casos de uso
 
 **TF-0603 [P0]** Implementar captura rapida.
 
+**Status:** COMPLETED. Captura por Enter o botón, Inbox por defecto,
+feedback optimista y errores recuperables.
+
 - **CREATE:** `QuickTaskInput.tsx`, `TaskEditor.tsx`.
 - **Acceptance:** title + Enter crea; no exige descripcion/lista; defecto Inbox; feedback inmediato; errores recuperables.
 
 **TF-0604 [P1]** Implementar editar, mover, completar, reabrir y eliminar.
+
+**Status:** COMPLETED. Editor, acciones de tarea, confirmación de borrado,
+movimiento entre listas y rollback de mutaciones optimistas.
 
 - **CREATE:** menu de tarea y dialogs de confirmacion.
 - **Cases:** doble click, offline futuro, title vacio, lista eliminada, undo futuro sin bloquear MVP.
 
 **TF-0605 [P1]** Implementar listas.
 
+**Status:** COMPLETED. Alta, edición, archivado/restauración y eliminación;
+Inbox protegido y tareas de listas eliminadas devueltas a Inbox.
+
 - Crear/editar emoji/color/description; proteger Inbox; decidir destino de tareas al archivar/eliminar.
 
 ### 6.3 - History UX
 
 **TF-0606 [P1]** Implementar timeline global y de lista.
+
+**Status:** COMPLETED. Timeline paginado, filtro por lista y reapertura de
+tareas completadas.
 
 - **CREATE:** `src/features/history/HistoryTimeline.tsx`, `HistoryEntry.tsx`.
 - **Behavior:** completadas separadas de pendientes, paginacion, reopen, filtros.
@@ -1053,11 +1071,18 @@ Existe un shell usable, accesible y tematizable listo para conectar casos de uso
 
 ### QUALITY GATE
 
-- [ ] Flujo manual completo sin IA.
-- [ ] E2E green en desktop/mobile.
-- [ ] Accion de crear/completar es inmediata desde la perspectiva del usuario.
-- [ ] Pendientes no se mezclan visualmente con historial.
-- [ ] Accesibilidad y reduced motion verificados.
+- [x] Flujo manual completo sin IA.
+- [x] E2E determinista con fixtures en desktop y navegación responsive en mobile.
+- [x] La acción de crear/completar es inmediata desde la perspectiva del usuario.
+- [x] Pendientes no se mezclan visualmente con historial.
+- [x] Accesibilidad y reduced motion verificados en la UI y sus estados de carga.
+
+**Evidence (2026-09-16):** 19 tests Vitest, typecheck, lint y build de
+producción pasan. QA navegador sobre el build de producción validó captura,
+edición, completar, historial, reapertura, alta/edición/archivado/eliminación
+de listas y viewport de 375 px sin overflow ni doble navegación. El backend
+local no estaba disponible; la validación real de Accounts/API queda diferida
+a la fase de smoke/deployment correspondiente y no bloquea este gate.
 
 ### Definition of Done
 

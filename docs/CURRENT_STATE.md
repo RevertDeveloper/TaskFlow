@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 5 completed
+Phase 6 completed
 
 ## Current Subphase
-5.3 - Responsive navigation completed
+6.3 - History UX completed
 
 ## Current Task
-Phase 5 Quality Gate completed; next task is TF-0601
+Phase 6 Quality Gate completed; next task is TF-0701
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -53,13 +53,20 @@ Phase 5 Quality Gate completed; next task is TF-0601
 - TF-0503: Stark/Minimal tokenized theme engine
 - TF-0504: accessible UI base components with component tests
 - TF-0505: desktop sidebar, mobile navigation and keyboard/touch list switcher
+- TF-0601: frontend use-case ports and UI-only state
+- TF-0602: pending task dashboard grouped by list
+- TF-0603: optimistic quick task capture with Inbox default
+- TF-0604: task edit, move, complete, reopen and delete workflows
+- TF-0605: list creation, editing, archive/restore and deletion
+- TF-0606: global and list history timeline with pagination and reopen
 
 ## In Progress
-- None. Phase 5 is complete and Phase 6 is next.
+- None. Phase 6 is complete and Phase 7 is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
 - Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
+- Local API services were unavailable during browser QA; deterministic fixtures covered the Phase 6 UI gate.
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -68,12 +75,13 @@ Phase 5 Quality Gate completed; next task is TF-0601
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 5 PASS. Web lint, strict typecheck, production build and 12 Vitest tests
-pass. Visual QA completed at 375, 768 and 1440 px. Real Accounts staging auth
-remains deferred to Phase 16.
+Phase 6 PASS. Web lint, strict typecheck, production build and 19 Vitest tests
+pass. Production-build browser QA covered the manual task/list/history flows,
+desktop fixtures and 375 px responsive navigation without horizontal overflow.
+Real Accounts/API staging auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
-`feat(web): complete frontend foundation and design system` (Phase 5)
+`docs(taskflow): close Phase 6 quality gate`
 
 ## Next Task
-Implement TF-0601: create frontend use-case ports and UI state.
+Implement TF-0701: define the versioned IndexedDB/Dexie schema.
