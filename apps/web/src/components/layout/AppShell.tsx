@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 
+import { MobileNav } from "@/components/navigation/MobileNav";
+import { Sidebar } from "@/components/navigation/Sidebar";
 import { AuthBoundary } from "@/features/auth/components/AuthBoundary";
 
 type AppShellProps = {
@@ -18,19 +20,9 @@ export function AppShell({ children }: AppShellProps) {
       loading={<AuthMessage title="Preparando tu espacio…" detail="Validando la sesión." />}
     >
       <div className="app-frame">
-        <aside className="app-frame__sidebar" aria-label="Navegación principal">
-          <a className="brand-mark" href="/app/dashboard" aria-label="TaskFlow, ir al panel">
-            <span className="brand-mark__dot" aria-hidden="true" />
-            <span>TaskFlow</span>
-          </a>
-          <nav className="app-nav">
-            <a href="/app/dashboard" aria-current="page">Panel</a>
-            <a href="/app/lists">Listas</a>
-            <a href="/app/history">Historial</a>
-            <a href="/app/settings">Ajustes</a>
-          </nav>
-        </aside>
+        <Sidebar />
         <main className="app-frame__main">{children}</main>
+        <MobileNav />
       </div>
     </AuthBoundary>
   );

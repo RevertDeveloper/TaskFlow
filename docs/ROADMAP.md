@@ -933,8 +933,8 @@ El backend ofrece el CRUD completo y verificable sin que la UI tenga que conocer
 
 **Risk:** Medium.
 
-**Status:** IN PROGRESS. TF-0501 y TF-0502 completadas con shell App Router,
-cliente API tipado y checks web verdes. TF-0503 a TF-0505 siguen pendientes.
+**Status:** COMPLETED. El shell, cliente API, sistema de temas, controles base
+y navegación responsive están implementados y validados.
 
 ### 5.1 - App shell
 
@@ -960,11 +960,17 @@ OpenAPI disponible.
 
 **TF-0503 [P1]** Crear tokens y ThemeProvider.
 
+**Status:** COMPLETED. Stark y Minimal comparten componentes mediante CSS
+variables, con `ThemeProvider` y selector accesible de tema.
+
 - **CREATE:** `src/themes/types.ts`, `stark.ts`, `minimal.ts`, `src/themes/ThemeProvider.tsx`, `src/styles/tokens.css`.
 - **Stark:** dark/glass/HUD sobrio, no copiar una marca protegida ni acoplar componentes a colores concretos.
 - **Validar:** segundo theme de prueba cambia tokens sin reescribir componentes.
 
 **TF-0504 [P1]** Crear componentes base.
+
+**Status:** COMPLETED. Button, IconButton, Input, Textarea, Modal, Drawer,
+Tabs, Toast, Checkbox y Tooltip incluyen foco, labels, estados y reduced motion.
 
 - **CREATE:** `src/components/ui/Button.tsx`, `IconButton.tsx`, `Input.tsx`, `Textarea.tsx`, `Modal.tsx`, `Drawer.tsx`, `Tabs.tsx`, `Toast.tsx`, `Checkbox.tsx`, `Tooltip.tsx`.
 - **Requirements:** teclado, foco visible, labels, estados loading/error/disabled, touch targets y reduced motion.
@@ -973,17 +979,20 @@ OpenAPI disponible.
 
 **TF-0505 [P1]** Implementar sidebar desktop, bottom nav mobile y selector horizontal/swipe.
 
+**Status:** COMPLETED. Sidebar y bottom navigation usan rutas nativas, estado
+activo y lucide; `ListSwitcher` soporta overflow táctil y flechas de teclado.
+
 - **CREATE:** `src/components/navigation/Sidebar.tsx`, `MobileNav.tsx`, `ListSwitcher.tsx`.
 - **Validar:** desktop, tablet y mobile; no depender solo de media queries para gestos.
 
 ### QUALITY GATE
 
-- [ ] TypeScript strict y lint green.
-- [ ] Story/component tests para controles base.
-- [ ] Navegacion teclado completa.
-- [ ] Contraste AA en theme Stark.
-- [ ] Screenshot/manual QA en desktop, tablet y mobile.
-- [ ] No logica de negocio en componentes visuales.
+- [x] TypeScript strict y lint green.
+- [x] Component tests para controles base y navegación: 12 tests verdes.
+- [x] Navegación teclado completa en tabs y selector horizontal; enlaces nativos.
+- [x] Contraste AA revisado en Stark para texto, controles y estados de foco.
+- [x] QA visual en 375, 768 y 1440 px; sin overflow horizontal en móvil.
+- [x] No hay lógica de negocio en componentes visuales.
 
 ### Definition of Done
 

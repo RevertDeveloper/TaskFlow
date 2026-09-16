@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 5 in progress
+Phase 5 completed
 
 ## Current Subphase
-5.1 - App shell and typed API client completed
+5.3 - Responsive navigation completed
 
 ## Current Task
-TF-0501 and TF-0502 completed; next task is TF-0503
+Phase 5 Quality Gate completed; next task is TF-0601
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -50,9 +50,12 @@ TF-0501 and TF-0502 completed; next task is TF-0503
 - TF-0407: request ID and structured error correlation
 - TF-0501: App Router routes and authenticated app shell
 - TF-0502: typed TaskFlow API client with CSRF, timeout and request correlation
+- TF-0503: Stark/Minimal tokenized theme engine
+- TF-0504: accessible UI base components with component tests
+- TF-0505: desktop sidebar, mobile navigation and keyboard/touch list switcher
 
 ## In Progress
-- Phase 5 frontend foundation: TF-0503 theme engine, TF-0504 base UI controls and TF-0505 responsive navigation.
+- None. Phase 5 is complete and Phase 6 is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -65,11 +68,12 @@ TF-0501 and TF-0502 completed; next task is TF-0503
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 4 PASS. Phase 5 first slice checks pass: web lint, strict typecheck and
-6 Vitest tests. Real Accounts staging auth remains deferred to Phase 16.
+Phase 5 PASS. Web lint, strict typecheck, production build and 12 Vitest tests
+pass. Visual QA completed at 375, 768 and 1440 px. Real Accounts staging auth
+remains deferred to Phase 16.
 
 ## Last Commit
-Pending: `feat(web): add app shell and typed api client`
+`feat(web): complete frontend foundation and design system` (Phase 5)
 
 ## Next Task
-Implement TF-0503: create tokens and ThemeProvider.
+Implement TF-0601: create frontend use-case ports and UI state.
