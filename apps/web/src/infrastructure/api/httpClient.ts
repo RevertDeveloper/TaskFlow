@@ -1,4 +1,5 @@
 import type {
+  ApiEnvelope,
   ApiErrorPayload,
   HistoryOutput,
   ListCreate,
@@ -33,7 +34,7 @@ export class TaskFlowHttpClient {
   constructor(
     private readonly baseUrl = "",
     private readonly timeoutMs = defaultTimeoutMs,
-    private readonly request: typeof fetch = fetch,
+    private readonly request: typeof fetch = globalThis.fetch.bind(globalThis),
   ) {}
 
   async get<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -56,11 +57,14 @@ export class TaskFlowHttpClient {
     const controller = new AbortController();
     const timeout = globalThis.setTimeout(() => controller.abort(), options.timeoutMs ?? this.timeoutMs);
     const headers = new Headers(options.headers);
+    const method = options.method?.toUpperCase() ?? "GET";
     headers.set("Accept", "application/json");
     headers.set("X-Request-ID", createRequestId());
 
     if (options.body !== undefined) {
       headers.set("Content-Type", "application/json");
+    }
+    if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
       headers.set("X-CSRFToken", await getCsrfToken(this.request));
     }
 
@@ -94,11 +98,21 @@ export class TaskFlowHttpClient {
 export const taskFlowApi = new TaskFlowHttpClient();
 
 export const api = {
-  lists: () => taskFlowApi.get<ListOutput[]>("/api/v1/lists/"),
-  tasks: () => taskFlowApi.get<TaskOutput[]>("/api/v1/tasks/"),
-  history: () => taskFlowApi.get<HistoryOutput[]>("/api/v1/history/"),
-  createList: (input: ListCreate) => taskFlowApi.post<ListOutput>("/api/v1/lists/", input),
-  createTask: (input: TaskCreate) => taskFlowApi.post<TaskOutput>("/api/v1/tasks/", input),
+  lists: (query = "") => taskFlowApi.get<ApiEnvelope<ListOutput[]>>(`/api/v1/lists/${query}`),
+  tasks: (query = "") => taskFlowApi.get<ApiEnvelope<TaskOutput[]>>(`/api/v1/tasks/${query}`),
+  history: (query = "") => taskFlowApi.get<ApiEnvelope<HistoryOutput[]>>(`/api/v1/history/${query}`),
+  listHistory: (listId: string, query = "") =>
+    taskFlowApi.get<ApiEnvelope<HistoryOutput[]>>(`/api/v1/lists/${listId}/history/${query}`),
+  createList: (input: ListCreate) => taskFlowApi.post<ApiEnvelope<ListOutput>>("/api/v1/lists/", input),
+  updateList: (id: string, input: Partial<ListCreate> & { is_archived?: boolean }) =>
+    taskFlowApi.patch<ApiEnvelope<ListOutput>>(`/api/v1/lists/${id}/`, input),
+  deleteList: (id: string) => taskFlowApi.delete(`/api/v1/lists/${id}/`),
+  createTask: (input: TaskCreate) => taskFlowApi.post<ApiEnvelope<TaskOutput>>("/api/v1/tasks/", input),
+  updateTask: (id: string, input: Partial<TaskCreate>) =>
+    taskFlowApi.patch<ApiEnvelope<TaskOutput>>(`/api/v1/tasks/${id}/`, input),
+  completeTask: (id: string) => taskFlowApi.post<ApiEnvelope<TaskOutput>>(`/api/v1/tasks/${id}/complete/`, {}),
+  reopenTask: (id: string) => taskFlowApi.post<ApiEnvelope<TaskOutput>>(`/api/v1/tasks/${id}/reopen/`, {}),
+  deleteTask: (id: string) => taskFlowApi.delete(`/api/v1/tasks/${id}/`),
 };
 
 async function getCsrfToken(request: typeof fetch): Promise<string> {
@@ -127,7 +141,8 @@ function readCookie(name: string): string | null {
 
 async function readErrorPayload(response: Response): Promise<ApiErrorPayload> {
   try {
-    return (await response.json()) as ApiErrorPayload;
+    const payload = (await response.json()) as ApiErrorPayload & { error?: ApiErrorPayload };
+    return payload.error ?? payload;
   } catch {
     return {};
   }

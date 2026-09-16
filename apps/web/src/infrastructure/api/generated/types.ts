@@ -35,6 +35,18 @@ export type HistoryOutput = {
   created_at: string;
 };
 
+export type PaginationMeta = {
+  page: number;
+  page_size: number;
+  total_count: number;
+  total_pages: number;
+};
+
+export type ApiEnvelope<T> = {
+  data: T;
+  meta: PaginationMeta;
+};
+
 export type ListCreate = {
   name: string;
   description?: string;

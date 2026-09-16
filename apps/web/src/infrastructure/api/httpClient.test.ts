@@ -31,4 +31,30 @@ describe("TaskFlowHttpClient", () => {
       message: "Título inválido",
     });
   });
+
+  it("sends CSRF on DELETE requests without a body", async () => {
+    document.cookie = "taskflowcsrftoken=csrf-value";
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+    const client = new TaskFlowHttpClient("", 1_000, request);
+
+    await client.delete("/api/v1/tasks/task-id/");
+
+    const headers = request.mock.calls[0]?.[1]?.headers as Headers;
+    expect(headers.get("X-CSRFToken")).toBe("csrf-value");
+  });
+
+  it("binds the default fetch transport to globalThis", async () => {
+    document.cookie = "taskflowcsrftoken=csrf-value";
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
+    const originalFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", request);
+
+    try {
+      await new TaskFlowHttpClient().delete("/api/v1/tasks/task-id/");
+    } finally {
+      vi.stubGlobal("fetch", originalFetch);
+    }
+
+    expect(request).toHaveBeenCalledOnce();
+  });
 });
