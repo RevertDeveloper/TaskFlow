@@ -60,7 +60,7 @@ up/down evidence, Ruff, Django check and migration drift check pass. Real
 Accounts staging auth remains deferred to Phase 16.
 
 ## Last Commit
-Pending Phase 3 commit.
+462ed6d - feat(domain): implement core task domain
 
 ## Next Task
 Implement TF-0401: versioned REST API for lists, tasks and history. Preserve
