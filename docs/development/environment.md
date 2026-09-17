@@ -20,6 +20,11 @@ desarrollo y no deben reutilizarse en staging o produccion.
   server-side de Accounts que se implementara en Phase 2.
 - `ACCOUNTS_TASKFLOW_SERVICE_KEY` es exclusivamente backend/worker. No debe
   aparecer en `NEXT_PUBLIC_*`, codigo cliente, logs ni respuestas HTTP.
+- `ACCOUNTS_APPLICATION_SLUG` identifica la aplicacion `taskflow` en el contrato
+  de cuota de Accounts. La clave de servicio se usa solo para validar, completar
+  o fallar reservas desde API/worker.
+- `AI_LLM_PROVIDER`, `AI_LLM_MAX_RETRIES` y `AI_MAX_LLM_RESPONSE_CHARS` limitan
+  el provider, los reintentos de reparacion y el tamano de respuesta del LLM.
 - `STORAGE_MODE` acepta `cloud` o `device` y se expone como
   `NEXT_PUBLIC_STORAGE_MODE` porque solo selecciona una estrategia de
   almacenamiento no sensible. `AI_*` y el resto de variables preparan los
