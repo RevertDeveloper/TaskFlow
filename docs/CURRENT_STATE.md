@@ -100,7 +100,7 @@ The 100-operation baseline is 210.28 ms locally. Real Accounts/API staging
 auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
-`3b34a60` - `feat(sync): add authenticated push pull protocol`; Phase 9 closure commit pending.
+`048415b` - `feat(sync): implement client engine and observability`; Phase 9 closed.
 
 ## Next Task
 Start Phase 10 according to the roadmap.
