@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taskflow.carlosrevert.es/schemas/snapshot.schema.json",
+  "title": "TaskFlow storage snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "lists", "tasks", "events", "sync", "generated_at", "counts", "checksum"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "lists": {"type": "array", "items": {"$ref": "#/$defs/list"}},
+    "tasks": {"type": "array", "items": {"$ref": "#/$defs/task"}},
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "sync": {"$ref": "#/$defs/sync"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "counts": {"$ref": "#/$defs/counts"},
+    "checksum": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"},
+    "nullableDateTime": {"anyOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]},
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "description", "emoji", "color", "position", "is_archived", "is_system", "created_at", "updated_at", "deleted_at"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+        "description": {"type": "string", "maxLength": 5000},
+        "emoji": {"type": "string", "maxLength": 16},
+        "color": {"type": "string", "maxLength": 32},
+        "position": {"type": "integer", "minimum": 0},
+        "is_archived": {"type": "boolean"},
+        "is_system": {"type": "boolean"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "deleted_at": {"$ref": "#/$defs/nullableDateTime"}
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "list_id", "title", "description", "status", "source", "position", "completed_at", "created_at", "updated_at", "deleted_at"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "list_id": {"$ref": "#/$defs/uuid"},
+        "title": {"type": "string", "minLength": 1, "maxLength": 500},
+        "description": {"type": "string", "maxLength": 10000},
+        "status": {"enum": ["pending", "completed"]},
+        "source": {"enum": ["manual", "voice", "ai", "import"]},
+        "position": {"type": "integer", "minimum": 0},
+        "completed_at": {"$ref": "#/$defs/nullableDateTime"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "deleted_at": {"$ref": "#/$defs/nullableDateTime"}
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "task_id", "event_type", "payload", "created_at"],
+      "properties": {
+        "id": {"$ref": "#/$defs/uuid"},
+        "task_id": {"anyOf": [{"$ref": "#/$defs/uuid"}, {"type": "null"}]},
+        "event_type": {"type": "string", "minLength": 1, "maxLength": 80},
+        "payload": {"type": "object"},
+        "created_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "sync": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["device_id", "cursor", "client_version", "pending_operations"],
+      "properties": {
+        "device_id": {"$ref": "#/$defs/uuid"},
+        "cursor": {"anyOf": [{"type": "string", "minLength": 1}, {"type": "null"}]},
+        "client_version": {"type": "integer", "minimum": 0},
+        "pending_operations": {"type": "integer", "minimum": 0}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lists", "tasks", "events", "pending_operations"],
+      "properties": {
+        "lists": {"type": "integer", "minimum": 0},
+        "tasks": {"type": "integer", "minimum": 0},
+        "events": {"type": "integer", "minimum": 0},
+        "pending_operations": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
