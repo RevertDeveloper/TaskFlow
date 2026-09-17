@@ -118,3 +118,89 @@ export function assertUuid(value: unknown, context: string): asserts value is st
 export function assertSyncPayload(value: unknown): asserts value is JsonObject {
   assertJsonObject(value, "El payload de sincronización");
 }
+
+export function assertLocalListRecord(value: unknown): asserts value is LocalListRecord {
+  if (!isObject(value)
+    || !isUuid(value.id)
+    || typeof value.name !== "string"
+    || typeof value.description !== "string"
+    || typeof value.emoji !== "string"
+    || typeof value.color !== "string"
+    || !isNonNegativeInteger(value.position)
+    || typeof value.isArchived !== "boolean"
+    || typeof value.isSystem !== "boolean"
+    || typeof value.createdAt !== "string"
+    || typeof value.updatedAt !== "string"
+    || (value.deletedAt !== null && typeof value.deletedAt !== "string")) {
+    throw new LocalStorageValidationError("El registro local de lista no es válido.");
+  }
+}
+
+export function assertLocalTaskRecord(value: unknown): asserts value is LocalTaskRecord {
+  if (!isObject(value)
+    || !isUuid(value.id)
+    || !isUuid(value.listId)
+    || typeof value.title !== "string"
+    || typeof value.description !== "string"
+    || !isTaskStatus(value.status)
+    || !isTaskSource(value.source)
+    || !isNonNegativeInteger(value.position)
+    || (value.completedAt !== null && typeof value.completedAt !== "string")
+    || typeof value.createdAt !== "string"
+    || typeof value.updatedAt !== "string"
+    || (value.deletedAt !== null && typeof value.deletedAt !== "string")) {
+    throw new LocalStorageValidationError("El registro local de tarea no es válido.");
+  }
+}
+
+export function assertLocalTaskEventRecord(value: unknown): asserts value is LocalTaskEventRecord {
+  if (!isObject(value)
+    || !isUuid(value.id)
+    || (value.taskId !== null && !isUuid(value.taskId))
+    || typeof value.eventType !== "string"
+    || !isJsonObject(value.payload)
+    || typeof value.createdAt !== "string") {
+    throw new LocalStorageValidationError("El registro local de historial no es válido.");
+  }
+}
+
+export function assertLocalSyncOperationRecord(value: unknown): asserts value is LocalSyncOperationRecord {
+  if (!isObject(value)
+    || !isUuid(value.id)
+    || !isUuid(value.deviceId)
+    || !isLocalEntityType(value.entityType)
+    || !isUuid(value.entityId)
+    || !isSyncOperationType(value.operation)
+    || !isNonNegativeInteger(value.clientVersion)
+    || typeof value.occurredAt !== "string"
+    || (value.processedAt !== null && typeof value.processedAt !== "string")
+    || !isUuid(value.idempotencyKey)
+    || !isNonNegativeInteger(value.payloadVersion)
+    || !isJsonObject(value.payload)) {
+    throw new LocalStorageValidationError("El registro local de sincronización no es válido.");
+  }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function isTaskStatus(value: unknown): value is Task["status"] {
+  return value === "pending" || value === "completed";
+}
+
+function isTaskSource(value: unknown): value is Task["source"] {
+  return value === "manual" || value === "voice" || value === "ai" || value === "import";
+}
+
+function isLocalEntityType(value: unknown): value is LocalEntityType {
+  return value === "list" || value === "task";
+}
+
+function isSyncOperationType(value: unknown): value is LocalSyncOperationType {
+  return value === "create" || value === "update" || value === "delete";
+}
