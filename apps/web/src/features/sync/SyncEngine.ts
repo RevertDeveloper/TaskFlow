@@ -76,9 +76,10 @@ export class SyncEngine {
     let pulled = 0;
     let conflicts = 0;
     let retries = 0;
-    let cursor = await this.repository.getCursor();
+    let cursor: string | null = null;
 
     try {
+      cursor = await this.repository.getCursor();
       let operations = await this.queue.nextBatch();
       while (operations.length > 0) {
         if (!this.isOnline()) {
@@ -87,7 +88,11 @@ export class SyncEngine {
         const response = await this.withRetry(() => this.transport.push(operations));
         retries += response.retries;
         const results = [...response.value.accepted, ...response.value.rejected, ...response.value.conflicts];
-        if (results.length < operations.length) {
+        const operationIds = new Set(operations.map((operation) => operation.id));
+        const resultIds = new Set(results.map((result) => result.operationId));
+        if (results.length !== operations.length
+          || resultIds.size !== operationIds.size
+          || [...resultIds].some((operationId) => !operationIds.has(operationId))) {
           throw new SyncProtocolError("El servidor no confirmó todas las operaciones enviadas.");
         }
         await this.queue.acknowledge(results);
