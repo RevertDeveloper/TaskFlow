@@ -86,7 +86,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
-    command: python -c "import time; time.sleep(10**6)"
+    command: celery -A config.celery:app worker --loglevel=INFO --concurrency=1
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.development
       DATABASE_URL: postgresql://${POSTGRES_USER:-taskflow}:${POSTGRES_PASSWORD:-taskflow}@db:5432/${POSTGRES_DB:-taskflow}

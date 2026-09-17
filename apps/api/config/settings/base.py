@@ -95,6 +95,25 @@ def database_config() -> dict[str, object]:
 
 DATABASES = {"default": database_config()}
 
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_TASK_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_RESULT_SERIALIZER = "json"
+
+AI_MAX_AUDIO_SECONDS = float(os.getenv("AI_MAX_AUDIO_SECONDS", "300"))
+AI_MAX_AUDIO_BYTES = int(os.getenv("AI_MAX_AUDIO_BYTES", "25000000"))
+AI_MAX_TRANSCRIPT_CHARS = int(os.getenv("AI_MAX_TRANSCRIPT_CHARS", "100000"))
+AI_AUDIO_TEMP_DIR = Path(
+    os.getenv("AI_AUDIO_TEMP_DIR", str(BASE_DIR / "var" / "audio"))
+).expanduser()
+AI_STT_PROVIDER = os.getenv("AI_STT_PROVIDER") or os.getenv("AI_PROVIDER", "fake")
+AI_STT_TASK_MAX_RETRIES = int(os.getenv("AI_STT_TASK_MAX_RETRIES", "2"))
+
 AUTH_PASSWORD_VALIDATORS: list[dict[str, object]] = []
 LANGUAGE_CODE = "es"
 TIME_ZONE = os.getenv("TIME_ZONE", "Europe/Madrid")
