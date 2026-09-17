@@ -1358,15 +1358,19 @@ Una sesion produce una transcripcion segura o un error recuperable, sin acoplar 
 
 **Risk:** Critical.
 
+**Status:** COMPLETED. Schema, prompts, provider fake, validacion estricta,
+retry acotado, ownership de listas y cuota Accounts estan implementados y
+cubiertos por tests deterministas. La suite API completa pasa con 115 tests.
+
 ### 12.1 - Schema and prompt
 
-**TF-1201 [P0]** Crear schema versionado de extraccion.
+**TF-1201 [P0]** Crear schema versionado de extraccion. **DONE.**
 
 - **CREATE:** `apps/api/apps/ai/schemas/task_extraction.schema.json`, `packages/schemas/`.
 - **Fields:** title requerido, description opcional, list_id o classification hint, confidence, source metadata permitida.
 - **Constraints:** max lengths, enums, no campos ejecutables.
 
-**TF-1202 [P0]** Versionar prompts.
+**TF-1202 [P0]** Versionar prompts. **DONE.**
 
 - **CREATE:** `apps/api/apps/ai/prompts/system.md`, `task_extraction.md`, `task_classification.md`.
 - **Regla:** system instructions, available lists, current list y transcript van separados; transcript es dato no confiable.
@@ -1374,12 +1378,12 @@ Una sesion produce una transcripcion segura o un error recuperable, sin acoplar 
 
 ### 12.2 - Provider and validation
 
-**TF-1203 [P0]** Crear `TaskExtractionProvider` y `AIProviderRouter`.
+**TF-1203 [P0]** Crear `TaskExtractionProvider` y `AIProviderRouter`. **DONE.**
 
 - **CREATE:** `apps/api/apps/ai/services/`, `providers/`.
 - **Config:** provider por env backend; no `NEXT_PUBLIC_*` para claves.
 
-**TF-1204 [P0]** Implementar parse/validate/retry.
+**TF-1204 [P0]** Implementar parse/validate/retry. **DONE.**
 
 - JSON estricto.
 - Validar schema antes de cualquier persistencia.
@@ -1387,7 +1391,7 @@ Una sesion produce una transcripcion segura o un error recuperable, sin acoplar 
 - Respuesta invalida termina en `failed`/`review`, nunca crea tareas.
 - List id inexistente no se acepta como FK valida.
 
-**TF-1205 [P0]** Integrar cuota Accounts para toda operación AI.
+**TF-1205 [P0]** Integrar cuota Accounts para toda operación AI. **DONE.**
 
 - Reserve con UUID antes de STT/LLM; la accion debe identificar la operación (`voice_transcription`, `voice_task_extraction` o la acción final aprobada en Phase 0).
 - Validate once desde backend consumidor usando `X-Application-Slug: taskflow` y `X-Service-Key`.
@@ -1411,11 +1415,16 @@ Una sesion produce una transcripcion segura o un error recuperable, sin acoplar 
 
 ### QUALITY GATE
 
-- [ ] Ninguna salida LLM invalida persiste una tarea.
-- [ ] Prompts versionados.
-- [ ] Provider fake y tests deterministas.
-- [ ] Cuota/limites de Accounts operan fail-closed para toda operación AI.
-- [ ] Audit de prompt injection aprobado.
+- [x] Ninguna salida LLM invalida persiste una tarea.
+- [x] Prompts versionados.
+- [x] Provider fake y tests deterministas.
+- [x] Cuota/limites de Accounts operan fail-closed para toda operación AI.
+- [x] Audit de prompt injection aprobado.
+
+**Evidence:** `docker compose ... pytest -q` con settings de test: 115 passed;
+Ruff del API y `docker compose config -q`: PASS; migraciones apply/reverse:
+PASS. La validacion real contra Accounts queda, como estaba decidido, diferida
+al smoke de staging de Phase 16.
 
 ### Definition of Done
 
@@ -2084,6 +2093,6 @@ El MVP solo se declara terminado cuando:
 - [x] MVP separado de Post-MVP.
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
-**Estado del roadmap:** Phase 0 a Phase 11 completadas en sus quality gates
+**Estado del roadmap:** Phase 0 a Phase 12 completadas en sus quality gates
 locales. Las validaciones reales de staging se concentran en Phase 16 y no
 bloquean el desarrollo local anterior.

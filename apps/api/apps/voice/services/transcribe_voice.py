@@ -5,6 +5,8 @@ from django.conf import settings
 from django.db import transaction
 
 from apps.ai.domain.ports import (
+    AIQuotaClient,
+    AIQuotaError,
     SpeechToTextError,
     SpeechToTextProvider,
     SpeechToTextTimeout,
@@ -26,6 +28,7 @@ def process_voice_session(
     session_id: str,
     *,
     provider: SpeechToTextProvider | None = None,
+    quota: AIQuotaClient | None = None,
 ) -> VoiceSession | None:
     normalized_id = UUID(str(session_id))
     session = _start_transcription(normalized_id)
@@ -36,28 +39,33 @@ def process_voice_session(
     if audio_path is None:
         return _fail_with_cleanup(normalized_id, "audio_missing")
 
+    quota_validated = bool(session.quota_validated)
     try:
         selected_provider = provider or get_speech_to_text_provider()
+        if quota is not None and not quota_validated:
+            quota.validate(request_id=normalized_id, action="voice_transcription")
+            quota_validated = True
+            VoiceSession.objects.filter(pk=normalized_id).update(quota_validated=True)
         result = selected_provider.transcribe(audio_path)
     except (SpeechToTextTimeout, SpeechToTextUnavailable) as exc:
         _restore_uploaded(normalized_id)
         raise RetryableTranscriptionError from exc
     except SpeechToTextError:
-        return _fail_with_cleanup(normalized_id, "provider_error")
+        return _fail_with_quota(normalized_id, "provider_error", quota)
     except Exception:
         logger.error("voice_transcription_failed", extra={"voice_session_id": str(normalized_id)})
-        return _fail_with_cleanup(normalized_id, "processing_error")
+        return _fail_with_quota(normalized_id, "processing_error", quota)
 
     transcript = result.transcript.strip()
     if not transcript:
-        return _fail_with_cleanup(normalized_id, "empty_transcript")
+        return _fail_with_quota(normalized_id, "empty_transcript", quota)
     if len(transcript) > settings.AI_MAX_TRANSCRIPT_CHARS:
-        return _fail_with_cleanup(normalized_id, "transcript_too_large")
+        return _fail_with_quota(normalized_id, "transcript_too_large", quota)
 
     if not cleanup_session_audio(normalized_id):
-        return _fail_with_cleanup(normalized_id, "audio_cleanup_failed", cleanup=False)
+        return _fail_with_quota(normalized_id, "audio_cleanup_failed", quota, cleanup=False)
 
-    metadata = {
+    metadata: dict[str, object] = {
         "provider": type(selected_provider).__name__,
         "duration_seconds": result.duration_seconds,
     }
@@ -68,14 +76,33 @@ def process_voice_session(
         current.transcript = transcript
         current.provider_metadata = metadata
         current.error_code = ""
+        current.quota_validated = False
         current.save(
-            update_fields=["status", "transcript", "provider_metadata", "error_code", "updated_at"]
+            update_fields=[
+                "status",
+                "transcript",
+                "provider_metadata",
+                "error_code",
+                "quota_validated",
+                "updated_at",
+            ]
         )
+    if quota is not None and quota_validated:
+        try:
+            quota.complete(
+                request_id=normalized_id,
+                metadata={"provider": type(selected_provider).__name__},
+                processing_time_ms=None,
+            )
+        except AIQuotaError:
+            return _fail_with_quota(normalized_id, "quota_callback_failed", quota)
     return current
 
 
-def fail_voice_session_after_retry(session_id: str) -> VoiceSession | None:
-    return _fail_with_cleanup(UUID(str(session_id)), "provider_timeout")
+def fail_voice_session_after_retry(
+    session_id: str, *, quota: AIQuotaClient | None = None
+) -> VoiceSession | None:
+    return _fail_with_quota(UUID(str(session_id)), "provider_timeout", quota)
 
 
 def _start_transcription(session_id: UUID) -> VoiceSession | None:
@@ -110,9 +137,44 @@ def _fail_with_cleanup(
             return None
         session.status = VoiceSession.Status.FAILED
         session.transcript = ""
+        session.quota_validated = False
         session.error_code = final_code
-        session.save(update_fields=["status", "transcript", "error_code", "updated_at"])
+        session.save(
+            update_fields=[
+                "status",
+                "transcript",
+                "quota_validated",
+                "error_code",
+                "updated_at",
+            ]
+        )
         return session
+
+
+def _fail_with_quota(
+    session_id: UUID,
+    error_code: str,
+    quota: AIQuotaClient | None,
+    *,
+    cleanup: bool = True,
+) -> VoiceSession | None:
+    should_fail_quota = bool(
+        VoiceSession.objects.filter(pk=session_id).values_list("quota_validated", flat=True).first()
+    )
+    session = _fail_with_cleanup(session_id, error_code, cleanup=cleanup)
+    if quota is not None and should_fail_quota:
+        try:
+            quota.fail(request_id=session_id, error_code=_quota_error_code(error_code))
+        except AIQuotaError:
+            logger.error(
+                "voice_quota_callback_failed",
+                extra={"voice_session_id": str(session_id), "error_code": "quota_callback_failed"},
+            )
+    return session
+
+
+def _quota_error_code(error_code: str) -> str:
+    return "before_processing" if error_code == "quota_callback_failed" else error_code
 
 
 def _safe_provider_metadata(metadata: dict[str, object]) -> dict[str, object]:

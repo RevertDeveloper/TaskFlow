@@ -16,6 +16,7 @@ class VoiceSession(OwnedTimestampedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.RECORDING)
     transcript_retention = models.BooleanField(default=False)
     transcript = models.TextField(blank=True)
+    quota_validated = models.BooleanField(default=False)
     provider_metadata = models.JSONField(default=dict)
     error_code = models.CharField(max_length=64, blank=True)
 

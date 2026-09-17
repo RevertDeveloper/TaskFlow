@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 11 completed
+Phase 12 completed
 
 ## Current Subphase
-11.1-11.2 - Voice recorder, ephemeral upload, STT port and Celery job completed
+12.1-12.2 - Versioned LLM extraction contract, validation and Accounts quota completed
 
 ## Current Task
-Phase 11 quality gate completed; next task is Phase 12 LLM Task Extraction
+Phase 12 quality gate completed; next task is Phase 13 Voice Review & Smart Routing
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -85,6 +85,11 @@ Phase 11 quality gate completed; next task is Phase 12 LLM Task Extraction
 - TF-1102: secure ephemeral audio upload, validation and cleanup
 - TF-1103: interchangeable SpeechToTextProvider and fake router provider
 - TF-1104: VoiceSession state machine, HTTP 202, polling and Celery retries
+- TF-1201: versioned task extraction schemas and strict JSON contract
+- TF-1202: versioned prompts with transcript isolation and injection tests
+- TF-1203: interchangeable task extraction provider and router
+- TF-1204: strict parse, schema validation, list ownership and bounded repair retry
+- TF-1205: Accounts quota reserve/validate/complete/fail for STT and LLM operations
 
 ## In Progress
 - None. Phase 11 is complete.
@@ -107,16 +112,14 @@ Phase 11 quality gate completed; next task is Phase 12 LLM Task Extraction
 - Keep the transcript in `VoiceSession` for polling/review during Phase 11; transcript purge semantics remain owned by Phase 13/14.
 
 ## Last Quality Gate
-Phase 11 PASS. API `pytest -q` reports 93 passed; Django checks,
-`makemigrations --check --dry-run` and Ruff pass. Web reports 56 Vitest tests
-passed; strict typecheck, lint and production build are clean. The voice
-contract is present in `docs/api/openapi.yaml`, and retention policy is
-documented in `docs/architecture/voice-retention.md`. Real Accounts/API
-staging auth remains deferred to the smoke/deployment phase; the existing
-`mypy` unused-ignore baseline remains outside this phase.
+Phase 12 PASS. API `pytest -q` reports 115 passed; schema/snapshot contracts,
+quota lifecycle, voice retry idempotence and migration apply/reverse pass.
+Django checks, `makemigrations --check --dry-run` and Ruff also pass. Real
+Accounts/API staging auth remains deferred to the smoke/deployment phase; the
+existing `mypy` unused-ignore baseline remains outside this phase.
 
 ## Last Commit
 Phase 11 closeout commit series completed; see `git log` for the four traceable commits.
 
 ## Next Task
-Begin Phase 12 LLM Task Extraction.
+Begin Phase 13 Voice Review & Smart Routing.

@@ -12,6 +12,7 @@ from apps.ai.domain.ports import (
     SpeechToTextResult,
     SpeechToTextTimeout,
 )
+from apps.ai.infrastructure.accounts_quota import FakeQuotaClient
 from apps.ai.providers.fake import FakeSpeechToTextProvider
 from apps.ai.router import get_speech_to_text_provider
 from apps.voice.models import VoiceSession
@@ -205,6 +206,8 @@ def test_voice_upload_returns_accepted_without_returning_audio(monkeypatch, tmp_
 
 def test_queue_failure_exposes_cleanup_failure(monkeypatch, tmp_path: Path) -> None:
     client = auth_client(monkeypatch, "alice")
+    quota = FakeQuotaClient()
+    monkeypatch.setattr("apps.voice.api.get_ai_quota_client", lambda: quota)
     monkeypatch.setattr(
         "apps.voice.api.transcribe_voice_session.delay",
         lambda session_id: (_ for _ in ()).throw(RuntimeError("redis unavailable")),
@@ -222,6 +225,7 @@ def test_queue_failure_exposes_cleanup_failure(monkeypatch, tmp_path: Path) -> N
     session = VoiceSession.objects.get()
     assert session.status == VoiceSession.Status.FAILED
     assert session.error_code == "audio_cleanup_failed"
+    assert quota.failed[session.id] == "before_processing"
 
 
 def test_voice_session_polling_isolated_by_accounts_identity(monkeypatch, tmp_path: Path) -> None:

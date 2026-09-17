@@ -1,9 +1,13 @@
+from uuid import UUID
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 
+from apps.ai.domain.ports import AIQuotaClient, AIQuotaError, AIQuotaRejected, AIQuotaUnavailable
+from apps.ai.router import get_ai_quota_client
 from apps.authentication.domain.models import AuthenticatedPrincipal
-from apps.common.api import TaskFlowAPIView, success_response
+from apps.common.api import TaskFlowAPIView, error_response, success_response
 
 from .models import VoiceSession
 from .permissions import CanAccessVoice
@@ -52,9 +56,21 @@ class VoiceSessionCollectionView(TaskFlowAPIView):
             "duration_seconds": uploaded.duration_seconds,
         }
         session.save(update_fields=["status", "provider_metadata", "updated_at"])
+        quota = get_ai_quota_client()
+        try:
+            quota.reserve(
+                request_headers=request.headers,
+                action="voice_transcription",
+                request_id=session.id,
+            )
+        except AIQuotaRejected as exc:
+            return _fail_upload_for_quota(session, exc.code, status_code=429)
+        except AIQuotaUnavailable as exc:
+            return _fail_upload_for_quota(session, exc.code, status_code=503)
         try:
             transcribe_voice_session.delay(str(session.id))
         except Exception as exc:
+            _refund_queued_reservation(quota, session.id)
             cleanup_ok = cleanup_session_audio(session.id)
             session.status = VoiceSession.Status.FAILED
             session.error_code = "queue_unavailable" if cleanup_ok else "audio_cleanup_failed"
@@ -80,3 +96,23 @@ def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ValidationError("La identidad de Accounts no está disponible.")
     return principal.external_user_id
+
+
+def _fail_upload_for_quota(session: VoiceSession, code: str, *, status_code: int):
+    cleanup_ok = cleanup_session_audio(session.id)
+    session.status = VoiceSession.Status.FAILED
+    session.error_code = code if cleanup_ok else "audio_cleanup_failed"
+    session.save(update_fields=["status", "error_code", "updated_at"])
+    return error_response(
+        code,
+        "La operación de IA no está disponible.",
+        status_code=status_code,
+    )
+
+
+def _refund_queued_reservation(quota: AIQuotaClient, request_id: UUID) -> None:
+    try:
+        quota.validate(request_id=request_id, action="voice_transcription")
+        quota.fail(request_id=request_id, error_code="before_processing")
+    except AIQuotaError:
+        return
