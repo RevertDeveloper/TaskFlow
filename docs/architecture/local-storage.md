@@ -73,6 +73,11 @@ evento ni operacion. Un payload corrupto detiene la lectura para evitar
 propagar datos no validados. La exportacion/restauracion operativa completa
 pertenece a las fases de hardening y despliegue.
 
+La politica de autoridad, replica Cloud y seleccion Device esta documentada
+en [storage-modes.md](storage-modes.md). `LocalRepository` es la implementacion
+local compartida por ambos modos; Cloud puede usarla como fallback y cola,
+mientras que Device la usa como fuente principal.
+
 ## Evidencia local
 
 La suite de Phase 7 cubre apertura y metadatos, migracion v1 -> v2, stores

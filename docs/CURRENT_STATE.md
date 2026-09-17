@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 7 completed
+Phase 8 completed
 
 ## Current Subphase
-7.2 - Local application behavior completed
+8.2 - Cloud / Device storage abstraction completed
 
 ## Current Task
-Phase 7 Quality Gate completed; next task is Phase 8
+Phase 8 Quality Gate completed; next task is Phase 9
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -63,9 +63,14 @@ Phase 7 Quality Gate completed; next task is Phase 8
 - TF-0702: IndexedDB repositories for lists, tasks, history and sync
 - TF-0703: atomic LocalRepository with idempotency and controlled retries
 - TF-0704: migration, corruption, quota and interrupted-commit tests
+- TF-0801: canonical repository ports with compatibility reexports
+- TF-0802: typed API repositories with DTO mapping and injectable clients
+- TF-0803: StorageManager with Cloud/Device routing and local replica
+- TF-0804: explicit authority, stale, availability and queue state policy
+- TF-0805: TaskWorkspaceProvider migration and storage status indicator
 
 ## In Progress
-- None. Phase 7 is complete and Phase 8 is next.
+- None. Phase 8 is complete and Phase 9 is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -76,17 +81,20 @@ Phase 7 Quality Gate completed; next task is Phase 8
 - Use Accounts session-based identity as the canonical source of identity
 - Keep TaskFlow as a modular monolith
 - Keep browser and API topology same-origin with TaskFlow as the authorized gateway to Accounts
+- Use remote PostgreSQL as Cloud authority and IndexedDB as its operational replica
+- Use IndexedDB as Device authority; keep the sync queue disabled until Phase 9
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 7 PASS. IndexedDB/local repository tests, strict typecheck, full web
-lint, full Vitest suite and production build pass. The focused Device harness
-covers CRUD without network, version migration, missing stores, invalid
-payloads, quota exhaustion, rollback and idempotent recovery. Real
+Phase 8 PASS. API repository contracts, Cloud/Device routing, local replica,
+stale fallback, offline queueing and storage status tests pass. Strict
+typecheck and lint pass. The full web suite, production build and final Phase
+8 quality gate are executed before the phase closure commit. Real
 Accounts/API staging auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
-`1a47dc082594ac5fb5108846f7e92ecf479d758b` - `docs(storage): close Phase 7 quality gate`
+`90a42e4cf681b0992d1f6a96f6a0710ca560ff92` - `feat(storage): implement cloud device storage abstraction`; documentación cerrada en el commit siguiente.
 
 ## Next Task
-Start Phase 8: define the StorageManager and cloud/device repository contract.
+Start Phase 9: implement the synchronization engine without changing the
+Phase 8 authority and repository contracts.

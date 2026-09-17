@@ -20,8 +20,11 @@ desarrollo y no deben reutilizarse en staging o produccion.
   server-side de Accounts que se implementara en Phase 2.
 - `ACCOUNTS_TASKFLOW_SERVICE_KEY` es exclusivamente backend/worker. No debe
   aparecer en `NEXT_PUBLIC_*`, codigo cliente, logs ni respuestas HTTP.
-- `AI_*` y `STORAGE_MODE` preparan los contratos de fases posteriores; no
-  habilitan proveedores externos por si solos.
+- `STORAGE_MODE` acepta `cloud` o `device` y se expone como
+  `NEXT_PUBLIC_STORAGE_MODE` porque solo selecciona una estrategia de
+  almacenamiento no sensible. `AI_*` y el resto de variables preparan los
+  contratos de fases posteriores; no habilitan proveedores externos por si
+  solos.
 
 No se guardan secretos en el repositorio. Las variables `NEXT_PUBLIC_*` quedan
 reservadas para valores publicos y no deben contener cookies, claves internas,

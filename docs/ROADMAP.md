@@ -1174,19 +1174,33 @@ Existe un repositorio local fiable con schema versionado y datos recuperables si
 
 **Risk:** High.
 
+**Status:** COMPLETED. Los modos Cloud y Device comparten puertos a traves de
+`StorageManager`; Cloud mantiene replica local y cola pendiente, y la UI
+expone autoridad, fuente, stale y disponibilidad sin acoplarse a infraestructura.
+
 ### 8.1 - Repository ports
 
 **TF-0801 [P1]** Definir interfaces de repositorio.
+
+**Status:** COMPLETED. Los contratos canonicos viven en
+`src/domain/repositories/` y los puertos historicos los reexportan para
+mantener compatibilidad.
 
 - **CREATE:** `src/domain/repositories/TaskRepository.ts`, `ListRepository.ts`, `HistoryRepository.ts`, `SyncRepository.ts`.
 - **Methods:** get/list/create/update/delete/complete/reopen, con filtros y paginacion tipada.
 
 **TF-0802 [P1]** Implementar `Api*Repository`.
 
+**Status:** COMPLETED. Los repositorios API estan separados por recurso,
+aceptan cliente tipado inyectable, mapean DTOs y conservan errores tipados.
+
 - **CREATE:** `src/infrastructure/repositories/ApiTaskRepository.ts`, etc.
 - **Requirements:** DTO mapping, errores tipados, no filtrar user id desde UI.
 
 **TF-0803 [P1]** Crear `StorageManager`.
+
+**Status:** COMPLETED. `StorageManager` selecciona Cloud o Device; Cloud
+combina autoridad API, replica IndexedDB y fallback local con cola.
 
 - **CREATE:** `src/application/storage/StorageManager.ts`, `StorageMode.ts`.
 - **Modes:** `cloud`, `device`.
@@ -1196,20 +1210,33 @@ Existe un repositorio local fiable con schema versionado y datos recuperables si
 
 **TF-0804 [P1]** Definir autoridad y consistencia.
 
+**Status:** COMPLETED. La politica esta documentada en
+`docs/architecture/storage-modes.md`; `lastSyncedAt` queda reservado para
+Phase 9 para no afirmar sincronizacion inexistente.
+
 - Cloud: PostgreSQL authority remota, IndexedDB replica operativa.
 - Device: IndexedDB source local sin sync remoto.
 - **Documentar:** stale data, loading, pending sync y conflict UI.
 
 **TF-0805 [P1]** Migrar features de Phase 6 a StorageManager.
 
+**Status:** COMPLETED. `TaskWorkspaceProvider` consume el bundle del manager
+y mantiene la misma superficie de casos de uso para fakes y ambos modos.
+
 - **Validar:** misma suite de casos de uso pasa con fake local y fake cloud.
 
 ### QUALITY GATE
 
-- [ ] UI no importa API client ni Dexie directamente.
-- [ ] Cloud y Device comparten casos de uso.
-- [ ] Indicador de storage/sync no es ambiguo.
-- [ ] Tests de contract de ambos repositorios green.
+- [x] UI no importa API client ni Dexie directamente.
+- [x] Cloud y Device comparten casos de uso.
+- [x] Indicador de storage/sync no es ambiguo.
+- [x] Tests de contract de ambos repositorios green.
+
+**Evidence (2026-09-17):** repositorios API contractuales, StorageManager y
+Cloud fallback/replica pasan sus pruebas focalizadas; typecheck y lint pasan.
+La suite cubre routing Device/Cloud, autoridad remota, replica IndexedDB,
+fallback stale, errores no recuperables y cola local offline. El motor de sync,
+cursor y conflictos permanece correctamente fuera de Phase 8.
 
 ### Definition of Done
 
@@ -2166,6 +2193,6 @@ El MVP solo se declara terminado cuando:
 - [x] MVP separado de Post-MVP.
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
-**Estado del roadmap:** Phase 0 a Phase 7 completadas en sus quality gates
-locales. El siguiente trabajo ejecutable es Phase 8; las validaciones reales de
-staging se concentran en Phase 16 y no bloquean el desarrollo local anterior.
+**Estado del roadmap:** Phase 0 a Phase 8 completadas en sus quality gates
+locales. Las validaciones reales de staging se concentran en Phase 16 y no
+bloquean el desarrollo local anterior.
