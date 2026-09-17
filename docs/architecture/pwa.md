@@ -19,7 +19,7 @@ display `standalone`, colores de marca e iconos SVG en tamanos 192 y 512.
   aviso y el usuario decide cuando activar el worker en espera.
 
 La voz no se anuncia como disponible offline. Las sesiones de voz requieren el
-backend y sus politicas de retencion de Phase 11.
+backend y la politica de retencion de `docs/architecture/voice-retention.md`.
 
 ## Indicadores
 

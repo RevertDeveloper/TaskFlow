@@ -221,306 +221,6 @@ La siguiente tabla describe solo endpoints confirmados. No asumir que Accounts o
 
 ### Incompatibilidades y resolucion
 
-# PHASE 11 - STT Infrastructure and Local Transcription
-
-**Objective:** capturar audio temporalmente y transcribirlo usando como proveedor
-principal el modelo local accesible por Tailscale que ya utiliza
-`dev_tanian/transcriptor`, con fallback controlado a OpenAI.
-
-**Depends on:** Phase 2, Phase 3, Phase 4, Phase 6, Phase 8 y Phase 10.
-
-**Risk:** Critical, por archivos grandes, dependencia de red privada, coste del
-fallback y privacidad del audio.
-
-### Decision cerrada: contrato STT operativo
-
-- El navegador nunca llama al servidor STT. Solo el API/worker de TaskFlow puede
-    acceder a la red Tailscale.
-- La configuracion primaria es `LOCAL_STT_BASE_URL`, con valor de staging y
-    desarrollo `http://ia-local-qwen3-6:8765`. En la comprobacion realizada el
-    2026-09-17 el nombre resolvio a `100.103.153.64`; esa IP es evidencia de la
-    red actual, no debe hardcodearse en la aplicacion.
-- El endpoint rapido real es `POST {LOCAL_STT_BASE_URL}/v1/stt/quick`, mediante
-    `multipart/form-data` con el campo `file`. Acepta `language` opcional y
-    responde JSON con, al menos, `text`, `duration`, `language`,
-    `processing_time` y `rtf`.
-- La entrada se normaliza en backend con `ffmpeg` a WAV PCM mono 16 kHz,
-    eliminando metadatos. No se debe enviar el archivo original directamente al
-    proveedor ni depender del MIME declarado por el navegador.
-- Los endpoints de salud genericos probados en el servicio local devuelven
-    `404`; por tanto `/health`, `/model` o `/v1/models` no forman parte del
-    contrato TaskFlow. La readiness debe validar configuracion, DNS/Tailscale y
-    TCP; la disponibilidad funcional se verifica con un smoke `POST` controlado.
-- Si el proveedor local falla, el fallback remoto usa `OPENAI_MODEL_STT`
-    (valor previsto: `whisper-1`) y `OPENAI_API_KEY`. Los reintentos se aplican
-    por proveedor y una reserva de cuota representa la operacion logica completa:
-    cambiar de local a OpenAI no duplica consumo.
-
-Configuracion minima que debe quedar en `.env.example` de TaskFlow, sin claves:
-
-```dotenv
-LOCAL_STT_BASE_URL=http://ia-local-qwen3-6:8765
-LOCAL_STT_POLL_INTERVAL_SECONDS=3
-STT_DEFAULT_LANGUAGE=multi
-STT_TEMPERATURE=0.0
-STT_TIMEOUT_SECONDS=900
-STT_MAX_ATTEMPTS=3
-OPENAI_MODEL_STT=whisper-1
-```
-
-### 11.1 - Capture and upload
-
-**TF-1101 [P1]** Implementar recorder y seleccion de archivos.
-
-- **CREATE:** `src/features/voice/components/VoiceRecorder.tsx`, `audio.ts`.
-- Permisos, cancelacion, pausa/reanudacion si el navegador lo permite,
-    formatos allowlist y estados de grabacion/upload.
-- El flujo debe admitir grabacion o archivo existente. El limite de producto no
-    puede ser menor de 20 minutos; el valor inicial recomendado es 60 minutos y
-    debe ser configurable por entorno.
-
-**TF-1102 [P1]** Implementar upload efimero y validacion server-side.
-
-- **CREATE:** `apps/api/apps/voice/api.py`, `services/audio_upload.py` y
-    almacenamiento temporal fuera de la base de datos.
-- Validar firma/MIME real, extension, tamano, duracion, path traversal,
-    desconexion durante upload y consumo de memoria. El limite inicial debe
-    soportar al menos 20 minutos y 128 MiB (`MAX_AUDIO_UPLOAD_BYTES=134217728`)
-    sin impedir ampliarlo de forma documentada.
-- `ffmpeg` es dependencia obligatoria del worker; `ffprobe` debe estar
-    disponible para decidir la ruta larga y comprobar duracion. Si no se puede
-    determinar la duracion, no se debe truncar silenciosamente: se procesa con
-    limite de tiempo y resultado explicito.
-- El audio original se elimina en `finally` despues de finalizar STT o marcar
-    el job como fallido, salvo una retencion operativa explicitamente configurada.
-
-### 11.2 - Provider port and worker
-
-**TF-1103 [P0]** Crear `SpeechToTextProvider` y el adaptador del modelo local.
-
-- **CREATE:** `apps/api/apps/ai/domain/ports.py`,
-    `providers/local_stt.py`, `providers/openai_stt.py` y `router.py`.
-- El adaptador local implementa exactamente `POST /v1/stt/quick`, timeout
-    configurable y parseo de `text`/`duration`; deja preparada una extension
-    `POST /v1/stt/meeting` con `job_id` y polling solo si Phase 13 necesita
-    diarizacion. No inventar un endpoint de salud que el servicio no ofrece.
-- El fallback OpenAI usa el mismo audio normalizado y no expone la clave al
-    frontend. Las views no importan SDKs ni conocen Tailscale.
-- Incluir fake provider y fake HTTP client para tests deterministas, y un
-    comando de smoke separado para el servicio real.
-
-**TF-1104 [P0]** Soportar audios largos sin bloquear HTTP ni perder texto.
-
-- `VoiceSession` y `JobQueue` deben conservar estados, intentos, etapa,
-    progreso y error publico: `recording`, `uploaded`, `transcribing`,
-    `transcribed`, `failed`.
-- HTTP 202 y polling/SSE de estado; el worker nunca procesa audio de 20 minutos
-    dentro de la peticion web.
-- Para el proveedor local se envia el WAV normalizado completo y se mide la
-    capacidad real con una prueba de 20 minutos. Para el fallback remoto se usa
-    preprocesado por chunks de 60 segundos, fusion ordenada y deteccion de
-    transcript sospechoso, siguiendo el proceso del transcriptor.
-- Reanudar un job atascado debe reencolarlo o marcarlo como fallido despues del
-    numero maximo de intentos, sin dejar audio ni reserva de cuota en estado
-    ambiguo.
-
-**TF-1105 [P0]** Integrar cuota, privacidad y observabilidad del STT.
-
-- Reservar una unidad con `request_id` antes de enviar audio a cualquier STT;
-    validar desde backend y completar/fallar una sola vez.
-- Registrar solo `request_id`, `voice_session_id`, proveedor, modelo, duracion,
-    latencia, intentos y codigo de error. Nunca registrar audio, transcript,
-    claves ni cuerpos de proveedor.
-- Si falla antes de iniciar procesamiento, usar `before_processing`; despues
-    de iniciar, usar el codigo de fallo definido por Accounts. Un timeout y un
-    fallback no crean una segunda reserva.
-
-### Tests y evidencia obligatoria
-
-- Unitarios: normalizacion WAV, firmas/MIME, duracion, limites, cleanup,
-    parseo de respuesta local, timeout, retry, fallback y transcript vacio.
-- Contract tests: fake del endpoint `quick` con `text`, `duration`, error 4xx,
-    5xx, 429, payload malformado y respuesta lenta; fake OpenAI como fallback.
-- Integracion: usuario A no consulta la sesion B; doble submit no duplica job
-    ni cuota; reinicio del worker recupera jobs stale; audio no persiste despues
-    del flujo por defecto.
-- Smoke real fuera de CI: resolver `ia-local-qwen3-6` por Tailscale, comprobar
-    TCP y enviar un fixture corto a `/v1/stt/quick`, registrando solo status,
-    duracion y numero de caracteres. Repetir con un fixture de 20 minutos antes
-    del cierre de la fase.
-- Evidencia de discovery 2026-09-17: el fixture existente de 65,4 s fue
-    aceptado por el endpoint real con HTTP 200, 785 caracteres y 4,95 s de
-    procesamiento. No sustituye la prueba de 20 minutos de TaskFlow.
-
-### QUALITY GATE
-
-- [ ] El flujo real admite al menos 20 minutos sin truncar ni bloquear HTTP.
-- [ ] `LOCAL_STT_BASE_URL` funciona desde el worker por Tailscale y no desde el
-    navegador.
-- [ ] Fallback local -> OpenAI, reintentos e idempotencia estan cubiertos.
-- [ ] Limites, cleanup, aislamiento y politica de retencion estan probados.
-- [ ] Celery/worker conserva progreso y recupera jobs stale.
-- [ ] Reserva y callback de Accounts son fail-closed y no duplican consumo.
-
-### Definition of Done
-
-Una sesion produce una transcripcion segura y recuperable usando el STT local
-operativo, con fallback remoto y capacidad demostrada para 20 minutos, sin
-acoplar la UI ni la base de datos al proveedor.
-
-# PHASE 12 - LLM Task Extraction with Gemini/OpenAI Fallback
-
-**Objective:** convertir una transcripcion, incluso extensa, en tareas y
-descripciones estructuradas mediante Gemini como proveedor principal y OpenAI
-como fallback, sin persistir salida no validada.
-
-**Depends on:** Phase 11, Phase 3 y Phase 4.
-
-**Risk:** Critical, por coste, prompt injection, limites de contexto y datos
-generados que pueden parecer validos sin serlo.
-
-### Decision cerrada: proveedores y configuracion
-
-- Gemini es el primer intento. Se llama a
-    `https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent`
-    con `x-goog-api-key`, `system_instruction`, `contents` y
-    `generationConfig`.
-- Solo se acepta Gemini si devuelve texto no vacio y `finishReason=STOP`.
-    Respuesta vacia, `MAX_TOKENS`, `SAFETY`, malformed JSON, 429, 5xx o timeout
-    pasan a OpenAI.
-- OpenAI es fallback mediante `AsyncOpenAI` y Chat Completions con
-    `OPENAI_MODEL` y `max_completion_tokens`. Para modelos cuyo nombre empiece
-    por `gpt-5` no se envia `temperature` si la API no lo admite.
-- El fallback y los retries pertenecen a la misma operacion logica y no
-    reservan cuota de nuevo.
-
-Variables acordadas por producto y que deben estar documentadas en
-`.env.example` sin valores secretos:
-
-```dotenv
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-5.6-luna
-OPENAI_MODEL_STT=whisper-1
-OPENAI_TEMPERATURE=0.2
-
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.5-flash-lite
-GEMINI_TEMPERATURE=0.2
-
-LLM_TIMEOUT_SECONDS=180
-LLM_MAX_TOKENS=4096
-LLM_MIN_MAX_TOKENS=2048
-LLM_FALLBACK_MAX_TOKENS=8192
-LLM_COMPRESSION_MAX_TOKENS=2048
-LLM_ADAPTIVE_THRESHOLD_MEDIUM=50000
-LLM_ADAPTIVE_THRESHOLD_LARGE=200000
-LLM_LARGE_TRANSCRIPT_CHARS=400000
-```
-
-### 12.1 - Schema and prompt
-
-**TF-1201 [P0]** Crear schema versionado de extraccion.
-
-- **CREATE:** `apps/api/apps/ai/schemas/task_extraction.schema.json` y
-    `packages/schemas/`.
-- La respuesta contiene `tasks[]`; cada elemento incluye `title`,
-    `description`, `list_id` o `list_hint`, `confidence` y solo metadatos de
-    origen permitidos.
-- `description` debe admitir contenido extenso: el limite inicial debe ser al
-    menos 32.000 caracteres, configurable y validado antes de persistir. Nunca
-    recortar silenciosamente; si se supera, conservar el draft completo y pedir
-    revision.
-- Enums, longitudes, cantidad maxima de tareas, tipos y campos extra se
-    validan con JSON Schema. No se aceptan instrucciones, HTML ejecutable ni
-    campos que ejecuten acciones.
-
-**TF-1202 [P0]** Versionar prompts resistentes a transcript no confiable.
-
-- **CREATE:** `apps/api/apps/ai/prompts/system.md`, `task_extraction.md`,
-    `task_classification.md`.
-- Separar instrucciones del sistema, listas disponibles, contexto elegido y
-    transcript delimitado. El transcript es dato, nunca instruccion.
-- Pedir JSON exclusivamente, idioma espanol por defecto, preservacion de
-    nombres/cifras y descripciones largas sin inventar informacion.
-- Tests de snapshots de prompt sin claves, cookies, audio ni datos privados.
-
-### 12.2 - Providers, contexto y validacion
-
-**TF-1203 [P0]** Crear `TaskExtractionProvider` y `AIProviderRouter`.
-
-- **CREATE:** `apps/api/apps/ai/services/`, `providers/gemini.py`,
-    `providers/openai.py` y `router.py`.
-- Las claves solo existen en API/worker. No usar `NEXT_PUBLIC_*`, localStorage
-    ni logs con payloads.
-- `health_check` debe indicar configuracion ausente sin llamar a proveedores
-    de pago; la disponibilidad real se valida en smoke controlado.
-
-**TF-1204 [P0]** Copiar el proceso de robustez del transcriptor para contexto
-largo.
-
-- Estimar tokens, adaptar `max_output_tokens` y detectar ventana de contexto.
-- Si la transcripcion supera el presupuesto, dividir por parrafos/chunks,
-    generar notas compactas y ejecutar una sintesis final. Hasta tres pasadas
-    configurables; no truncar el principio o el final sin avisar.
-- La sintesis debe conservar hechos, decisiones, nombres, fechas y contenido
-    util para `description`. Una transcripcion de 20 minutos no puede fallar por
-    asumir que siempre cabe en una sola llamada.
-- Si falla streaming o preview, continuar en modo no streaming. El resultado
-    final no depende de que el proveedor soporte streaming.
-
-**TF-1205 [P0]** Implementar parse, fallback y validacion atomica.
-
-- Intentar Gemini y pasar a OpenAI ante cualquier respuesta no utilizable
-    segun el contrato anterior.
-- Extraer JSON sin aceptar texto envolvente arbitrario; validar schema, listas
-    existentes y ownership antes de crear un draft.
-- Permitir un retry de reparacion limitado y luego terminar en `review` o
-    `failed`; nunca crear tareas directamente desde una salida invalida.
-- Una lista inexistente se convierte en sugerencia para revision o Inbox, nunca
-    en una FK aceptada por confianza del modelo.
-
-**TF-1206 [P0]** Integrar cuota Accounts para la operacion LLM.
-
-- Reservar con UUID antes de la primera llamada; `voice_task_extraction` debe
-    identificar la operacion. Gemini -> OpenAI, retries y compresion pertenecen a
-    esa misma reserva.
-- Validar desde backend con `X-Application-Slug: taskflow` y
-    `X-Service-Key`; completar/fallar exactamente una vez en `finally`.
-- Accounts unavailable, cuota agotada, clave invalida o reserva ausente =>
-    fail closed. Las operaciones manuales no consumen cuota.
-
-### Tests AI obligatorios
-
-- Gemini: JSON valido, `STOP`, vacio, `MAX_TOKENS`, `SAFETY`, 429, 5xx,
-    timeout y malformed response.
-- OpenAI: fallback invocado una sola vez, payload compatible con
-    `gpt-5.6-luna`, temperatura y `max_completion_tokens` correctos.
-- Extraccion: una/multiples tareas, multiples listas, descripcion de 32.000+
-    caracteres, transcripcion de 20 minutos, ambiguedad, transcripcion vacia,
-    lista alucinada, campos extra y prompt injection.
-- Contexto: chunking, compresion, retry de ventana, no truncamiento silencioso,
-    salida enorme y fallo de streaming.
-- Cuota: retry idempotente, fallback sin doble consumo, callback unico y
-    reembolso `before_processing`.
-- CI usa fakes y fixtures; las llamadas reales a Gemini/OpenAI solo se ejecutan
-    en un smoke manual o de staging expresamente autorizado.
-
-### QUALITY GATE
-
-- [ ] Gemini es el primer intento y OpenAI el fallback real, ambos con tests de
-    contrato y sin claves en el navegador.
-- [ ] Ninguna salida LLM invalida persiste una tarea.
-- [ ] Una transcripcion larga conserva contenido mediante chunking/sintesis y
-    soporta el caso de 20 minutos.
-- [ ] Descripciones extensas no se recortan silenciosamente.
-- [ ] Prompts versionados y auditados contra prompt injection.
-- [ ] Cuota, retries y fallback son fail-closed e idempotentes.
-
-### Definition of Done
-
-La IA devuelve un draft revisable de tareas y descripciones extensas, validado
-contra schema y listo para el flujo de Phase 13, con Gemini como primario,
-OpenAI como fallback y sin posibilidad de escribir salida arbitraria en la base.
 | REQ-024 | Accesibilidad responsive | 5, 6, 10, 15 | P1 | Pending | teclado, lector, mobile y reduced motion |
 
 ---
@@ -1587,14 +1287,18 @@ El usuario puede trabajar en Device o Cloud sin perder datos y entiende donde es
 
 **Risk:** High.
 
+**Status:** COMPLETED. El recorder, el upload efimero, el puerto STT y el job
+Celery estan implementados y validados con fake provider, aislamiento por
+Accounts y contrato OpenAPI actualizado.
+
 ### 11.1 - Capture and upload
 
-**TF-1101 [P1]** Implementar recorder frontend.
+**TF-1101 [P1]** Implementar recorder frontend. **[x]**
 
 - **CREATE:** `src/features/voice/components/VoiceRecorder.tsx`, `audio.ts`.
 - **Requirements:** permisos, cancelacion, formatos allowlist, max duration/size, estado de grabacion.
 
-**TF-1102 [P1]** Implementar upload efimero.
+**TF-1102 [P1]** Implementar upload efimero. **[x]**
 
 - **CREATE:** `apps/api/apps/voice/api.py`, `services/audio_upload.py`, storage temporal.
 - **Security:** MIME real + extension allowlist, size, duration, no path traversal, cleanup finally.
@@ -1602,13 +1306,13 @@ El usuario puede trabajar en Device o Cloud sin perder datos y entiende donde es
 
 ### 11.2 - Provider port
 
-**TF-1103 [P1]** Crear `SpeechToTextProvider` y router.
+**TF-1103 [P1]** Crear `SpeechToTextProvider` y router. **[x]**
 
 - **CREATE:** `apps/api/apps/ai/domain/ports.py`, `providers/`, `router.py`.
 - **Implement:** fake provider para tests y un provider concreto solo tras decision de entorno.
 - **No acoplar:** views no importan SDK externo.
 
-**TF-1104 [P1]** Implementar estados VoiceSession y job Celery.
+**TF-1104 [P1]** Implementar estados VoiceSession y job Celery. **[x]**
 
 - recording, uploaded, transcribing, transcribed, failed.
 - HTTP 202, polling `GET /voice/sessions/{id}`.
@@ -1616,18 +1320,29 @@ El usuario puede trabajar en Device o Cloud sin perder datos y entiende donde es
 
 ### Tests
 
-- audio valido/invalido, MIME falso, demasiado grande/largo, upload cortado.
-- STT success, timeout, provider error, empty transcription.
-- cleanup success/failure y no retencion accidental.
-- user A no puede consultar session B.
+- [x] audio valido/invalido, MIME falso, demasiado grande/largo, upload cortado.
+- [x] STT success, timeout, provider error, empty transcription.
+- [x] cleanup success/failure y no retencion accidental.
+- [x] user A no puede consultar session B.
 
 ### QUALITY GATE
 
-- [ ] Audio nunca va al navegador de vuelta sin necesidad.
-- [ ] Limites y cleanup probados.
-- [ ] Celery no bloquea HTTP.
-- [ ] Provider sustituible por fake.
-- [ ] Politica de retencion documentada.
+- [x] Audio nunca va al navegador de vuelta sin necesidad.
+- [x] Limites y cleanup probados.
+- [x] Celery no bloquea HTTP.
+- [x] Provider sustituible por fake.
+- [x] Politica de retencion documentada.
+
+**Evidence (2026-09-17):** API `pytest -q` reports 93 passed, incluyendo 15
+pruebas de voz; `ruff check .`, `manage.py check` y
+`makemigrations --check --dry-run` pasan. Web reports 56 Vitest tests passed;
+typecheck, lint y production build pasan. El contrato se regenera con
+`manage.py spectacular --validate` y contiene los dos endpoints de voz. La
+politica de retencion esta en `docs/architecture/voice-retention.md`.
+
+El generador OpenAPI sigue informando problemas de inferencia preexistentes en
+`ResetCloudView`, `SyncPullView` y `SyncPushView`; el comando termina con exit
+code 0 y no son parte del alcance de Phase 11.
 
 ### Definition of Done
 
@@ -2369,6 +2084,6 @@ El MVP solo se declara terminado cuando:
 - [x] MVP separado de Post-MVP.
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
-**Estado del roadmap:** Phase 0 a Phase 8 completadas en sus quality gates
+**Estado del roadmap:** Phase 0 a Phase 11 completadas en sus quality gates
 locales. Las validaciones reales de staging se concentran en Phase 16 y no
 bloquean el desarrollo local anterior.

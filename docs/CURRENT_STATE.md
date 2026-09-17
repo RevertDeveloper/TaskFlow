@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 10 completed
+Phase 11 completed
 
 ## Current Subphase
-10.1-10.2 - Cloud <-> Device transitions, separated resets and PWA completed
+11.1-11.2 - Voice recorder, ephemeral upload, STT port and Celery job completed
 
 ## Current Task
-Phase 10 quality gate completed; next task is Phase 11
+Phase 11 quality gate completed; next task is Phase 12 LLM Task Extraction
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -81,12 +81,18 @@ Phase 10 quality gate completed; next task is Phase 11
 - TF-1005: manifest and installability metadata
 - TF-1006: versioned service worker and non-destructive update flow
 - TF-1007: offline, syncing, pending, device-only and error indicators
+- TF-1101: frontend recorder with permission, format, size and duration limits
+- TF-1102: secure ephemeral audio upload, validation and cleanup
+- TF-1103: interchangeable SpeechToTextProvider and fake router provider
+- TF-1104: VoiceSession state machine, HTTP 202, polling and Celery retries
 
 ## In Progress
-- None. Phase 10 is complete.
+- None. Phase 11 is complete.
 
 ## Blockers
-- `mypy` is not installed in the available API virtual environment.
+- `mypy config` reaches the code but reports pre-existing `unused-ignore`
+	diagnostics across several API apps; the Phase 11 test/lint/build gate is
+	green, but the CI typecheck baseline needs a separate cleanup.
 - Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
 - The isolated frontend browser run reports `/api/v1/auth/me` as 404 because the API/reverse proxy is not part of that process; API contract and authentication tests remain green.
 
@@ -97,18 +103,20 @@ Phase 10 quality gate completed; next task is Phase 11
 - Use remote PostgreSQL as Cloud authority and IndexedDB as its operational replica
 - Use IndexedDB as Device authority; enable the sync queue only in Cloud Mode.
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
+- Keep original voice audio only in per-session temporary staging; never expose it in API responses or persist it in `VoiceSession`.
+- Keep the transcript in `VoiceSession` for polling/review during Phase 11; transcript purge semantics remain owned by Phase 13/14.
 
 ## Last Quality Gate
-Phase 10 PASS. API `pytest -q` reports 78 passed and Ruff is clean. Web reports
-51 Vitest tests passed; strict typecheck, lint and production build are clean.
-Draft 2020-12 validation passes for the snapshot schema. Playwright/Chromium
-verified the manifest, service worker registration and controller, versioned
-public cache without `/api/` URLs, and `offline.html` navigation fallback with
-HTTP 200. Real Accounts/API staging auth remains deferred to the
-smoke/deployment phase.
+Phase 11 PASS. API `pytest -q` reports 93 passed; Django checks,
+`makemigrations --check --dry-run` and Ruff pass. Web reports 56 Vitest tests
+passed; strict typecheck, lint and production build are clean. The voice
+contract is present in `docs/api/openapi.yaml`, and retention policy is
+documented in `docs/architecture/voice-retention.md`. Real Accounts/API
+staging auth remains deferred to the smoke/deployment phase; the existing
+`mypy` unused-ignore baseline remains outside this phase.
 
 ## Last Commit
-`3862455` - `docs(roadmap): close phase 10 after browser qa`; Phase 10 closed.
+Phase 11 closeout commit series completed; see `git log` for the four traceable commits.
 
 ## Next Task
-Begin Phase 11 STT Infrastructure.
+Begin Phase 12 LLM Task Extraction.

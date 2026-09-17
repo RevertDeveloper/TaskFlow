@@ -36,6 +36,33 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/data/reset/:
+    post:
+      operationId: reset_taskflow_data
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetCloud'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetCloud'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetCloud'
+        required: true
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/history/:
     get:
       operationId: history_list
@@ -180,6 +207,47 @@ paths:
                 items:
                   $ref: '#/components/schemas/HistoryOutput'
           description: ''
+  /api/v1/sync/pull/:
+    get:
+      operationId: sync_pull
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+      - in: query
+        name: limit
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          description: No response body
+  /api/v1/sync/push/:
+    post:
+      operationId: sync_push
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncPush'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SyncPush'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SyncPush'
+        required: true
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          description: No response body
   /api/v1/tasks/:
     get:
       operationId: tasks_list
@@ -326,8 +394,59 @@ paths:
               schema:
                 $ref: '#/components/schemas/TaskOutput'
           description: ''
+  /api/v1/voice/sessions/:
+    post:
+      operationId: voice_session_upload
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoiceUpload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoiceUpload'
+        required: true
+      security:
+      - taskflowSession: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSessionOutput'
+          description: ''
+  /api/v1/voice/sessions/{session_id}/:
+    get:
+      operationId: voice_session_retrieve
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceSessionOutput'
+          description: ''
 components:
   schemas:
+    EntityTypeEnum:
+      enum:
+      - list
+      - task
+      type: string
+      description: |-
+        * `list` - list
+        * `task` - task
     EventTypeEnum:
       enum:
       - TASK_CREATED
@@ -449,6 +568,16 @@ components:
       - name
       - position
       - updated_at
+    MutationEnum:
+      enum:
+      - create
+      - update
+      - delete
+      type: string
+      description: |-
+        * `create` - create
+        * `update` - update
+        * `delete` - delete
     PatchedListUpdate:
       type: object
       properties:
@@ -486,6 +615,14 @@ components:
         position:
           type: integer
           minimum: 0
+    ResetCloud:
+      type: object
+      properties:
+        confirmation:
+          type: string
+          maxLength: 19
+      required:
+      - confirmation
     SourceEnum:
       enum:
       - manual
@@ -498,14 +635,59 @@ components:
         * `voice` - Voice
         * `ai` - AI
         * `import` - Import
-    StatusEnum:
-      enum:
-      - pending
-      - completed
-      type: string
-      description: |-
-        * `pending` - Pending
-        * `completed` - Completed
+    SyncOperationInput:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        entity_type:
+          $ref: '#/components/schemas/EntityTypeEnum'
+        entity_id:
+          type: string
+          format: uuid
+        mutation:
+          $ref: '#/components/schemas/MutationEnum'
+        client_version:
+          type: integer
+          minimum: 0
+        client_timestamp:
+          type: string
+          format: date-time
+        payload_version:
+          type: integer
+          minimum: 1
+        payload: {}
+        idempotency_key:
+          type: string
+          format: uuid
+      required:
+      - client_timestamp
+      - client_version
+      - device_id
+      - entity_id
+      - entity_type
+      - mutation
+      - operation_id
+      - payload
+      - payload_version
+    SyncPush:
+      type: object
+      properties:
+        version:
+          type: integer
+          maximum: 1
+          minimum: 1
+        operations:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncOperationInput'
+      required:
+      - operations
+      - version
     TaskCreate:
       type: object
       properties:
@@ -545,7 +727,7 @@ components:
           readOnly: true
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/TaskOutputStatusEnum'
           readOnly: true
         source:
           allOf:
@@ -584,6 +766,75 @@ components:
       - status
       - title
       - updated_at
+    TaskOutputStatusEnum:
+      enum:
+      - pending
+      - completed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `completed` - Completed
+    VoiceSessionOutput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/VoiceSessionOutputStatusEnum'
+          readOnly: true
+        transcript:
+          type: string
+          readOnly: true
+        transcript_retention:
+          type: boolean
+          readOnly: true
+        error_code:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - error_code
+      - id
+      - status
+      - transcript
+      - transcript_retention
+      - updated_at
+    VoiceSessionOutputStatusEnum:
+      enum:
+      - recording
+      - uploaded
+      - transcribing
+      - transcribed
+      - failed
+      type: string
+      description: |-
+        * `recording` - Recording
+        * `uploaded` - Uploaded
+        * `transcribing` - Transcribing
+        * `transcribed` - Transcribed
+        * `failed` - Failed
+    VoiceUpload:
+      type: object
+      properties:
+        audio:
+          type: string
+          format: uri
+        transcript_retention:
+          type: boolean
+          default: false
+      required:
+      - audio
   securitySchemes:
     taskflowSession:
       type: apiKey

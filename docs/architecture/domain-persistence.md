@@ -13,7 +13,7 @@ trata como recurso inexistente mediante `ResourceNotFound`.
 - `Task`: tarea pendiente o completada, con `completed_at` coherente y `deleted_at` para borrado lógico.
 - `TaskEvent`: historial append-only. Conserva `task_id` como UUID sin FK para que el historial sobreviva al borrado lógico o a futuras purgas.
 - `SyncOperation`: sobre de operación con `device_id`, versión, cursor futuro e idempotency key única por usuario.
-- `VoiceSession`: estado y metadatos no sensibles del pipeline. No contiene audio ni transcripción en esta fase.
+- `VoiceSession`: estado, transcript de la ventana de polling/revision y metadatos no sensibles del pipeline. No contiene audio ni una ruta de audio permanente; la politica completa esta en `docs/architecture/voice-retention.md`.
 
 Todos usan UUID global, timestamps timezone-aware y el mixin abstracto
 `OwnedTimestampedModel`.
