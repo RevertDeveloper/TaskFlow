@@ -75,6 +75,10 @@ function fakeClient(overrides: Partial<TaskFlowApiClient> = {}): TaskFlowApiClie
     deleteTask: vi.fn().mockResolvedValue(undefined),
     resetCloud: vi.fn().mockResolvedValue(undefined),
     uploadVoiceSession: vi.fn(),
+    voiceSession: vi.fn(),
+    createVoiceReview: vi.fn(),
+    voiceReview: vi.fn(),
+    confirmVoiceReview: vi.fn(),
     ...overrides,
   };
 }

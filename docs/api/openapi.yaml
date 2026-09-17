@@ -394,6 +394,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/TaskOutput'
           description: ''
+  /api/v1/voice/reviews/{draft_id}/confirm/:
+    post:
+      operationId: voice_review_confirm
+      parameters:
+      - in: path
+        name: draft_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceReviewConfirm'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoiceReviewConfirm'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoiceReviewConfirm'
+        required: true
+      security:
+      - taskflowSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceReviewDraftOutput'
+          description: ''
   /api/v1/voice/sessions/:
     post:
       operationId: voice_session_upload
@@ -436,6 +468,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VoiceSessionOutput'
+          description: ''
+  /api/v1/voice/sessions/{session_id}/review/:
+    get:
+      operationId: voice_review_retrieve
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - taskflowSession: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceReviewDraftOutput'
+          description: ''
+    post:
+      operationId: voice_review_create
+      parameters:
+      - in: path
+        name: session_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceReviewRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VoiceReviewRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VoiceReviewRequest'
+      security:
+      - taskflowSession: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceReviewDraftOutput'
           description: ''
 components:
   schemas:
@@ -774,6 +856,110 @@ components:
       description: |-
         * `pending` - Pending
         * `completed` - Completed
+    VoiceReviewConfirm:
+      type: object
+      properties:
+        idempotency_key:
+          type: string
+          format: uuid
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceReviewTask'
+      required:
+      - idempotency_key
+      - tasks
+    VoiceReviewDraftOutput:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        session_id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/VoiceReviewDraftOutputStatusEnum'
+          readOnly: true
+        schema_version:
+          type: integer
+          readOnly: true
+        tasks:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
+        source:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        confirmed_task_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - confirmed_task_ids
+      - created_at
+      - expires_at
+      - id
+      - schema_version
+      - session_id
+      - source
+      - status
+      - tasks
+      - updated_at
+    VoiceReviewDraftOutputStatusEnum:
+      enum:
+      - draft
+      - confirmed
+      - expired
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `confirmed` - Confirmed
+        * `expired` - Expired
+    VoiceReviewRequest:
+      type: object
+      properties:
+        current_list_id:
+          type: string
+          format: uuid
+          nullable: true
+    VoiceReviewTask:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 500
+          minLength: 1
+        description:
+          type: string
+          nullable: true
+          maxLength: 2000
+        list_id:
+          type: string
+          format: uuid
+      required:
+      - list_id
+      - title
     VoiceSessionOutput:
       type: object
       properties:

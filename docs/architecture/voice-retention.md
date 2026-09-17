@@ -37,9 +37,10 @@ fuente de identidad y cada `VoiceSession` se consulta filtrando por
 
 El transcript se guarda en `VoiceSession` durante Phase 11 para que el cliente
 pueda hacer polling y para que Phase 13 pueda iniciar la revision. El campo
-`transcript_retention` se conserva como preferencia de contrato, pero su
-semantica de purga posterior pertenece a Phase 13/14; Phase 11 no implementa
-una retencion indefinida ni un TTL de transcript.
+`transcript_retention` se conserva como preferencia de contrato. Al confirmar
+un `VoiceReviewDraft`, el transcript se purga si la preferencia es falsa; el
+audio original ya fue eliminado al terminar STT. Phase 13 no introduce una
+retencion indefinida ni persiste el transcript dentro del draft.
 
 ## Limites y residual conocido
 

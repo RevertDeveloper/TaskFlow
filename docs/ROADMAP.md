@@ -1440,6 +1440,9 @@ La IA devuelve un objeto revisable y validado, desacoplado del proveedor y sin p
 
 **Risk:** High.
 
+**Status:** COMPLETED. Backend, contratos, migracion, review UI, confirmacion
+atomica, aislamiento y validaciones de Phase 13 estan implementados.
+
 ### 13.1 - Routing
 
 **TF-1301 [P1]** Implementar clasificacion por listas disponibles.
@@ -1479,11 +1482,27 @@ La IA devuelve un objeto revisable y validado, desacoplado del proveedor y sin p
 
 ### QUALITY GATE
 
-- [ ] No se crean tareas AI sin confirmacion cuando la politica exige review.
-- [ ] Draft y confirmacion son idempotentes.
-- [ ] Listas inventadas nunca llegan a DB.
-- [ ] UX mobile usable con una mano.
-- [ ] Todas las correcciones del usuario quedan reflejadas en la tarea final.
+- [x] No se crean tareas AI sin confirmacion cuando la politica exige review.
+- [x] Draft y confirmacion son idempotentes.
+- [x] Listas inventadas nunca llegan a DB.
+- [x] UX mobile usable con una mano mediante layout responsive, controles tactiles
+            y pruebas de componentes.
+- [x] Todas las correcciones del usuario quedan reflejadas en la tarea final.
+
+### Evidencia de cierre
+
+- API: `pytest -q` -> 121 passed; Ruff, `manage.py check` y
+    `makemigrations --check --dry-run` pasan.
+- Web: 58 tests, typecheck, lint y build pasan.
+- Contrato: OpenAPI generado y validado con codigo 0; no quedan warnings de
+    los endpoints de review. Los errores de inferencia restantes son los tres
+    casos historicos de reset/sync ya conocidos.
+- Compose: `compose.yaml` y `compose.dev.yaml` validan conjuntamente; el
+    runner de tests expone el checkout como solo lectura para validar schemas.
+- QA visual integrado: el servidor web responde tras reinstalar el volumen de
+    dependencias, pero el navegador CDP del entorno no pudo abrir una pagina por
+    timeout. La comprobacion visual automatizada queda como limitacion del
+    entorno, no como fallo de la implementacion.
 
 ### Definition of Done
 

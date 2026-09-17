@@ -47,6 +47,33 @@ export type VoiceSessionOutput = {
   updated_at: string;
 };
 
+export type VoiceReviewTask = {
+  title: string;
+  description: string | null;
+  list_id: string;
+  classification_hint: "explicit" | "current" | "semantic" | "inbox" | "ambiguous";
+  confidence: number;
+  routing: "explicit" | "current" | "semantic" | "inbox";
+};
+
+export type VoiceReviewDraft = {
+  id: string;
+  session_id: string;
+  status: "draft" | "confirmed" | "expired";
+  schema_version: number;
+  tasks: VoiceReviewTask[];
+  source: Record<string, string>;
+  expires_at: string;
+  confirmed_task_ids: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type VoiceReviewConfirmation = {
+  idempotency_key: string;
+  tasks: Array<Pick<VoiceReviewTask, "title" | "description" | "list_id">>;
+};
+
 export type PaginationMeta = {
   page: number;
   page_size: number;

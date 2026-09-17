@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 12 completed
+Phase 13 completed
 
 ## Current Subphase
-12.1-12.2 - Versioned LLM extraction contract, validation and Accounts quota completed
+13.1-13.2 - Voice review, smart routing and atomic confirmation completed
 
 ## Current Task
-Phase 12 quality gate completed; next task is Phase 13 Voice Review & Smart Routing
+Phase 13 quality gate completed; next task is Phase 14 Security, Performance & Reliability Hardening
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -90,15 +90,21 @@ Phase 12 quality gate completed; next task is Phase 13 Voice Review & Smart Rout
 - TF-1203: interchangeable task extraction provider and router
 - TF-1204: strict parse, schema validation, list ownership and bounded repair retry
 - TF-1205: Accounts quota reserve/validate/complete/fail for STT and LLM operations
+- TF-1301: explicit/contextual/semantic/Inbox smart routing with tenant-safe list resolution
+- TF-1302: versioned VoiceReviewDraft with schema validation, TTL and transcript purge policy
+- TF-1303: responsive VoiceReview and VoiceTaskDraftEditor components
+- TF-1304: atomic, ownership-safe and idempotent voice task confirmation
 
 ## In Progress
-- None. Phase 11 is complete.
+- None. Phase 13 is complete.
 
 ## Blockers
 - `mypy config` reaches the code but reports pre-existing `unused-ignore`
 	diagnostics across several API apps; the Phase 11 test/lint/build gate is
 	green, but the CI typecheck baseline needs a separate cleanup.
 - Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
+- Integrated browser CDP smoke could not start in this environment; frontend HTTP,
+  component tests, typecheck, lint and build are green.
 - The isolated frontend browser run reports `/api/v1/auth/me` as 404 because the API/reverse proxy is not part of that process; API contract and authentication tests remain green.
 
 ## Decisions
@@ -109,17 +115,20 @@ Phase 12 quality gate completed; next task is Phase 13 Voice Review & Smart Rout
 - Use IndexedDB as Device authority; enable the sync queue only in Cloud Mode.
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 - Keep original voice audio only in per-session temporary staging; never expose it in API responses or persist it in `VoiceSession`.
-- Keep the transcript in `VoiceSession` for polling/review during Phase 11; transcript purge semantics remain owned by Phase 13/14.
+- Keep the transcript in `VoiceSession` for polling/review during Phase 11; purge it after confirmation when retention is disabled.
+- Keep voice review drafts separate from transcripts and audio, with a configurable TTL and idempotent confirmation.
 
 ## Last Quality Gate
-Phase 12 PASS. API `pytest -q` reports 115 passed; schema/snapshot contracts,
-quota lifecycle, voice retry idempotence and migration apply/reverse pass.
-Django checks, `makemigrations --check --dry-run` and Ruff also pass. Real
-Accounts/API staging auth remains deferred to the smoke/deployment phase; the
-existing `mypy` unused-ignore baseline remains outside this phase.
+Phase 13 PASS. API `pytest -q` reports 121 passed; review/routing contracts,
+ownership isolation, quota lifecycle, idempotent confirmation and migration
+apply/reverse pass. Web reports 58 passed, with typecheck, lint and build green.
+OpenAPI validation exits 0 with no new voice warnings. Real Accounts/API
+staging auth remains deferred to the smoke/deployment phase; the existing
+`mypy` unused-ignore baseline and integrated browser CDP timeout remain outside
+this phase.
 
 ## Last Commit
 Phase 11 closeout commit series completed; see `git log` for the four traceable commits.
 
 ## Next Task
-Begin Phase 13 Voice Review & Smart Routing.
+Begin Phase 14 Security, Performance & Reliability Hardening.

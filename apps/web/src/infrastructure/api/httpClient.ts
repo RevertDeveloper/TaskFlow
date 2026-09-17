@@ -6,6 +6,8 @@ import type {
   ListOutput,
   TaskCreate,
   TaskOutput,
+  VoiceReviewConfirmation,
+  VoiceReviewDraft,
   VoiceSessionOutput,
 } from "./generated/types";
 
@@ -129,6 +131,19 @@ export const api = {
     formData.append("audio", audio, fileName);
     return taskFlowApi.postForm<ApiEnvelope<VoiceSessionOutput>>("/api/v1/voice/sessions/", formData);
   },
+  voiceSession: (id: string) =>
+    taskFlowApi.get<ApiEnvelope<VoiceSessionOutput>>(`/api/v1/voice/sessions/${id}/`),
+  createVoiceReview: (sessionId: string, currentListId?: string | null) =>
+    taskFlowApi.post<ApiEnvelope<VoiceReviewDraft>>(`/api/v1/voice/sessions/${sessionId}/review/`, {
+      ...(currentListId ? { current_list_id: currentListId } : {}),
+    }),
+  voiceReview: (sessionId: string) =>
+    taskFlowApi.get<ApiEnvelope<VoiceReviewDraft>>(`/api/v1/voice/sessions/${sessionId}/review/`),
+  confirmVoiceReview: (draftId: string, input: VoiceReviewConfirmation) =>
+    taskFlowApi.post<ApiEnvelope<{ draft: VoiceReviewDraft; tasks: TaskOutput[] }>>(
+      `/api/v1/voice/reviews/${draftId}/confirm/`,
+      input,
+    ),
 };
 
 async function getCsrfToken(request: typeof fetch): Promise<string> {
