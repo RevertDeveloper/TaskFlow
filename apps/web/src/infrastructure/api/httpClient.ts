@@ -113,6 +113,7 @@ export const api = {
   completeTask: (id: string) => taskFlowApi.post<ApiEnvelope<TaskOutput>>(`/api/v1/tasks/${id}/complete/`, {}),
   reopenTask: (id: string) => taskFlowApi.post<ApiEnvelope<TaskOutput>>(`/api/v1/tasks/${id}/reopen/`, {}),
   deleteTask: (id: string) => taskFlowApi.delete(`/api/v1/tasks/${id}/`),
+  resetCloud: (confirmation: string) => taskFlowApi.post<void>("/api/v1/data/reset/", { confirmation }),
 };
 
 async function getCsrfToken(request: typeof fetch): Promise<string> {

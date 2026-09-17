@@ -38,6 +38,7 @@ def test_openapi_endpoint_is_available_and_contains_taskflow_paths() -> None:
     assert "/api/v1/history/" in document["paths"]
     assert "/api/v1/sync/push/" in document["paths"]
     assert "/api/v1/sync/pull/" in document["paths"]
+    assert "/api/v1/data/reset/" in document["paths"]
 
 
 def test_openapi_generation_validates() -> None:

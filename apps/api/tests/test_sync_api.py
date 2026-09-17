@@ -10,6 +10,7 @@ from apps.lists.models import List
 from apps.lists.services.delete_list import delete_list
 from apps.lists.services.ensure_inbox import ensure_inbox_for_user
 from apps.sync.models import SyncOperation
+from apps.tasks.models import Task
 from apps.tasks.services.create_task import create_task
 
 pytestmark = pytest.mark.django_db
@@ -194,6 +195,37 @@ def test_rejected_operation_is_not_retried_forever(monkeypatch) -> None:  # type
     assert SyncOperation.objects.filter(external_user_id=101).count() == 1
 
 
+def test_cloud_reset_requires_strong_confirmation_and_keeps_accounts_identity(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    inbox = ensure_inbox_for_user(101)
+    create_task(101, list_id=inbox.id, title="Borrar esta tarea")
+    List.objects.create(external_user_id=101, name="Temporal")
+    bob_inbox = ensure_inbox_for_user(202)
+    create_task(202, list_id=bob_inbox.id, title="No borrar")
+
+    invalid = client.post(
+        "/api/v1/data/reset/",
+        data={"confirmation": "RESET"},
+        content_type="application/json",
+        HTTP_X_CSRFTOKEN=client.csrf_token,
+    )
+    assert invalid.status_code == 400
+    assert Task.objects.filter(external_user_id=101).count() == 1
+
+    response = client.post(
+        "/api/v1/data/reset/",
+        data={"confirmation": "RESET TASKFLOW DATA"},
+        content_type="application/json",
+        HTTP_X_CSRFTOKEN=client.csrf_token,
+    )
+
+    assert response.status_code == 200
+    assert Task.objects.filter(external_user_id=101).count() == 0
+    assert List.objects.filter(external_user_id=101, is_system=False).count() == 0
+    assert List.objects.filter(external_user_id=101, is_system=True).count() == 1
+    assert Task.objects.filter(external_user_id=202).count() == 1
+
+
 def test_later_device_edit_wins_for_the_same_task(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     client = auth_client(monkeypatch, "alice")
     inbox = ensure_inbox_for_user(101)
@@ -235,9 +267,9 @@ def test_later_device_edit_wins_for_the_same_task(monkeypatch) -> None:  # type:
 def test_equal_server_timestamp_uses_version_and_operation_uuid(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     client = auth_client(monkeypatch, "alice")
     inbox = ensure_inbox_for_user(101)
-    task = create_task(101, list_id=inbox.id, title="Inicial")
     fixed_now = datetime(2026, 9, 17, 10, 0, tzinfo=UTC)
     monkeypatch.setattr("django.utils.timezone.now", lambda: fixed_now)
+    task = create_task(101, list_id=inbox.id, title="Inicial")
 
     winner = push(
         client,
