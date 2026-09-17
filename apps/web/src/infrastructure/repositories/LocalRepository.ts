@@ -9,7 +9,6 @@ import {
   assertJsonObject,
   assertLocalListRecord,
   assertLocalSyncOperationRecord,
-  assertLocalTaskEventRecord,
   assertLocalTaskRecord,
   assertUuid,
   type JsonObject,
@@ -21,7 +20,6 @@ import {
 import { createUuid, getDeviceId, openTaskFlowDatabase, taskFlowDatabase, type TaskFlowDatabase } from "../indexeddb/database";
 import {
   LocalStorageError,
-  LocalStorageErrorCode,
   LocalStorageQuotaError,
   LocalStorageTransactionError,
   LocalStorageValidationError,

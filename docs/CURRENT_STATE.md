@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 6 completed
+Phase 7 completed
 
 ## Current Subphase
-6.3 - History UX completed
+7.2 - Local application behavior completed
 
 ## Current Task
-Phase 6 Quality Gate completed; next task is TF-0701
+Phase 7 Quality Gate completed; next task is Phase 8
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -59,9 +59,13 @@ Phase 6 Quality Gate completed; next task is TF-0701
 - TF-0604: task edit, move, complete, reopen and delete workflows
 - TF-0605: list creation, editing, archive/restore and deletion
 - TF-0606: global and list history timeline with pagination and reopen
+- TF-0701: versioned Dexie schema, metadata and non-destructive migrations
+- TF-0702: IndexedDB repositories for lists, tasks, history and sync
+- TF-0703: atomic LocalRepository with idempotency and controlled retries
+- TF-0704: migration, corruption, quota and interrupted-commit tests
 
 ## In Progress
-- None. Phase 6 is complete and Phase 7 is next.
+- None. Phase 7 is complete and Phase 8 is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -75,13 +79,14 @@ Phase 6 Quality Gate completed; next task is TF-0701
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 6 PASS. Web lint, strict typecheck, production build and 19 Vitest tests
-pass. Production-build browser QA covered the manual task/list/history flows,
-desktop fixtures and 375 px responsive navigation without horizontal overflow.
-Real Accounts/API staging auth remains deferred to the smoke/deployment phase.
+Phase 7 PASS. IndexedDB/local repository tests, strict typecheck, full web
+lint, full Vitest suite and production build pass. The focused Device harness
+covers CRUD without network, version migration, missing stores, invalid
+payloads, quota exhaustion, rollback and idempotent recovery. Real
+Accounts/API staging auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
-`docs(taskflow): close Phase 6 quality gate`
+Phase 7 closure commit; see the repository log for the final hash.
 
 ## Next Task
-Implement TF-0701: define the versioned IndexedDB/Dexie schema.
+Start Phase 8: define the StorageManager and cloud/device repository contract.

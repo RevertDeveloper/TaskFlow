@@ -19,7 +19,7 @@ describe("LocalRepository", () => {
     const list = await repository.lists.create({ name: "Trabajo" });
     const task = await repository.tasks.create({ listId: list.id, title: "Preparar entrega" });
 
-    expect(await repository.lists.findAll()).toEqual([list]);
+    expect(await repository.lists.findAll()).toEqual(expect.arrayContaining([list]));
     expect(await repository.tasks.findAll()).toEqual([task]);
     expect(await database.taskEvents.count()).toBe(2);
     expect(await database.syncOperations.count()).toBe(2);
@@ -48,7 +48,7 @@ describe("LocalRepository", () => {
 
     expect(replay).toEqual(list);
     expect(runnerCalls).toBe(3);
-    expect(await database.lists.count()).toBe(1);
+    expect(await database.lists.count()).toBe(2);
     expect(await database.taskEvents.count()).toBe(1);
     expect(await database.syncOperations.count()).toBe(1);
   });
@@ -67,7 +67,7 @@ describe("LocalRepository", () => {
 
     await expect(repository.createList({ name: "No guardar" })).rejects.toBeInstanceOf(LocalStorageTransactionError);
     expect(runnerCalls).toBe(2);
-    expect(await database.lists.count()).toBe(0);
+    expect(await database.lists.count()).toBe(1);
     expect(await database.taskEvents.count()).toBe(0);
     expect(await database.syncOperations.count()).toBe(0);
   });
@@ -85,7 +85,7 @@ describe("LocalRepository", () => {
 
     await expect(repository.createList({ name: "Sin espacio" })).rejects.toBeInstanceOf(LocalStorageQuotaError);
     expect(runnerCalls).toBe(1);
-    expect(await database.lists.count()).toBe(0);
+    expect(await database.lists.count()).toBe(1);
   });
 });
 

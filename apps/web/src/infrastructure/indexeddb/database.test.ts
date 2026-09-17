@@ -39,16 +39,18 @@ describe("TaskFlowDatabase", () => {
       key: "device_id",
       value: deviceId,
     });
+    expect((await database.lists.toArray()).filter((list) => list.isSystem)).toHaveLength(1);
     expect(await getDeviceId(database)).toBe(deviceId);
   });
 
   it("migrates a version 1 database without deleting existing records", async () => {
     const name = createDatabaseName();
+    const legacyListId = crypto.randomUUID();
     const oldDatabase = new Dexie(name);
     oldDatabase.version(1).stores(SCHEMA_V1);
     await oldDatabase.open();
     await oldDatabase.table("lists").put({
-      id: "legacy-list",
+      id: legacyListId,
       name: "Lista antigua",
       position: 0,
       updatedAt: "2026-09-17T10:00:00.000Z",
@@ -58,7 +60,7 @@ describe("TaskFlowDatabase", () => {
     const database = new TaskFlowDatabase(name);
     await openTaskFlowDatabase(database);
 
-    expect(await database.lists.get("legacy-list")).toMatchObject({
+    expect(await database.lists.get(legacyListId)).toMatchObject({
       name: "Lista antigua",
       description: "",
       isArchived: false,

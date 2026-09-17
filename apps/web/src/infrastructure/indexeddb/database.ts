@@ -11,6 +11,7 @@ import {
   type LocalTaskEventRecord,
   type LocalTaskRecord,
   type LocalVoiceSessionRecord,
+  assertLocalListRecord,
   isUuid,
 } from "./schema";
 
@@ -40,12 +41,30 @@ export async function openTaskFlowDatabase(database = taskFlowDatabase): Promise
   if (!database.isOpen()) {
     await database.open();
   }
-  await database.transaction("rw", database.appState, async () => {
+  await database.transaction("rw", database.appState, database.lists, async () => {
     const schemaVersion = await database.appState.get(APP_STATE_KEYS.schemaVersion);
     if (schemaVersion?.value !== CURRENT_SCHEMA_VERSION) {
       await database.appState.put({
         key: APP_STATE_KEYS.schemaVersion,
         value: CURRENT_SCHEMA_VERSION,
+      });
+    }
+    const lists = await database.lists.toArray();
+    lists.forEach(assertLocalListRecord);
+    if (!lists.some((list) => list.isSystem && list.deletedAt === null)) {
+      const now = new Date().toISOString();
+      await database.lists.add({
+        id: createUuid(),
+        name: "Inbox",
+        description: "",
+        emoji: "",
+        color: "",
+        position: 0,
+        isArchived: false,
+        isSystem: true,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
       });
     }
   });

@@ -21,7 +21,8 @@ describe("IndexedDB repositories", () => {
     const list = await lists.create({ name: "Trabajo" });
     const task = await tasks.create({ listId: list.id, title: "Preparar entrega" });
 
-    expect(await lists.findAll()).toEqual([list]);
+    expect(await lists.findAll()).toEqual(expect.arrayContaining([list]));
+    expect((await lists.findAll()).filter((candidate) => candidate.isSystem)).toHaveLength(1);
     expect(await tasks.update(task.id, { title: "Preparar entrega final" })).toMatchObject({
       title: "Preparar entrega final",
     });
@@ -32,7 +33,7 @@ describe("IndexedDB repositories", () => {
     await lists.delete(list.id);
 
     expect(await tasks.findAll()).toEqual([]);
-    expect(await lists.findAll()).toEqual([]);
+    expect((await lists.findAll()).find((candidate) => candidate.id === list.id)).toBeUndefined();
   });
 
   it("reads paginated history and pending sync operations through their ports", async () => {

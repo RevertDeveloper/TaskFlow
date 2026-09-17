@@ -1098,15 +1098,26 @@ TaskFlow ya es un gestor manual usable aunque STT, LLM, Device Mode y Sync aun n
 
 **Risk:** High.
 
+**Status:** COMPLETED. Schema Dexie versionado, repositorios locales, Inbox
+persistente, operaciones atomicas con idempotencia y pruebas de migracion,
+corrupcion, cuota y commit interrumpido estan implementados y validados.
+
 ### 7.1 - Local schema
 
 **TF-0701 [P1]** Definir base Dexie versionada.
+
+**Status:** COMPLETED. Versiones 1 y 2, stores requeridos, `device_id`,
+`schema_version` y migracion no destructiva estan implementados.
 
 - **CREATE:** `apps/web/src/infrastructure/indexeddb/database.ts`, `schema.ts`, `migrations.ts`.
 - **Stores:** lists, tasks, task_events, sync_operations, app_state, voice_sessions.
 - **Requirements:** UUID globales, device_id persistente, schema_version y migrations no destructivas.
 
 **TF-0702 [P1]** Implementar repositorios locales.
+
+**Status:** COMPLETED. Los repositorios IndexedDB implementan los puertos de
+listas, tareas, historial y operaciones sync con validacion de records y
+conversiones explicitas a dominio.
 
 - **CREATE:** `IndexedDbListRepository.ts`, `IndexedDbTaskRepository.ts`, `IndexedDbHistoryRepository.ts`, `IndexedDbSyncRepository.ts`.
 - **No hacer:** importar Dexie desde componentes.
@@ -1115,10 +1126,19 @@ TaskFlow ya es un gestor manual usable aunque STT, LLM, Device Mode y Sync aun n
 
 **TF-0703 [P1]** Implementar `LocalRepository` y operaciones atomicas.
 
+**Status:** COMPLETED. La fachada coordina entidad, evento, sync y contador de
+cliente en una transaccion; las claves de idempotencia y reintentos estan
+limitados y cubiertos por tests.
+
 - **CREATE:** `src/infrastructure/repositories/LocalRepository.ts`.
 - **Requirements:** escritura de entidad + evento + sync operation en una transaccion local; retries controlados; no duplicados por idempotency key.
 
 **TF-0704 [P1]** Crear pruebas de migracion y corrupcion.
+
+**Status:** COMPLETED. Los tests cubren version vieja, stores ausentes,
+payload invalido, cuota excedida y commit interrumpido; la politica de
+rollback y recuperacion esta documentada en
+`docs/architecture/local-storage.md`.
 
 - Version vieja -> nueva.
 - Store ausente.
@@ -1128,11 +1148,17 @@ TaskFlow ya es un gestor manual usable aunque STT, LLM, Device Mode y Sync aun n
 
 ### QUALITY GATE
 
-- [ ] CRUD funciona sin red en Device test harness.
-- [ ] Dexie no aparece en componentes React.
-- [ ] Migrations y rollback/recovery documentados.
-- [ ] Operaciones atomicas e idempotentes probadas.
-- [ ] No se usa localStorage para tareas.
+- [x] CRUD funciona sin red en Device test harness.
+- [x] Dexie no aparece en componentes React.
+- [x] Migrations y rollback/recovery documentados.
+- [x] Operaciones atomicas e idempotentes probadas.
+- [x] No se usa localStorage para tareas.
+
+**Evidence (2026-09-17):** 10 tests focalizados de IndexedDB/local repository
+pass, junto con TypeScript strict. La suite y lint completos se validan antes
+del cierre del commit de fase. El Device test harness usa `LocalRepository`
+con base IndexedDB fake y cubre CRUD sin red; la integracion visual con
+StorageManager pertenece a Phase 8.
 
 ### Definition of Done
 
@@ -2140,6 +2166,6 @@ El MVP solo se declara terminado cuando:
 - [x] MVP separado de Post-MVP.
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
-**Estado del roadmap:** Phase 0, Phase 1 y Phase 2 completadas en sus gates
-locales. El siguiente trabajo ejecutable es Phase 3; las validaciones reales de
-staging se concentran en Phase 16 y no bloquean el desarrollo de dominio/API.
+**Estado del roadmap:** Phase 0 a Phase 7 completadas en sus quality gates
+locales. El siguiente trabajo ejecutable es Phase 8; las validaciones reales de
+staging se concentran en Phase 16 y no bloquean el desarrollo local anterior.
