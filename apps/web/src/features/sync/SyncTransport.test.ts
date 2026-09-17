@@ -19,6 +19,8 @@ describe("HttpSyncTransport", () => {
             entity_id: "task-1",
             operation: "upsert",
             updated_at: "2026-09-17T10:00:00Z",
+            client_version: 2,
+            operation_id: "00000000-0000-4000-8000-000000000001",
             data: {
               id: "task-1",
               list_id: "list-1",
@@ -36,7 +38,11 @@ describe("HttpSyncTransport", () => {
     await expect(new HttpSyncTransport(client).push([operation])).resolves.toMatchObject({
       syncId: "sync-1",
       accepted: [{ operationId: "operation-1" }],
-      changes: [{ data: { listId: "list-1", isArchived: false, completedAt: null } }],
+      changes: [{
+        clientVersion: 2,
+        operationId: "00000000-0000-4000-8000-000000000001",
+        data: { listId: "list-1", isArchived: false, completedAt: null },
+      }],
     });
     expect(client.post).toHaveBeenCalledWith("/api/v1/sync/push/", {
       version: 1,

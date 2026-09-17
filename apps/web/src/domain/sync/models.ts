@@ -15,14 +15,20 @@ export type SyncOperation = {
   payload: Record<string, unknown>;
 };
 
+export type SyncEntityVersion = {
+  updatedAt: string;
+  clientVersion: number;
+  operationId: string | null;
+};
+
 export type SyncChange = {
   entityType: SyncEntityType;
   entityId: string;
   operation: "upsert" | "delete";
   updatedAt: string;
   data: Record<string, unknown>;
-  clientVersion?: number;
-  operationId?: string;
+  clientVersion: number;
+  operationId: string | null;
 };
 
 export type SyncPushResult = {
@@ -63,6 +69,6 @@ export type SyncRunResult = {
 export type SyncMergeDecision = "remote" | "local";
 
 export type SyncMergeDecider = (
-  localUpdatedAt: string | null,
+  localVersion: SyncEntityVersion | null,
   change: SyncChange,
 ) => SyncMergeDecision;

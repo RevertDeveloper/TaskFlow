@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from django.test import Client
 
@@ -48,6 +50,7 @@ def operation(
     mutation: str,
     payload: dict[str, object],
     idempotency_key: str | None = None,
+    client_version: int = 1,
 ) -> dict[str, object]:
     return {
         "operation_id": operation_id,
@@ -55,7 +58,7 @@ def operation(
         "entity_type": "task" if "listId" in payload or "title" in payload else "list",
         "entity_id": entity_id,
         "mutation": mutation,
-        "client_version": 1,
+        "client_version": client_version,
         "client_timestamp": "2026-09-17T10:00:00Z",
         "payload_version": 1,
         "payload": payload,
@@ -79,6 +82,8 @@ def test_push_create_and_retry_is_idempotent(monkeypatch) -> None:  # type: igno
 
     assert first.status_code == 200
     assert first.json()["data"]["accepted"][0]["duplicate"] is False
+    assert first.json()["data"]["changes"][0]["client_version"] == 1
+    assert first.json()["data"]["changes"][0]["operation_id"] == op["operation_id"]
     assert second.status_code == 200
     assert second.json()["data"]["accepted"][0]["duplicate"] is True
     assert List.objects.filter(id=list_id, external_user_id=101).count() == 1
@@ -225,6 +230,48 @@ def test_later_device_edit_wins_for_the_same_task(monkeypatch) -> None:  # type:
     assert first.json()["data"]["accepted"]
     assert second.json()["data"]["accepted"]
     assert task.title == "Dispositivo B"
+
+
+def test_equal_server_timestamp_uses_version_and_operation_uuid(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    inbox = ensure_inbox_for_user(101)
+    task = create_task(101, list_id=inbox.id, title="Inicial")
+    fixed_now = datetime(2026, 9, 17, 10, 0, tzinfo=UTC)
+    monkeypatch.setattr("django.utils.timezone.now", lambda: fixed_now)
+
+    winner = push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000407",
+                device_id="00000000-0000-4000-8000-000000000507",
+                entity_id=str(task.id),
+                mutation="update",
+                payload={"entityId": str(task.id), "title": "Version alta"},
+                client_version=2,
+            ),
+            "entity_type": "task",
+        },
+    )
+    loser = push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000408",
+                device_id="00000000-0000-4000-8000-000000000508",
+                entity_id=str(task.id),
+                mutation="update",
+                payload={"entityId": str(task.id), "title": "Version baja"},
+                client_version=1,
+            ),
+            "entity_type": "task",
+        },
+    )
+
+    task.refresh_from_db()
+    assert winner.json()["data"]["accepted"]
+    assert loser.json()["data"]["conflicts"][0]["code"] == "stale_operation"
+    assert task.title == "Version alta"
 
 
 def test_complete_and_edit_keep_the_latest_task_version_coherent(monkeypatch) -> None:  # type: ignore[no-untyped-def]

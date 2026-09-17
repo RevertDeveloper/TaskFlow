@@ -28,6 +28,8 @@ type RawChange = {
   entity_id: string;
   operation: "upsert" | "delete";
   updated_at: string;
+  client_version: number;
+  operation_id: string | null;
   data: Record<string, unknown>;
 };
 
@@ -124,6 +126,8 @@ function mapChange(change: RawChange): SyncChange {
     entityId: change.entity_id,
     operation: change.operation,
     updatedAt: change.updated_at,
+    clientVersion: change.client_version,
+    operationId: change.operation_id,
     data: mapEntityData(change.data),
   };
 }

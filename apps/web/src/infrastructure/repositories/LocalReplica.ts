@@ -1,7 +1,7 @@
 import type { HistoryEntry } from "@/domain/history/models";
 import type { TaskList } from "@/domain/list/models";
 import type { Task } from "@/domain/task/models";
-import type { SyncChange, SyncMergeDecider } from "@/domain/sync/models";
+import type { SyncChange, SyncEntityVersion, SyncMergeDecider } from "@/domain/sync/models";
 import { openTaskFlowDatabase, taskFlowDatabase, type TaskFlowDatabase } from "@/infrastructure/indexeddb/database";
 import {
   assertLocalListRecord,
@@ -32,6 +32,8 @@ export class LocalReplica {
           createdAt: existing?.createdAt ?? now,
           updatedAt: now,
           deletedAt: null,
+          syncClientVersion: existing?.syncClientVersion ?? 0,
+          syncOperationId: existing?.syncOperationId ?? null,
         };
         await this.database.lists.put(record);
       }
@@ -49,6 +51,8 @@ export class LocalReplica {
           createdAt: existing?.createdAt ?? task.createdAt ?? now,
           updatedAt: task.updatedAt ?? now,
           deletedAt: null,
+          syncClientVersion: existing?.syncClientVersion ?? 0,
+          syncOperationId: existing?.syncOperationId ?? null,
         };
         await this.database.tasks.put(record);
       }
@@ -88,7 +92,7 @@ export class LocalReplica {
       for (const change of changes) {
         if (change.entityType === "list") {
           const existing = await this.database.lists.get(change.entityId);
-          const resolution = decider(existing?.updatedAt ?? null, change);
+          const resolution = decider(toEntityVersion(existing), change);
           if (existing && resolution === "local") {
             conflicts.push({ entityType: "list", entityId: change.entityId, resolution });
             continue;
@@ -103,7 +107,7 @@ export class LocalReplica {
         }
 
         const existing = await this.database.tasks.get(change.entityId);
-        const resolution = decider(existing?.updatedAt ?? null, change);
+        const resolution = decider(toEntityVersion(existing), change);
         if (existing && resolution === "local") {
           conflicts.push({ entityType: "task", entityId: change.entityId, resolution });
           continue;
@@ -120,11 +124,30 @@ export class LocalReplica {
   }
 }
 
-function defaultMergeDecider(localUpdatedAt: string | null, change: SyncChange): "remote" | "local" {
-  if (!localUpdatedAt) {
+function defaultMergeDecider(localVersion: SyncEntityVersion | null, change: SyncChange): "remote" | "local" {
+  if (!localVersion) {
     return "remote";
   }
-  return change.updatedAt >= localUpdatedAt ? "remote" : "local";
+  if (change.updatedAt !== localVersion.updatedAt) {
+    return change.updatedAt > localVersion.updatedAt ? "remote" : "local";
+  }
+  if (change.clientVersion !== localVersion.clientVersion) {
+    return change.clientVersion > localVersion.clientVersion ? "remote" : "local";
+  }
+  return (change.operationId ?? "") >= (localVersion.operationId ?? "") ? "remote" : "local";
+}
+
+function toEntityVersion(
+  entity: { updatedAt: string; syncClientVersion?: number; syncOperationId?: string | null } | undefined,
+): SyncEntityVersion | null {
+  if (!entity) {
+    return null;
+  }
+  return {
+    updatedAt: entity.updatedAt,
+    clientVersion: entity.syncClientVersion ?? 0,
+    operationId: entity.syncOperationId ?? null,
+  };
 }
 
 function toLocalListRecord(change: SyncChange): LocalListRecord {
@@ -141,6 +164,8 @@ function toLocalListRecord(change: SyncChange): LocalListRecord {
     createdAt: readString(data.createdAt, "createdAt"),
     updatedAt: change.updatedAt,
     deletedAt: change.operation === "delete" ? change.updatedAt : readNullableString(data.deletedAt, "deletedAt"),
+    syncClientVersion: change.clientVersion,
+    syncOperationId: change.operationId,
   };
 }
 
@@ -158,6 +183,8 @@ function toLocalTaskRecord(change: SyncChange): LocalTaskRecord {
     createdAt: readString(data.createdAt, "createdAt"),
     updatedAt: change.updatedAt,
     deletedAt: change.operation === "delete" ? change.updatedAt : readNullableString(data.deletedAt, "deletedAt"),
+    syncClientVersion: change.clientVersion,
+    syncOperationId: change.operationId,
   };
 }
 

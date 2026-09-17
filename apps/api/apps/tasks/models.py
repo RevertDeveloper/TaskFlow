@@ -33,6 +33,8 @@ class Task(OwnedTimestampedModel):
     position = models.PositiveIntegerField(default=0)
     completed_at = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    sync_client_version = models.PositiveBigIntegerField(null=True, blank=True)
+    sync_operation_id = models.UUIDField(null=True, blank=True)
 
     class Meta:
         ordering = ("position", "created_at", "id")

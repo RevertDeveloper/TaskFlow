@@ -74,5 +74,7 @@ def serialize_change(entity_type: str, entity: List | Task) -> dict[str, object]
         "entity_id": str(entity.id),
         "operation": "delete" if deleted_at else "upsert",
         "updated_at": entity.updated_at.isoformat(),
+        "client_version": entity.sync_client_version or 0,
+        "operation_id": str(entity.sync_operation_id) if entity.sync_operation_id else None,
         "data": data,
     }

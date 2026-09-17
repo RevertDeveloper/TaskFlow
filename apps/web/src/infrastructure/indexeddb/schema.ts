@@ -21,10 +21,14 @@ export type LocalListRecord = TaskList & {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  syncClientVersion?: number;
+  syncOperationId?: string | null;
 };
 
 export type LocalTaskRecord = Task & {
   deletedAt: string | null;
+  syncClientVersion?: number;
+  syncOperationId?: string | null;
 };
 
 export type LocalTaskEventRecord = HistoryEntry;
@@ -132,7 +136,9 @@ export function assertLocalListRecord(value: unknown): asserts value is LocalLis
     || typeof value.isSystem !== "boolean"
     || typeof value.createdAt !== "string"
     || typeof value.updatedAt !== "string"
-    || (value.deletedAt !== null && typeof value.deletedAt !== "string")) {
+    || (value.deletedAt !== null && typeof value.deletedAt !== "string")
+    || (value.syncClientVersion !== undefined && !isNonNegativeInteger(value.syncClientVersion))
+    || (value.syncOperationId !== undefined && value.syncOperationId !== null && !isUuid(value.syncOperationId))) {
     throw new LocalStorageValidationError("El registro local de lista no es válido.");
   }
 }
@@ -149,7 +155,9 @@ export function assertLocalTaskRecord(value: unknown): asserts value is LocalTas
     || (value.completedAt !== null && typeof value.completedAt !== "string")
     || typeof value.createdAt !== "string"
     || typeof value.updatedAt !== "string"
-    || (value.deletedAt !== null && typeof value.deletedAt !== "string")) {
+    || (value.deletedAt !== null && typeof value.deletedAt !== "string")
+    || (value.syncClientVersion !== undefined && !isNonNegativeInteger(value.syncClientVersion))
+    || (value.syncOperationId !== undefined && value.syncOperationId !== null && !isUuid(value.syncOperationId))) {
     throw new LocalStorageValidationError("El registro local de tarea no es válido.");
   }
 }

@@ -1,10 +1,18 @@
-import type { SyncChange, SyncMergeDecision } from "@/domain/sync/models";
+import type { SyncChange, SyncEntityVersion, SyncMergeDecision } from "@/domain/sync/models";
 
 export class ConflictResolver {
-  decide(localUpdatedAt: string | null, change: SyncChange): SyncMergeDecision {
-    if (!localUpdatedAt) {
+  decide(localVersion: SyncEntityVersion | null, change: SyncChange): SyncMergeDecision {
+    if (!localVersion) {
       return "remote";
     }
-    return change.updatedAt >= localUpdatedAt ? "remote" : "local";
+    if (change.updatedAt !== localVersion.updatedAt) {
+      return change.updatedAt > localVersion.updatedAt ? "remote" : "local";
+    }
+    if (change.clientVersion !== localVersion.clientVersion) {
+      return change.clientVersion > localVersion.clientVersion ? "remote" : "local";
+    }
+    const remoteOperationId = change.operationId ?? "";
+    const localOperationId = localVersion.operationId ?? "";
+    return remoteOperationId >= localOperationId ? "remote" : "local";
   }
 }

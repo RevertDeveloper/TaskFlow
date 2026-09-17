@@ -111,7 +111,10 @@ def _process_operation(external_user_id: int, operation: Mapping[str, object]) -
 
     try:
         with transaction.atomic():
+            previous = _existing_entity(external_user_id, operation)
             entity = _apply_operation(external_user_id, operation)
+            _ensure_lww_order(previous, entity, operation)
+            _stamp_sync_version(entity, operation)
             stored = _save_operation(external_user_id, operation, SyncOperation.Result.ACCEPTED, "")
     except SyncConflict as exc:
         stored = _save_failed_operation(
@@ -168,6 +171,46 @@ def _apply_operation(external_user_id: int, operation: Mapping[str, object]):
     if entity_type == "task":
         return _apply_task(external_user_id, entity_id, mutation, payload)
     raise SyncRejected("invalid_entity_type", "El tipo de entidad no es válido.")
+
+
+def _existing_entity(external_user_id: int, operation: Mapping[str, object]):
+    entity_type = operation.get("entity_type")
+    entity_id = _uuid(operation, "entity_id")
+    if entity_type == "list":
+        return List.objects.select_for_update().filter(
+            id=entity_id,
+            external_user_id=external_user_id,
+        ).first()
+    if entity_type == "task":
+        return Task.objects.select_for_update().filter(
+            id=entity_id,
+            external_user_id=external_user_id,
+        ).first()
+    return None
+
+
+def _ensure_lww_order(previous, entity, operation) -> None:  # type: ignore[no-untyped-def]
+    if previous is None:
+        return
+    if entity.updated_at < previous.updated_at:
+        raise SyncConflict("stale_operation", "La operación es más antigua que el estado remoto.")
+    if entity.updated_at != previous.updated_at:
+        return
+
+    candidate = _version_key(operation["client_version"], _uuid(operation, "operation_id"))
+    current = _version_key(previous.sync_client_version or 0, previous.sync_operation_id)
+    if candidate <= current:
+        raise SyncConflict("stale_operation", "La operación pierde el desempate de sincronización.")
+
+
+def _stamp_sync_version(entity, operation: Mapping[str, object]) -> None:
+    entity.sync_client_version = int(operation["client_version"])
+    entity.sync_operation_id = _uuid(operation, "operation_id")
+    entity.save(update_fields=["sync_client_version", "sync_operation_id"])
+
+
+def _version_key(client_version: object, operation_id: UUID | None) -> tuple[int, str]:
+    return int(client_version), str(operation_id or "")
 
 
 def _apply_list(

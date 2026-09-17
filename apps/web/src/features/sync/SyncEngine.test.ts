@@ -84,6 +84,8 @@ describe("SyncEngine", () => {
       entityId: "list-1",
       operation: "upsert",
       updatedAt: "2026-09-17T10:00:00Z",
+      clientVersion: 1,
+      operationId: null,
       data: {},
     }];
     const transport = fakeTransport({

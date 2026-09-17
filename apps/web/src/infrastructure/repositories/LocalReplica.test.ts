@@ -42,6 +42,10 @@ function listChange(
     entityId: id,
     operation,
     updatedAt,
+      clientVersion: 1,
+      operationId: operation === "delete"
+        ? "00000000-0000-4000-8000-000000000002"
+        : "00000000-0000-4000-8000-000000000001",
     data: {
       id,
       name: "Trabajo",

@@ -57,10 +57,11 @@ par `(updated_at, entity_type, entity_id)` aplicado. El orden estable es
 repetido devuelve una página determinista; cuando `has_more` es falso, el
 cursor recibido se conserva si no hay cambios.
 
-La respuesta sigue `packages/schemas/sync-pull.schema.json`. Los cambios de
-borrado conservan un tombstone con `operation: delete`, `updated_at` y los
-datos mínimos de la entidad. El cliente debe aplicar el cambio antes de
-avanzar el cursor.
+La respuesta sigue `packages/schemas/sync-pull.schema.json`. Cada cambio
+contiene también `client_version` y `operation_id`; para entidades modificadas
+fuera del API de sync son `0` y `null`. Los cambios de borrado conservan un
+tombstone con `operation: delete`, `updated_at` y los datos mínimos de la
+entidad. El cliente debe aplicar el cambio antes de avanzar el cursor.
 
 ## Semántica de conflictos
 
