@@ -43,6 +43,24 @@ describe("TaskFlowHttpClient", () => {
     expect(headers.get("X-CSRFToken")).toBe("csrf-value");
   });
 
+  it("keeps multipart uploads as FormData and sends CSRF", async () => {
+    document.cookie = "taskflowcsrftoken=csrf-value";
+    const request = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: {}, meta: {} }), { status: 202 }),
+    );
+    const client = new TaskFlowHttpClient("", 1_000, request);
+    const formData = new FormData();
+    formData.append("audio", new Blob(["audio"], { type: "audio/webm" }), "recording.webm");
+
+    await client.postForm("/api/v1/voice/sessions/", formData);
+
+    const options = request.mock.calls[0]?.[1];
+    const headers = options?.headers as Headers;
+    expect(options?.body).toBe(formData);
+    expect(headers.get("Content-Type")).toBeNull();
+    expect(headers.get("X-CSRFToken")).toBe("csrf-value");
+  });
+
   it("binds the default fetch transport to globalThis", async () => {
     document.cookie = "taskflowcsrftoken=csrf-value";
     const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));

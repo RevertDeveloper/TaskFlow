@@ -35,6 +35,18 @@ export type HistoryOutput = {
   created_at: string;
 };
 
+export type VoiceSessionStatus = "recording" | "uploaded" | "transcribing" | "transcribed" | "failed";
+
+export type VoiceSessionOutput = {
+  id: string;
+  status: VoiceSessionStatus;
+  transcript: string;
+  transcript_retention: boolean;
+  error_code: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type PaginationMeta = {
   page: number;
   page_size: number;

@@ -6,6 +6,7 @@ import type {
   ListOutput,
   TaskCreate,
   TaskOutput,
+  VoiceSessionOutput,
 } from "./generated/types";
 
 const csrfCookieName = "taskflowcsrftoken";
@@ -45,6 +46,10 @@ export class TaskFlowHttpClient {
     return this.send<T>(path, { ...options, body, method: "POST" });
   }
 
+  async postForm<T>(path: string, body: FormData, options: RequestOptions = {}): Promise<T> {
+    return this.send<T>(path, { ...options, body, method: "POST" });
+  }
+
   async patch<T>(path: string, body: unknown, options: RequestOptions = {}): Promise<T> {
     return this.send<T>(path, { ...options, body, method: "PATCH" });
   }
@@ -58,10 +63,11 @@ export class TaskFlowHttpClient {
     const timeout = globalThis.setTimeout(() => controller.abort(), options.timeoutMs ?? this.timeoutMs);
     const headers = new Headers(options.headers);
     const method = options.method?.toUpperCase() ?? "GET";
+    const isMultipart = typeof FormData !== "undefined" && options.body instanceof FormData;
     headers.set("Accept", "application/json");
     headers.set("X-Request-ID", createRequestId());
 
-    if (options.body !== undefined) {
+    if (options.body !== undefined && !isMultipart) {
       headers.set("Content-Type", "application/json");
     }
     if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS") {
@@ -71,7 +77,11 @@ export class TaskFlowHttpClient {
     try {
       const response = await this.request(`${this.baseUrl}${path}`, {
         ...options,
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        body: isMultipart
+          ? options.body as FormData
+          : options.body === undefined
+            ? undefined
+            : JSON.stringify(options.body),
         credentials: "include",
         cache: "no-store",
         headers,
@@ -114,6 +124,11 @@ export const api = {
   reopenTask: (id: string) => taskFlowApi.post<ApiEnvelope<TaskOutput>>(`/api/v1/tasks/${id}/reopen/`, {}),
   deleteTask: (id: string) => taskFlowApi.delete(`/api/v1/tasks/${id}/`),
   resetCloud: (confirmation: string) => taskFlowApi.post<void>("/api/v1/data/reset/", { confirmation }),
+  uploadVoiceSession: (audio: Blob, fileName: string) => {
+    const formData = new FormData();
+    formData.append("audio", audio, fileName);
+    return taskFlowApi.postForm<ApiEnvelope<VoiceSessionOutput>>("/api/v1/voice/sessions/", formData);
+  },
 };
 
 async function getCsrfToken(request: typeof fetch): Promise<string> {
