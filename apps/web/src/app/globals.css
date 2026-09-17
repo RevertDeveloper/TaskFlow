@@ -129,6 +129,45 @@ textarea:focus-visible {
   margin-block-start: auto;
 }
 
+.storage-indicator {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.6rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-accent);
+}
+
+.storage-indicator span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.storage-indicator strong,
+.storage-indicator small {
+  overflow-wrap: anywhere;
+}
+
+.storage-indicator strong {
+  color: var(--color-ink);
+  font-size: 0.78rem;
+}
+
+.storage-indicator small {
+  color: var(--color-ink-muted);
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
+.storage-indicator--warning {
+  border-color: color-mix(in srgb, var(--color-warm) 55%, var(--color-border));
+  color: var(--color-warm);
+}
+
 .sidebar-note {
   margin: 0;
   color: var(--color-ink-muted);

@@ -91,6 +91,10 @@ export class LocalRepository {
     };
   }
 
+  getDatabase(): TaskFlowDatabase {
+    return this.database;
+  }
+
   async createList(input: ListDraft, options: LocalMutationOptions = {}): Promise<TaskList> {
     const entityId = createUuid();
     const occurredAt = options.occurredAt ?? new Date().toISOString();

@@ -9,7 +9,8 @@ import type { ListDraft, ListPatch, TaskList } from "@/domain/list/models";
 import type { ListRepository } from "@/domain/list/ports";
 import type { Task, TaskDraft, TaskPatch } from "@/domain/task/models";
 import type { TaskRepository } from "@/domain/task/ports";
-import { taskFlowRepositories } from "@/infrastructure/api/repositories";
+import { defaultStorageManager, type StorageManager } from "@/application/storage/StorageManager";
+import type { StorageState } from "@/application/storage/StorageState";
 
 export type WorkspaceRepositories = {
   lists: ListRepository;
@@ -21,6 +22,7 @@ type TaskWorkspaceContextValue = {
   lists: TaskList[];
   tasks: Task[];
   historyPage: HistoryPage | null;
+  storage: StorageState | null;
   loading: boolean;
   historyLoading: boolean;
   error: string | null;
@@ -41,11 +43,16 @@ const TaskWorkspaceContext = createContext<TaskWorkspaceContextValue | null>(nul
 
 export function TaskWorkspaceProvider({
   children,
-  repositories = taskFlowRepositories,
+  repositories,
+  storageManager,
 }: {
   children: ReactNode;
   repositories?: WorkspaceRepositories;
+  storageManager?: StorageManager;
 }) {
+  const manager = storageManager ?? (repositories ? null : defaultStorageManager);
+  const activeRepositories = manager?.repositories ?? repositories ?? defaultStorageManager.repositories;
+  const [storage, setStorage] = useState<StorageState | null>(() => manager?.getSnapshot() ?? null);
   const [lists, setLists] = useState<TaskList[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [historyPage, setHistoryPage] = useState<HistoryPage | null>(null);
@@ -54,13 +61,20 @@ export function TaskWorkspaceProvider({
   const [error, setError] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!manager) {
+      return undefined;
+    }
+    return manager.subscribe((nextState) => setStorage(nextState));
+  }, [manager]);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [nextLists, nextTasks] = await Promise.all([
-        repositories.lists.findAll(),
-        repositories.tasks.findAll(),
+        activeRepositories.lists.findAll(),
+        activeRepositories.tasks.findAll(),
       ]);
       setLists(nextLists);
       setTasks(nextTasks);
@@ -68,8 +82,9 @@ export function TaskWorkspaceProvider({
       setError(errorMessage(requestError));
     } finally {
       setLoading(false);
+      void manager?.refreshState();
     }
-  }, [repositories]);
+  }, [activeRepositories, manager]);
 
   useEffect(() => {
     void Promise.resolve().then(refresh);
@@ -79,13 +94,13 @@ export function TaskWorkspaceProvider({
     setHistoryLoading(true);
     setHistoryError(null);
     try {
-      setHistoryPage(await repositories.history.findPage({ listId: listId ?? undefined, page }));
+      setHistoryPage(await activeRepositories.history.findPage({ listId: listId ?? undefined, page }));
     } catch (requestError) {
       setHistoryError(errorMessage(requestError));
     } finally {
       setHistoryLoading(false);
     }
-  }, [repositories]);
+  }, [activeRepositories]);
 
   const createTask = useCallback(async (input: TaskDraft) => {
     const optimisticTask: Task = {
@@ -102,20 +117,20 @@ export function TaskWorkspaceProvider({
     };
     setTasks((current) => [...current, optimisticTask]);
     try {
-      const createdTask = await repositories.tasks.create(input);
+      const createdTask = await activeRepositories.tasks.create(input);
       setTasks((current) => current.map((task) => task.id === optimisticTask.id ? createdTask : task));
       return createdTask;
     } catch (requestError) {
       setTasks((current) => current.filter((task) => task.id !== optimisticTask.id));
       throw requestError;
     }
-  }, [repositories]);
+  }, [activeRepositories]);
 
   const updateTask = useCallback(async (id: string, input: TaskPatch) => {
     const previousTask = tasks.find((task) => task.id === id);
     setTasks((current) => current.map((task) => task.id === id ? { ...task, ...input } : task));
     try {
-      const updatedTask = await repositories.tasks.update(id, input);
+      const updatedTask = await activeRepositories.tasks.update(id, input);
       setTasks((current) => current.map((task) => task.id === id ? updatedTask : task));
       return updatedTask;
     } catch (requestError) {
@@ -124,40 +139,40 @@ export function TaskWorkspaceProvider({
       }
       throw requestError;
     }
-  }, [repositories, tasks]);
+  }, [activeRepositories, tasks]);
 
   const completeTask = useCallback(async (id: string) => {
-    return mutateTaskStatus(id, repositories.tasks.complete, "completed", tasks, setTasks);
-  }, [repositories, tasks]);
+    return mutateTaskStatus(id, activeRepositories.tasks.complete, "completed", tasks, setTasks);
+  }, [activeRepositories, tasks]);
 
   const reopenTask = useCallback(async (id: string) => {
-    return mutateTaskStatus(id, repositories.tasks.reopen, "pending", tasks, setTasks);
-  }, [repositories, tasks]);
+    return mutateTaskStatus(id, activeRepositories.tasks.reopen, "pending", tasks, setTasks);
+  }, [activeRepositories, tasks]);
 
   const deleteTask = useCallback(async (id: string) => {
     const previousTask = tasks.find((task) => task.id === id);
     setTasks((current) => current.filter((task) => task.id !== id));
     try {
-      await repositories.tasks.delete(id);
+      await activeRepositories.tasks.delete(id);
     } catch (requestError) {
       if (previousTask) {
         setTasks((current) => [...current, previousTask]);
       }
       throw requestError;
     }
-  }, [repositories, tasks]);
+  }, [activeRepositories, tasks]);
 
   const createList = useCallback(async (input: ListDraft) => {
-    const createdList = await repositories.lists.create(input);
+    const createdList = await activeRepositories.lists.create(input);
     setLists((current) => [...current, createdList].sort((left, right) => left.position - right.position));
     return createdList;
-  }, [repositories]);
+  }, [activeRepositories]);
 
   const updateList = useCallback(async (id: string, input: ListPatch) => {
     const previousList = lists.find((list) => list.id === id);
     setLists((current) => current.map((list) => list.id === id ? { ...list, ...input } : list));
     try {
-      const updatedList = await repositories.lists.update(id, input);
+      const updatedList = await activeRepositories.lists.update(id, input);
       setLists((current) => current.map((list) => list.id === id ? updatedList : list));
       return updatedList;
     } catch (requestError) {
@@ -166,13 +181,13 @@ export function TaskWorkspaceProvider({
       }
       throw requestError;
     }
-  }, [lists, repositories]);
+  }, [activeRepositories, lists]);
 
   const deleteList = useCallback(async (id: string) => {
     const previousList = lists.find((list) => list.id === id);
     setLists((current) => current.filter((list) => list.id !== id));
     try {
-      await repositories.lists.delete(id);
+      await activeRepositories.lists.delete(id);
       const inbox = lists.find((list) => list.isSystem);
       if (inbox) {
         setTasks((current) => current.map((task) => task.listId === id ? { ...task, listId: inbox.id } : task));
@@ -183,12 +198,13 @@ export function TaskWorkspaceProvider({
       }
       throw requestError;
     }
-  }, [lists, repositories]);
+  }, [activeRepositories, lists]);
 
   const value: TaskWorkspaceContextValue = {
     lists,
     tasks,
     historyPage,
+    storage,
     loading,
     historyLoading,
     error,
