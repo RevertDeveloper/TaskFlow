@@ -7,7 +7,7 @@ DOMAIN_TARGETS = [
     ("tasks", "0003_task_sync_metadata"),
     ("history", "0002_alter_taskevent_external_user_id"),
     ("sync", "0003_syncoperation_result"),
-    ("voice", "0002_alter_voicesession_external_user_id"),
+    ("voice", "0003_voicesession_transcript"),
 ]
 DOMAIN_ZERO_TARGETS = [
     ("voice", None),

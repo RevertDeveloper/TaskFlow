@@ -12,6 +12,7 @@ from apps.tasks.api import (
     TaskDetailView,
     TaskReopenView,
 )
+from apps.voice.api import VoiceSessionCollectionView, VoiceSessionDetailView
 from config.health import health, readiness
 
 urlpatterns = [
@@ -45,6 +46,16 @@ urlpatterns = [
     path("api/v1/sync/push/", SyncPushView.as_view(), name="taskflow-sync-push"),
     path("api/v1/sync/pull/", SyncPullView.as_view(), name="taskflow-sync-pull"),
     path("api/v1/data/reset/", ResetCloudView.as_view(), name="taskflow-data-reset"),
+    path(
+        "api/v1/voice/sessions/",
+        VoiceSessionCollectionView.as_view(),
+        name="taskflow-voice-sessions",
+    ),
+    path(
+        "api/v1/voice/sessions/<str:session_id>/",
+        VoiceSessionDetailView.as_view(),
+        name="taskflow-voice-session-detail",
+    ),
     path(
         "api/accounts/verify-email/resend/",
         AccountsAuthProxyView.as_view(),

@@ -4,7 +4,7 @@ from apps.common.models import OwnedTimestampedModel
 
 
 class VoiceSession(OwnedTimestampedModel):
-    """Metadata for an ephemeral voice pipeline; audio is intentionally absent."""
+    """Session metadata and transient transcript; original audio is never a model field."""
 
     class Status(models.TextChoices):
         RECORDING = "recording", "Recording"
@@ -15,6 +15,7 @@ class VoiceSession(OwnedTimestampedModel):
 
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.RECORDING)
     transcript_retention = models.BooleanField(default=False)
+    transcript = models.TextField(blank=True)
     provider_metadata = models.JSONField(default=dict)
     error_code = models.CharField(max_length=64, blank=True)
 
