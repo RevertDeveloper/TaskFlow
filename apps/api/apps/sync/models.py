@@ -13,6 +13,11 @@ class SyncOperation(OwnedTimestampedModel):
         UPDATE = "update", "Update"
         DELETE = "delete", "Delete"
 
+    class Result(models.TextChoices):
+        ACCEPTED = "accepted", "Accepted"
+        REJECTED = "rejected", "Rejected"
+        CONFLICT = "conflict", "Conflict"
+
     device_id = models.UUIDField()
     entity_type = models.CharField(max_length=32)
     entity_id = models.UUIDField()
@@ -23,6 +28,8 @@ class SyncOperation(OwnedTimestampedModel):
     idempotency_key = models.UUIDField(default=uuid.uuid4)
     payload_version = models.PositiveIntegerField(default=1)
     payload = models.JSONField(default=dict)
+    result = models.CharField(max_length=16, choices=Result.choices, default=Result.ACCEPTED)
+    error_code = models.CharField(max_length=64, blank=True)
 
     class Meta:
         constraints = [

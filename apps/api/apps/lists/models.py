@@ -19,6 +19,7 @@ class List(OwnedTimestampedModel):
     position = models.PositiveIntegerField(default=0)
     is_archived = models.BooleanField(default=False)
     is_system = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("position", "created_at", "id")
@@ -32,6 +33,7 @@ class List(OwnedTimestampedModel):
         indexes = [
             models.Index(fields=("external_user_id", "is_archived")),
             models.Index(fields=("external_user_id", "position")),
+            models.Index(fields=("external_user_id", "updated_at")),
         ]
 
     def clean(self) -> None:

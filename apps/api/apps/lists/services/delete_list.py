@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.common.exceptions import ProtectedResourceError
 from apps.history.models import TaskEvent
@@ -37,4 +38,5 @@ def delete_list(external_user_id: int, list_id: UUID) -> None:
         event_type=TaskEvent.EventType.LIST_DELETED,
         payload={"list_id": str(task_list.id)},
     )
-    task_list.delete()
+    task_list.deleted_at = timezone.now()
+    task_list.save(update_fields=["deleted_at", "updated_at"])

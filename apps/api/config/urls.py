@@ -4,6 +4,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from apps.authentication.api import AccountsAuthProxyView, CsrfView, MeView
 from apps.history.api import HistoryView, ListHistoryView
 from apps.lists.api import ListCollectionView, ListDetailView
+from apps.sync.api import SyncPullView, SyncPushView
 from apps.tasks.api import (
     TaskCollectionView,
     TaskCompleteView,
@@ -40,6 +41,8 @@ urlpatterns = [
         name="taskflow-task-reopen",
     ),
     path("api/v1/history/", HistoryView.as_view(), name="taskflow-history"),
+    path("api/v1/sync/push/", SyncPushView.as_view(), name="taskflow-sync-push"),
+    path("api/v1/sync/pull/", SyncPullView.as_view(), name="taskflow-sync-pull"),
     path(
         "api/accounts/verify-email/resend/",
         AccountsAuthProxyView.as_view(),
