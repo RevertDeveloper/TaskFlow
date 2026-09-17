@@ -3,10 +3,11 @@ import type { StorageMode } from "./StorageMode";
 export type StorageAuthority = "remote" | "local";
 export type StorageSource = "remote" | "local" | "unknown";
 export type StorageAvailability = "loading" | "available" | "unavailable";
-export type StorageSyncStatus = "disabled" | "idle" | "pending" | "paused" | "error";
+export type StorageSyncStatus = "disabled" | "idle" | "syncing" | "pending" | "paused" | "error";
 
 export type StorageState = {
   mode: StorageMode;
+  isTransitioning: boolean;
   authority: StorageAuthority;
   source: StorageSource;
   isStale: boolean;

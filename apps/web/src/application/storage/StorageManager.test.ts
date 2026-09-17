@@ -16,7 +16,12 @@ describe("StorageManager", () => {
 
   it("routes Device and Cloud through the same repository surface", async () => {
     const localRepository = await createLocalRepository();
-    const manager = new StorageManager({ mode: "device", localRepository, apiRepositories: fakeApiRepositories() });
+    const manager = new StorageManager({
+      mode: "device",
+      localRepository,
+      apiRepositories: fakeApiRepositories(),
+      syncTransport: idleSyncTransport(),
+    });
 
     expect(Object.keys(manager.repositories).sort()).toEqual(["history", "lists", "sync", "tasks"]);
     await expect(manager.repositories.lists.findAll()).resolves.toEqual([
@@ -25,7 +30,7 @@ describe("StorageManager", () => {
     await manager.refreshState();
     expect(manager.getSnapshot()).toMatchObject({ mode: "device", authority: "local", source: "local", syncStatus: "disabled" });
 
-    manager.setMode("cloud");
+    await manager.setMode("cloud");
     expect(manager.getSnapshot().mode).toBe("cloud");
     expect(manager.getSnapshot().authority).toBe("remote");
     expect(manager.repositories.lists).not.toBe(localRepository.lists);
@@ -118,6 +123,48 @@ describe("StorageManager", () => {
     expect(syncTransport.pull).toHaveBeenCalledWith(null, 100);
     expect(manager.getSnapshot()).toMatchObject({ syncStatus: "idle", lastSyncedAt: expect.any(String) });
   });
+
+  it("keeps the active mode and local data when Cloud export fails", async () => {
+    const localRepository = await createLocalRepository();
+    const localList = await localRepository.lists.create({ name: "Conservar" });
+    const manager = new StorageManager({
+      mode: "cloud",
+      localRepository,
+      apiRepositories: fakeApiRepositories({
+        lists: fakeListRepository(vi.fn().mockRejectedValue(new TypeError("network down"))),
+      }),
+      syncTransport: idleSyncTransport(),
+    });
+
+    await expect(manager.setMode("device")).rejects.toThrow("network down");
+    expect(manager.getSnapshot()).toMatchObject({ mode: "cloud", isTransitioning: false });
+    await expect(localRepository.lists.findAll()).resolves.toEqual([
+      expect.objectContaining({ name: "Inbox" }),
+      expect.objectContaining({ id: localList.id, name: "Conservar" }),
+    ]);
+  });
+
+  it("keeps local reset separate from Cloud reset and requires strong confirmation", async () => {
+    const localRepository = await createLocalRepository();
+    await localRepository.lists.create({ name: "Local" });
+    const resetCloud = vi.fn().mockResolvedValue(undefined);
+    const manager = new StorageManager({
+      mode: "device",
+      localRepository,
+      apiRepositories: fakeApiRepositories({ resetCloud }),
+      syncTransport: idleSyncTransport(),
+    });
+
+    await manager.resetLocal();
+    expect(resetCloud).not.toHaveBeenCalled();
+    await expect(localRepository.lists.findAll()).resolves.toEqual([
+      expect.objectContaining({ name: "Inbox", isSystem: true }),
+    ]);
+    await expect(manager.resetCloud("RESET")).rejects.toThrow("confirmacion");
+    expect(resetCloud).not.toHaveBeenCalled();
+    await manager.resetCloud("RESET TASKFLOW DATA");
+    expect(resetCloud).toHaveBeenCalledWith("RESET TASKFLOW DATA");
+  });
 });
 
 async function createLocalRepository(): Promise<LocalRepository> {
@@ -172,4 +219,11 @@ function listModel(id = "00000000-0000-4000-8000-000000000002", name = "Lista", 
 
 function taskModel() {
   return { id: "task-a", listId: "list-a", title: "Tarea", description: "", status: "pending" as const, source: "manual" as const, position: 0, completedAt: null, createdAt: "2026-09-17T10:00:00Z", updatedAt: "2026-09-17T10:00:00Z" };
+}
+
+function idleSyncTransport() {
+  return {
+    push: vi.fn().mockResolvedValue({ version: 1, syncId: "sync-1", accepted: [], rejected: [], conflicts: [], changes: [] }),
+    pull: vi.fn().mockResolvedValue({ version: 1, cursor: null, hasMore: false, changes: [] }),
+  };
 }

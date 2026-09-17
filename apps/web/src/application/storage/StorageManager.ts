@@ -10,6 +10,7 @@ import { CloudRepository } from "@/infrastructure/repositories/CloudRepository";
 import { LocalRepository } from "@/infrastructure/repositories/LocalRepository";
 import { LocalReplica } from "@/infrastructure/repositories/LocalReplica";
 import { configuredStorageMode, type StorageMode } from "./StorageMode";
+import { SnapshotService } from "./SnapshotService";
 import type { StorageState, StorageStateListener } from "./StorageState";
 
 export type StorageRepositoryBundle = {
@@ -24,6 +25,7 @@ export type StorageManagerOptions = {
   localRepository?: LocalRepository;
   apiRepositories?: ApiRepositoryBundle;
   syncTransport?: SyncTransport;
+  snapshotService?: SnapshotService;
 };
 
 export class StorageManager {
@@ -31,20 +33,28 @@ export class StorageManager {
   private readonly localRepository: LocalRepository;
   private readonly apiRepositories: ApiRepositoryBundle;
   private readonly syncTransport: SyncTransport;
+  private readonly snapshotService: SnapshotService;
   private readonly listeners = new Set<StorageStateListener>();
   private repositoriesValue: StorageRepositoryBundle;
   private state: StorageState;
   private syncEngine: SyncEngine | null = null;
+  private modeTransition: Promise<void> | null = null;
 
   constructor(options: StorageManagerOptions = {}) {
     this.mode = options.mode ?? configuredStorageMode();
     this.localRepository = options.localRepository ?? new LocalRepository();
     this.apiRepositories = options.apiRepositories ?? taskFlowApiRepositories;
     this.syncTransport = options.syncTransport ?? new HttpSyncTransport();
+    this.snapshotService = options.snapshotService ?? new SnapshotService(
+      this.localRepository.getDatabase(),
+      this.localRepository,
+      this.apiRepositories,
+    );
     this.state = createInitialState(this.mode);
     this.repositoriesValue = this.createRepositories();
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
+      window.addEventListener("offline", this.handleOffline);
     }
   }
 
@@ -61,22 +71,44 @@ export class StorageManager {
     return () => this.listeners.delete(listener);
   }
 
-  setMode(mode: StorageMode): void {
+  async setMode(mode: StorageMode): Promise<void> {
     if (mode === this.mode) {
       return;
     }
-    this.mode = mode;
-    this.state = createInitialState(mode);
+    if (this.modeTransition) {
+      throw new StorageModeTransitionError("Ya hay un cambio de modo en curso.");
+    }
+    const transition = this.transitionTo(mode);
+    this.modeTransition = transition.finally(() => {
+      this.modeTransition = null;
+    });
+    return this.modeTransition;
+  }
+
+  async resetLocal(): Promise<void> {
+    await this.snapshotService.resetLocal();
     this.repositoriesValue = this.createRepositories();
+    this.state = createInitialState(this.mode);
     this.emit();
-    void this.refreshState();
+    await this.refreshState();
+  }
+
+  async resetCloud(confirmation: string): Promise<void> {
+    if (confirmation !== "RESET TASKFLOW DATA") {
+      throw new StorageModeTransitionError("La confirmacion para borrar Cloud no es valida.");
+    }
+    if (!this.apiRepositories.resetCloud) {
+      throw new StorageModeTransitionError("El borrado remoto de TaskFlow no esta configurado.");
+    }
+    await this.apiRepositories.resetCloud(confirmation);
+    await this.resetLocal();
   }
 
   async syncNow(): Promise<SyncRunResult> {
     if (this.mode === "device" || !this.syncEngine) {
       return { status: "paused", pushed: 0, pulled: 0, conflicts: 0, retries: 0, error: null };
     }
-    this.state = { ...this.state, syncStatus: "pending", error: null };
+    this.state = { ...this.state, syncStatus: "syncing", error: null };
     this.emit();
     const result = await this.syncEngine.run();
     const pendingOperations = await this.localRepository.sync.findPending(500);
@@ -183,12 +215,66 @@ export class StorageManager {
     };
   }
 
+  private async transitionTo(targetMode: StorageMode): Promise<void> {
+    const backup = await this.snapshotService.captureLocalDatabase();
+    this.state = { ...this.state, isTransitioning: true, error: null, availability: "loading" };
+    this.emit();
+    try {
+      if (targetMode === "device") {
+        const remoteSnapshot = await this.snapshotService.exportRemote();
+        await this.snapshotService.importLocal(remoteSnapshot);
+      } else {
+        const localSnapshot = await this.snapshotService.exportLocal();
+        await parseAndValidateSnapshot(localSnapshot);
+        const transitionSync = new SyncEngine(
+          this.localRepository.sync,
+          this.syncTransport,
+          { replica: new LocalReplica(this.localRepository.getDatabase()) },
+        );
+        const syncResult = await transitionSync.run();
+        if (syncResult.status === "error" || syncResult.status === "paused") {
+          throw new StorageModeTransitionError(
+            syncResult.error ?? "No se pudo completar la sincronizacion antes de activar Cloud.",
+          );
+        }
+        const pending = await this.localRepository.sync.findPending(500);
+        if (pending.length > 0) {
+          throw new StorageModeTransitionError("Quedan operaciones pendientes antes de activar Cloud.");
+        }
+        const remoteSnapshot = await this.snapshotService.exportRemote();
+        await this.snapshotService.importLocal(remoteSnapshot);
+      }
+      this.mode = targetMode;
+      this.repositoriesValue = this.createRepositories();
+      this.state = createInitialState(targetMode);
+      this.emit();
+      await this.refreshState();
+    } catch (error) {
+      await this.snapshotService.restoreLocalDatabase(backup);
+      this.state = {
+        ...this.state,
+        isTransitioning: false,
+        availability: "available",
+        error: errorMessage(error),
+      };
+      this.emit();
+      throw error;
+    }
+  }
+
   private emit(): void {
     this.listeners.forEach((listener) => listener(this.state));
   }
 
   private readonly handleOnline = (): void => {
     void this.syncNow();
+  };
+
+  private readonly handleOffline = (): void => {
+    if (this.mode === "cloud") {
+      this.state = { ...this.state, syncStatus: "paused", error: null };
+      this.emit();
+    }
   };
 }
 
@@ -197,6 +283,7 @@ export const defaultStorageManager = new StorageManager();
 function createInitialState(mode: StorageMode): StorageState {
   return {
     mode,
+    isTransitioning: false,
     authority: mode === "cloud" ? "remote" : "local",
     source: mode === "cloud" ? "unknown" : "local",
     isStale: false,
@@ -208,6 +295,18 @@ function createInitialState(mode: StorageMode): StorageState {
     replicaAvailable: true,
     error: null,
   };
+}
+
+async function parseAndValidateSnapshot(snapshot: Awaited<ReturnType<SnapshotService["exportLocal"]>>): Promise<void> {
+  const { parseSnapshot } = await import("./Snapshot");
+  await parseSnapshot(snapshot);
+}
+
+export class StorageModeTransitionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StorageModeTransitionError";
+  }
 }
 
 function errorMessage(error: unknown): string {

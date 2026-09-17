@@ -168,8 +168,9 @@ function normalizeBody(body: SnapshotBody): SnapshotBody {
 }
 
 function snapshotWithoutChecksum(snapshot: TaskFlowSnapshot): SnapshotBody {
-  const { checksum: _checksum, ...body } = snapshot;
-  return body;
+  const body: Partial<TaskFlowSnapshot> = { ...snapshot };
+  delete body.checksum;
+  return body as SnapshotBody;
 }
 
 function assertSnapshotShape(value: unknown): asserts value is TaskFlowSnapshot {
@@ -267,7 +268,7 @@ function isSnapshotCounts(value: Record<string, unknown>): value is SnapshotCoun
     && isNonNegativeInteger(value.pending_operations);
 }
 
-function isRecord(value: unknown): value is Record<string, any> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

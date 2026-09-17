@@ -4,15 +4,18 @@ import type { TaskRepository } from "@/domain/repositories/TaskRepository";
 import { ApiHistoryRepository } from "./ApiHistoryRepository";
 import { ApiListRepository } from "./ApiListRepository";
 import { ApiTaskRepository } from "./ApiTaskRepository";
+import { api } from "@/infrastructure/api/httpClient";
 
 export type ApiRepositoryBundle = {
   lists: ListRepository;
   tasks: TaskRepository;
   history: HistoryRepository;
+  resetCloud?: (confirmation: string) => Promise<void>;
 };
 
 export const taskFlowApiRepositories: ApiRepositoryBundle = {
   lists: new ApiListRepository(),
   tasks: new ApiTaskRepository(),
   history: new ApiHistoryRepository(),
+  resetCloud: (confirmation) => api.resetCloud(confirmation),
 };

@@ -37,5 +37,8 @@ protocolo de sync autenticado, con idempotencia y ownership.
   se activa Cloud.
 - Cualquier error deja intactos el modo activo y los datos locales anteriores.
 
+El borrado remoto se mantiene fuera del snapshot: es una operacion destructiva
+separada, autenticada y protegida por confirmacion fuerte.
+
 La baja de cuenta pertenece a `carlosrevert-accounts`; ningún reset de datos
 locales o de datos TaskFlow ejecuta esa operación.
