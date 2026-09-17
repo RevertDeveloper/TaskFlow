@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 10 implementation completed; browser installability QA pending
+Phase 10 completed
 
 ## Current Subphase
-10.1-10.2 - Cloud <-> Device transitions, separated resets and PWA implementation completed
+10.1-10.2 - Cloud <-> Device transitions, separated resets and PWA completed
 
 ## Current Task
-Phase 10 automated gates completed; finish browser QA for installability, service-worker update and offline navigation
+Phase 10 quality gate completed; next task is Phase 11
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -74,14 +74,21 @@ Phase 10 automated gates completed; finish browser QA for installability, servic
 - TF-0904: server-authoritative LWW, conflict policy and tombstone reconciliation
 - TF-0905: transactional backend merge and local replica application
 - TF-0906: structured sync telemetry with request/sync/operation correlation
+- TF-1001: versioned common snapshot contract with checksum and counts
+- TF-1002: verified Cloud -> Device transition with rollback
+- TF-1003: verified Device -> Cloud transition with final remote pull
+- TF-1004: separated local/cloud resets with strong confirmation
+- TF-1005: manifest and installability metadata
+- TF-1006: versioned service worker and non-destructive update flow
+- TF-1007: offline, syncing, pending, device-only and error indicators
 
 ## In Progress
-- Browser QA is pending because this environment has no Chromium/Chrome executable and Playwright is not installed; the integrated browser could not connect over CDP.
+- None. Phase 10 is complete.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
 - Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
-- Local API services were unavailable during browser QA; deterministic fixtures covered the Phase 6 UI gate.
+- The isolated frontend browser run reports `/api/v1/auth/me` as 404 because the API/reverse proxy is not part of that process; API contract and authentication tests remain green.
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -92,17 +99,16 @@ Phase 10 automated gates completed; finish browser QA for installability, servic
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 10 automated checks PASS. API `pytest -q` reports 78 passed and Ruff is
-clean. Web reports 51 Vitest tests passed; strict typecheck, lint and production
-build are clean. Draft 2020-12 validation passes for the snapshot schema. HTTP
-checks return the manifest, service worker and app shell successfully; the
-service worker source excludes `/api/` from its public cache policy. Browser
-verification of actual installability, worker update and offline navigation is
-pending because the required browser tooling is unavailable. Real Accounts/API
-staging auth remains deferred to the smoke/deployment phase.
+Phase 10 PASS. API `pytest -q` reports 78 passed and Ruff is clean. Web reports
+51 Vitest tests passed; strict typecheck, lint and production build are clean.
+Draft 2020-12 validation passes for the snapshot schema. Playwright/Chromium
+verified the manifest, service worker registration and controller, versioned
+public cache without `/api/` URLs, and `offline.html` navigation fallback with
+HTTP 200. Real Accounts/API staging auth remains deferred to the
+smoke/deployment phase.
 
 ## Last Commit
-`c264915` - `fix(sync): enforce deterministic lww tie breaker`; Phase 9 closed.
+`e5eb2ca` - `docs(roadmap): record phase 10 gate evidence`; Phase 10 closed.
 
 ## Next Task
-Run the Phase 10 browser QA with Chromium/Playwright, then mark the roadmap quality gate and begin Phase 11 STT Infrastructure.
+Begin Phase 11 STT Infrastructure.
