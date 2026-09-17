@@ -86,7 +86,7 @@ payloads, quota exhaustion, rollback and idempotent recovery. Real
 Accounts/API staging auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
-Phase 7 closure commit; see the repository log for the final hash.
+`1a47dc082594ac5fb5108846f7e92ecf479d758b` - `docs(storage): close Phase 7 quality gate`
 
 ## Next Task
 Start Phase 8: define the StorageManager and cloud/device repository contract.
