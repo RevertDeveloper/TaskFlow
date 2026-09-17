@@ -1573,11 +1573,6 @@ Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determi
 - [x] Privacidad de cache auditada.
 - [x] Reset operations separadas y confirmadas.
 
-> La validacion browser de installability, actualizacion del service worker y
-> navegacion offline queda pendiente porque el entorno de desarrollo no dispone
-> de Chromium/Chrome ni Playwright. Las comprobaciones HTTP, estaticas y los
-> gates de API/web si estan completados.
-
 ### Definition of Done
 
 El usuario puede trabajar en Device o Cloud sin perder datos y entiende donde estan almacenados.

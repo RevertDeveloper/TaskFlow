@@ -108,7 +108,7 @@ HTTP 200. Real Accounts/API staging auth remains deferred to the
 smoke/deployment phase.
 
 ## Last Commit
-`e5eb2ca` - `docs(roadmap): record phase 10 gate evidence`; Phase 10 closed.
+`3862455` - `docs(roadmap): close phase 10 after browser qa`; Phase 10 closed.
 
 ## Next Task
 Begin Phase 11 STT Infrastructure.
