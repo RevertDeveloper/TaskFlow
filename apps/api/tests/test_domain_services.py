@@ -60,7 +60,8 @@ def test_deleting_a_list_moves_tasks_to_inbox_and_preserves_events() -> None:
 
     inbox = List.objects.get(external_user_id=101, is_system=True)
     task.refresh_from_db()
-    assert not List.objects.filter(id=source.id).exists()
+    deleted_source = List.objects.get(id=source.id)
+    assert deleted_source.deleted_at is not None
     assert task.list_id == inbox.id
     assert TaskEvent.objects.count() == event_count + 2
     assert TaskEvent.objects.filter(

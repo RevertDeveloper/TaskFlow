@@ -15,11 +15,11 @@ Su estado distingue autoridad, fuente de la respuesta y disponibilidad:
 | `source` | Origen de los datos mostrados: remoto, local o desconocido. |
 | `isStale` | La UI muestra una replica local que puede no contener lo ultimo del servidor. |
 | `pendingOperations` | Operaciones locales aun no procesadas. |
-| `syncStatus` | Estado de la cola; en Device es `disabled`. El motor completo llega en Phase 9. |
+| `syncStatus` | Estado de la cola: `idle`, `pending`, `paused` o `error`; en Device es `disabled`. |
 | `availability` | `loading`, `available` o `unavailable`. |
 | `replicaAvailable` | Indica si IndexedDB puede guardar la replica operativa. |
 | `lastRemoteSuccessAt` | Ultima respuesta remota aceptada. |
-| `lastSyncedAt` | Reservado para la sincronizacion completa de Phase 9; permanece nulo en Phase 8. |
+| `lastSyncedAt` | Ultima ejecucion de Sync completada, aunque no hubiera operaciones pendientes. |
 
 ## Cloud Mode
 
@@ -36,17 +36,24 @@ entidad, el evento y la operacion pendiente en una transaccion atomica.
 Los errores de validacion, autenticacion o autorizacion no hacen fallback
 local. Se propagan a la feature para que la UI pueda informar del fallo real.
 
-Phase 8 prepara la cola, pero no inventa endpoints, cursores, reintentos de
-red ni resolucion de conflictos. El drenaje idempotente y la reconciliacion
-pertenecen a Phase 9.
+Phase 9 drena la cola local en lotes de 100 mediante `/api/v1/sync/push/` y
+recupera cambios con `/api/v1/sync/pull/`. El `SyncEngine` confirma resultados
+aceptados, rechazados y conflictivos, reintenta solo errores transitorios con
+backoff y jitter acotados, y pausa cuando el navegador queda offline. El
+cursor se persiste en `app_state` despues de aplicar la pagina completa.
+
+Los cambios remotos se aplican en una transaccion Dexie mediante `LocalReplica`.
+`ConflictResolver` usa `updated_at` del servidor como autoridad, conserva un
+tombstone mas nuevo frente a replicas antiguas y deja disponible el resultado
+de conflictos para observabilidad. El transporte es el unico punto que conoce
+el envelope HTTP y la conversion `snake_case`/`camelCase`.
 
 ## Device Mode
 
 IndexedDB es la fuente y autoridad local. El modo no necesita red y comparte
 los mismos puertos de listas, tareas, historial y sync que Cloud. Sus
-operaciones pendientes se conservan localmente para una posible evolucion de
-modo, pero `syncStatus=disabled` deja claro que no se enviaran remotamente en
-esta fase.
+operaciones pendientes se conservan localmente, pero `syncStatus=disabled`
+impide enviarlas remotamente desde Device Mode.
 
 ## Configuracion y UI
 

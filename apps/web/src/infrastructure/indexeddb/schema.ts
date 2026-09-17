@@ -10,6 +10,7 @@ export const APP_STATE_KEYS = {
   deviceId: "device_id",
   schemaVersion: "schema_version",
   clientVersion: "client_version",
+  syncCursor: "sync_cursor",
 } as const;
 
 export type JsonPrimitive = string | number | boolean | null;

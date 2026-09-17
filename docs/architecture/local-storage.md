@@ -22,7 +22,7 @@ La version actual es `2` y contiene estos stores:
 | `tasks` | `id` UUID | Tareas, incluyendo tombstones locales |
 | `task_events` | `id` UUID | Historial append-only |
 | `sync_operations` | `id` UUID, `idempotencyKey` unico | Cola local pendiente |
-| `app_state` | `key` | `device_id`, `schema_version`, contador de cliente |
+| `app_state` | `key` | `device_id`, `schema_version`, contador de cliente y cursor de sync |
 | `voice_sessions` | `id` UUID | Metadatos de voz, nunca audio permanente |
 
 La version `1` conserva los stores basicos. La migracion a `2` anade los
@@ -75,8 +75,16 @@ pertenece a las fases de hardening y despliegue.
 
 La politica de autoridad, replica Cloud y seleccion Device esta documentada
 en [storage-modes.md](storage-modes.md). `LocalRepository` es la implementacion
-local compartida por ambos modos; Cloud puede usarla como fallback y cola,
-mientras que Device la usa como fuente principal.
+local compartida por ambos modos; Cloud puede usarla como fallback, cola y
+replica del motor Sync, mientras que Device la usa como fuente principal.
+
+El motor cliente vive en `apps/web/src/features/sync/`. `SyncQueue` limita los
+lotes a 100, `HttpSyncTransport` adapta el envelope autenticado, y
+`SyncEngine` coordina push, pull, retries limitados, pausa offline y
+reanudacion mediante el evento `online`. Los eventos estructurados del motor
+exponen retries, cambios, rechazadas y conflictos sin incluir payloads de
+tareas. El backend registra `request_id`, `sync_id` y `operation_id`, junto con
+conteos de aceptadas, rechazadas, conflictos y cambios devueltos.
 
 ## Evidencia local
 

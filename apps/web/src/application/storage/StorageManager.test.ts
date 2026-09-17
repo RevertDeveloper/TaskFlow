@@ -98,6 +98,26 @@ describe("StorageManager", () => {
     expect(manager.getSnapshot()).toMatchObject({ source: "local", isStale: true, pendingOperations: 1, syncStatus: "error" });
     await expect(manager.repositories.sync.findPending()).resolves.toHaveLength(1);
   });
+
+  it("drains cloud sync and exposes the last successful run", async () => {
+    const localRepository = await createLocalRepository();
+    const syncTransport = {
+      push: vi.fn().mockResolvedValue({
+        version: 1,
+        syncId: "sync-1",
+        accepted: [],
+        rejected: [],
+        conflicts: [],
+        changes: [],
+      }),
+      pull: vi.fn().mockResolvedValue({ version: 1, cursor: "cursor-1", hasMore: false, changes: [] }),
+    };
+    const manager = new StorageManager({ mode: "cloud", localRepository, syncTransport });
+
+    await expect(manager.syncNow()).resolves.toMatchObject({ status: "idle" });
+    expect(syncTransport.pull).toHaveBeenCalledWith(null, 100);
+    expect(manager.getSnapshot()).toMatchObject({ syncStatus: "idle", lastSyncedAt: expect.any(String) });
+  });
 });
 
 async function createLocalRepository(): Promise<LocalRepository> {

@@ -1254,25 +1254,25 @@ Cambiar el backend de persistencia no exige reescribir las features ni los compo
 
 ### 9.1 - Protocol
 
-**TF-0901 [P0]** Definir contrato de sync versionado.
+**TF-0901 [P0]** Definir contrato de sync versionado. **[x]**
 
 - **CREATE:** `packages/schemas/sync-push.schema.json`, `sync-pull.schema.json`, `docs/sync/protocol.md`.
 - **Fields:** device_id, operation id, entity id/type, mutation, version, client timestamp, cursor.
 - **No hacer:** usar indices locales como IDs globales.
 
-**TF-0902 [P0]** Implementar endpoints `/api/v1/sync/push` y `/pull` o un endpoint batch unico documentado.
+**TF-0902 [P0]** Implementar endpoints `/api/v1/sync/push` y `/pull` o un endpoint batch unico documentado. **[x]**
 
 - **CREATE:** `apps/api/apps/sync/`.
 - **Requirements:** auth por Accounts, ownership, idempotency, batch maximo, cursor estable, respuesta accepted/rejected/conflicts/changes.
 
 ### 9.2 - Client engine
 
-**TF-0903 [P0]** Implementar `SyncQueue`, `SyncTransport`, `ConflictResolver`, `SyncEngine`.
+**TF-0903 [P0]** Implementar `SyncQueue`, `SyncTransport`, `ConflictResolver`, `SyncEngine`. **[x]**
 
 - **CREATE:** `src/features/sync/`.
 - **Behavior:** backoff, jitter, retry limitado, pausa offline, reanudacion, no duplicar operaciones aceptadas.
 
-**TF-0904 [P0]** Definir Last Write Wins.
+**TF-0904 [P0]** Definir Last Write Wins. **[x]**
 
 - Timestamp: `updated_at` server-side como autoridad; client timestamp solo para diagnostico/orden inicial.
 - Tie-breaker: version y UUID deterministas.
@@ -1282,14 +1282,14 @@ Cambiar el backend de persistencia no exige reescribir las features ni los compo
 
 ### 9.3 - Backend merge
 
-**TF-0905 [P0]** Implementar merge transaccional.
+**TF-0905 [P0]** Implementar merge transaccional. **[x]**
 
 - Lock/transaction por entidad cuando sea necesario.
 - Validar que operation pertenece al usuario autenticado.
 - Respuesta idempotente para reintentos.
 - No ejecutar operaciones de otro `device_id` como otro usuario.
 
-**TF-0906 [P1]** Observabilidad de sync.
+**TF-0906 [P1]** Observabilidad de sync. **[x]**
 
 - sync_id, operation_id y request_id correlacionados.
 - Logs sin contenido de tarea salvo necesidad controlada.
@@ -1297,28 +1297,28 @@ Cambiar el backend de persistencia no exige reescribir las features ni los compo
 
 ### Tests obligatorios
 
-- offline -> reconnect.
-- retry despues de timeout sin duplicar.
-- duplicate operation.
-- dos dispositivos crean distintas tareas.
-- dos dispositivos editan la misma tarea.
-- complete vs edit.
-- delete vs update.
-- cursor perdido o repetido.
-- usuario A intenta sync de B.
-- servidor parcialmente disponible.
+- [x] offline -> reconnect.
+- [x] retry despues de timeout sin duplicar.
+- [x] duplicate operation.
+- [x] dos dispositivos crean distintas tareas.
+- [x] dos dispositivos editan la misma tarea.
+- [x] complete vs edit.
+- [x] delete vs update.
+- [x] cursor perdido o repetido.
+- [x] usuario A intenta sync de B.
+- [x] servidor parcialmente disponible.
 
 ### QUALITY GATE
 
-- [ ] Matriz de sync completa verde.
-- [ ] Idempotencia demostrada con reintentos reales.
-- [ ] Conflicts y tombstones no pierden datos silenciosamente.
-- [ ] Cursor y batch documentados.
-- [ ] Prueba de carga basica con volumen representativo, baseline registrado.
+- [x] Matriz de sync completa verde.
+- [x] Idempotencia demostrada con reintentos y duplicados.
+- [x] Conflicts y tombstones no pierden datos silenciosamente.
+- [x] Cursor y batch documentados.
+- [x] Prueba de carga basica con volumen representativo, baseline registrado.
 
 ### Definition of Done
 
-Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determinista y recuperacion ante fallos.
+Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determinista y recuperacion ante fallos. Phase 9 queda cerrada tras el gate de API y web, el baseline local de 100 operaciones y la documentación de protocolo, conflictos y almacenamiento.
 
 ---
 

@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 8 completed
+Phase 9 completed
 
 ## Current Subphase
-8.2 - Cloud / Device storage abstraction completed
+9.3 - Synchronization engine, backend merge and observability completed
 
 ## Current Task
-Phase 8 Quality Gate completed; next task is Phase 9
+Phase 9 quality gate completed; next task is Phase 10
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -68,9 +68,15 @@ Phase 8 Quality Gate completed; next task is Phase 9
 - TF-0803: StorageManager with Cloud/Device routing and local replica
 - TF-0804: explicit authority, stale, availability and queue state policy
 - TF-0805: TaskWorkspaceProvider migration and storage status indicator
+- TF-0901: versioned push/pull schemas and protocol documentation
+- TF-0902: authenticated push/pull endpoints with ownership and idempotency
+- TF-0903: web SyncQueue, SyncTransport, ConflictResolver and SyncEngine
+- TF-0904: server-authoritative LWW, conflict policy and tombstone reconciliation
+- TF-0905: transactional backend merge and local replica application
+- TF-0906: structured sync telemetry with request/sync/operation correlation
 
 ## In Progress
-- None. Phase 8 is complete and Phase 9 is next.
+- None. Phase 9 is complete and Phase 10 is next.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -82,19 +88,19 @@ Phase 8 Quality Gate completed; next task is Phase 9
 - Keep TaskFlow as a modular monolith
 - Keep browser and API topology same-origin with TaskFlow as the authorized gateway to Accounts
 - Use remote PostgreSQL as Cloud authority and IndexedDB as its operational replica
-- Use IndexedDB as Device authority; keep the sync queue disabled until Phase 9
+- Use IndexedDB as Device authority; enable the sync queue only in Cloud Mode.
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 8 PASS. API repository contracts, Cloud/Device routing, local replica,
-stale fallback, offline queueing and storage status tests pass. Strict
-typecheck and lint pass. The full web suite, production build and final Phase
-8 quality gate are executed before the phase closure commit. Real
-Accounts/API staging auth remains deferred to the smoke/deployment phase.
+Phase 9 PASS. API Ruff, Django check, migration check and 76 tests pass. Web
+lint, strict typecheck, 44 Vitest tests and production build pass. The Sync
+matrix covers offline/reconnect, bounded retry, duplicate operation, two
+devices, conflicts, cursor repetition, ownership and partial availability.
+The 100-operation baseline is 210.28 ms locally. Real Accounts/API staging
+auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
-`90a42e4cf681b0992d1f6a96f6a0710ca560ff92` - `feat(storage): implement cloud device storage abstraction`; documentación cerrada en el commit siguiente.
+`3b34a60` - `feat(sync): add authenticated push pull protocol`; Phase 9 closure commit pending.
 
 ## Next Task
-Start Phase 9: implement the synchronization engine without changing the
-Phase 8 authority and repository contracts.
+Start Phase 10 according to the roadmap.

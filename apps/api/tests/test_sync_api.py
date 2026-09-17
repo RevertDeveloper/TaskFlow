@@ -189,6 +189,122 @@ def test_rejected_operation_is_not_retried_forever(monkeypatch) -> None:  # type
     assert SyncOperation.objects.filter(external_user_id=101).count() == 1
 
 
+def test_later_device_edit_wins_for_the_same_task(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    inbox = ensure_inbox_for_user(101)
+    task = create_task(101, list_id=inbox.id, title="Inicial")
+
+    first = push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000401",
+                device_id="00000000-0000-4000-8000-000000000501",
+                entity_id=str(task.id),
+                mutation="update",
+                payload={"entityId": str(task.id), "title": "Dispositivo A"},
+            ),
+            "entity_type": "task",
+        },
+    )
+    second = push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000402",
+                device_id="00000000-0000-4000-8000-000000000502",
+                entity_id=str(task.id),
+                mutation="update",
+                payload={"entityId": str(task.id), "title": "Dispositivo B"},
+            ),
+            "entity_type": "task",
+        },
+    )
+
+    task.refresh_from_db()
+    assert first.json()["data"]["accepted"]
+    assert second.json()["data"]["accepted"]
+    assert task.title == "Dispositivo B"
+
+
+def test_complete_and_edit_keep_the_latest_task_version_coherent(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    inbox = ensure_inbox_for_user(101)
+    task = create_task(101, list_id=inbox.id, title="Pendiente")
+
+    push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000403",
+                device_id="00000000-0000-4000-8000-000000000503",
+                entity_id=str(task.id),
+                mutation="update",
+                payload={"entityId": str(task.id), "status": "completed"},
+            ),
+            "entity_type": "task",
+        },
+    )
+    push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000404",
+                device_id="00000000-0000-4000-8000-000000000504",
+                entity_id=str(task.id),
+                mutation="update",
+                payload={"entityId": str(task.id), "title": "Completada"},
+            ),
+            "entity_type": "task",
+        },
+    )
+
+    task.refresh_from_db()
+    assert task.title == "Completada"
+    assert task.status == "completed"
+    assert task.completed_at is not None
+
+
+def test_tombstone_rejects_a_later_update_without_resurrecting_entity(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    inbox = ensure_inbox_for_user(101)
+    task = create_task(101, list_id=inbox.id, title="Borrable")
+    task_id = str(task.id)
+
+    deleted = push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000405",
+                device_id="00000000-0000-4000-8000-000000000505",
+                entity_id=task_id,
+                mutation="delete",
+                payload={"entityId": task_id},
+            ),
+            "entity_type": "task",
+        },
+    )
+    updated = push(
+        client,
+        {
+            **operation(
+                operation_id="00000000-0000-4000-8000-000000000406",
+                device_id="00000000-0000-4000-8000-000000000506",
+                entity_id=task_id,
+                mutation="update",
+                payload={"entityId": task_id, "title": "No debe volver"},
+            ),
+            "entity_type": "task",
+        },
+    )
+
+    task.refresh_from_db()
+    assert deleted.json()["data"]["accepted"]
+    assert updated.json()["data"]["conflicts"][0]["code"] == "tombstone_wins"
+    assert task.deleted_at is not None
+    assert task.title == "Borrable"
+
+
 def test_sync_rejects_batches_over_protocol_limit(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     client = auth_client(monkeypatch, "alice")
     response = client.post(

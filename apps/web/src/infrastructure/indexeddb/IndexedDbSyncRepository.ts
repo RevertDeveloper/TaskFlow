@@ -1,7 +1,8 @@
 import type { SyncOperation } from "@/domain/sync/models";
 import type { SyncRepository } from "@/domain/sync/ports";
+import { APP_STATE_KEYS } from "./schema";
 import { openTaskFlowDatabase, taskFlowDatabase, type TaskFlowDatabase } from "./database";
-import { LocalStorageError } from "./errors";
+import { LocalStorageError, LocalStorageValidationError } from "./errors";
 import { assertLocalSyncOperationRecord, type LocalSyncOperationRecord } from "./schema";
 
 export class IndexedDbSyncRepository implements SyncRepository {
@@ -39,6 +40,26 @@ export class IndexedDbSyncRepository implements SyncRepository {
     }
     assertLocalSyncOperationRecord(record);
     await this.database.syncOperations.put({ ...record, processedAt });
+  }
+
+  async getCursor(): Promise<string | null> {
+    await openTaskFlowDatabase(this.database);
+    const record = await this.database.appState.get(APP_STATE_KEYS.syncCursor);
+    if (!record) {
+      return null;
+    }
+    if (record?.value === null || typeof record?.value === "string") {
+      return record?.value ?? null;
+    }
+    throw new LocalStorageValidationError("El cursor local de sincronización está corrupto.");
+  }
+
+  async setCursor(cursor: string | null): Promise<void> {
+    await openTaskFlowDatabase(this.database);
+    if (cursor !== null && typeof cursor !== "string") {
+      throw new LocalStorageValidationError("El cursor de sincronización no es válido.");
+    }
+    await this.database.appState.put({ key: APP_STATE_KEYS.syncCursor, value: cursor });
   }
 }
 

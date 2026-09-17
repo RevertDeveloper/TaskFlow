@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.common.exceptions import ProtectedResourceError, ResourceNotFound
+from apps.common.middleware import current_request_id
 from apps.history.models import TaskEvent
 from apps.history.services import record_event
 from apps.lists.models import List
@@ -54,6 +55,15 @@ def push_operations(
             "conflicts": conflicts,
         }[result["result"]]
         bucket.append(result["response"])
+        logger.info(
+            "sync_operation_processed",
+            extra={
+                "sync_id": sync_id,
+                "operation_id": result["response"].get("operation_id"),
+                "result": result["result"],
+                "request_id": current_request_id(),
+            },
+        )
         if result.get("change") is not None:
             changes.append(result["change"])
 
@@ -64,6 +74,7 @@ def push_operations(
             "accepted_count": len(accepted),
             "rejected_count": len(rejected),
             "conflict_count": len(conflicts),
+            "request_id": current_request_id(),
         },
     )
     return {

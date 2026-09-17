@@ -45,8 +45,8 @@ El servidor valida ownership con la identidad de Accounts y nunca acepta un
 La respuesta contiene `accepted`, `rejected`, `conflicts` y `changes`. Un
 reintento de una operación aceptada devuelve `accepted` de nuevo sin repetir
 la mutación. Los rechazos permanentes se marcan como procesados para no crear
-un bucle de reintentos; un conflicto incluye el cambio remoto que debe usar el
-cliente para resolverlo.
+un bucle de reintentos; un conflicto devuelve su `code` y `message`, y el
+cliente obtiene el estado remoto mediante el pull siguiente.
 
 ## Pull y cursor
 
@@ -82,6 +82,6 @@ El cliente pausa si el navegador está offline. Ante timeout, `408`, `429` o
 reintenta errores de validación o autenticación. La operación sigue pendiente
 si el transporte no confirma el lote.
 
-Los logs solo incluyen `request_id`, `sync_id`, `operation_id`, estado, lag,
-reintentos y conflictos. No incluyen títulos, descripciones, cookies,
+Los logs solo incluyen `request_id`, `sync_id`, `operation_id`, estado,
+conteos, reintentos y conflictos. No incluyen títulos, descripciones, cookies,
 payloads ni datos de Accounts.

@@ -1,12 +1,16 @@
+import logging
 from datetime import datetime
 from uuid import UUID
 
 from django.db.models import Q
 
+from apps.common.middleware import current_request_id
 from apps.lists.models import List
 from apps.tasks.models import Task
 
 from .common import ENTITY_ORDER, decode_cursor, encode_cursor, serialize_change
+
+logger = logging.getLogger(__name__)
 
 
 def pull_changes(external_user_id: int, *, cursor: str | None, limit: int) -> dict[str, object]:
@@ -29,12 +33,22 @@ def pull_changes(external_user_id: int, *, cursor: str | None, limit: int) -> di
         entity_type, entity = page[-1]
         next_cursor = encode_cursor(entity.updated_at, entity_type, entity.id)
 
-    return {
+    result = {
         "version": 1,
         "cursor": next_cursor,
         "has_more": has_more,
         "changes": [serialize_change(entity_type, entity) for entity_type, entity in page],
     }
+    logger.info(
+        "sync_pull_completed",
+        extra={
+            "request_id": current_request_id(),
+            "cursor_present": cursor is not None,
+            "returned_count": len(page),
+            "has_more": has_more,
+        },
+    )
+    return result
 
 
 def _changes_for_model(model, external_user_id: int, cursor, entity_type: str):  # type: ignore[no-untyped-def]

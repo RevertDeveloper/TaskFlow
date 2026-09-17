@@ -1,10 +1,14 @@
 import type { HistoryRepository } from "@/domain/repositories/HistoryRepository";
 import type { ListRepository } from "@/domain/repositories/ListRepository";
 import type { SyncRepository } from "@/domain/repositories/SyncRepository";
+import type { SyncRunResult } from "@/domain/sync/models";
 import type { TaskRepository } from "@/domain/repositories/TaskRepository";
+import { SyncEngine } from "@/features/sync/SyncEngine";
+import { HttpSyncTransport, type SyncTransport } from "@/features/sync/SyncTransport";
 import { taskFlowApiRepositories, type ApiRepositoryBundle } from "@/infrastructure/repositories/apiRepositories";
 import { CloudRepository } from "@/infrastructure/repositories/CloudRepository";
 import { LocalRepository } from "@/infrastructure/repositories/LocalRepository";
+import { LocalReplica } from "@/infrastructure/repositories/LocalReplica";
 import { configuredStorageMode, type StorageMode } from "./StorageMode";
 import type { StorageState, StorageStateListener } from "./StorageState";
 
@@ -19,22 +23,29 @@ export type StorageManagerOptions = {
   mode?: StorageMode;
   localRepository?: LocalRepository;
   apiRepositories?: ApiRepositoryBundle;
+  syncTransport?: SyncTransport;
 };
 
 export class StorageManager {
   private mode: StorageMode;
   private readonly localRepository: LocalRepository;
   private readonly apiRepositories: ApiRepositoryBundle;
+  private readonly syncTransport: SyncTransport;
   private readonly listeners = new Set<StorageStateListener>();
   private repositoriesValue: StorageRepositoryBundle;
   private state: StorageState;
+  private syncEngine: SyncEngine | null = null;
 
   constructor(options: StorageManagerOptions = {}) {
     this.mode = options.mode ?? configuredStorageMode();
     this.localRepository = options.localRepository ?? new LocalRepository();
     this.apiRepositories = options.apiRepositories ?? taskFlowApiRepositories;
+    this.syncTransport = options.syncTransport ?? new HttpSyncTransport();
     this.state = createInitialState(this.mode);
     this.repositoriesValue = this.createRepositories();
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", this.handleOnline);
+    }
   }
 
   get repositories(): StorageRepositoryBundle {
@@ -59,6 +70,31 @@ export class StorageManager {
     this.repositoriesValue = this.createRepositories();
     this.emit();
     void this.refreshState();
+  }
+
+  async syncNow(): Promise<SyncRunResult> {
+    if (this.mode === "device" || !this.syncEngine) {
+      return { status: "paused", pushed: 0, pulled: 0, conflicts: 0, retries: 0, error: null };
+    }
+    this.state = { ...this.state, syncStatus: "pending", error: null };
+    this.emit();
+    const result = await this.syncEngine.run();
+    const pendingOperations = await this.localRepository.sync.findPending(500);
+    this.state = {
+      ...this.state,
+      pendingOperations: pendingOperations.length,
+      syncStatus: result.status === "paused"
+        ? "paused"
+        : result.status === "error"
+          ? "error"
+          : pendingOperations.length > 0 ? "pending" : "idle",
+      lastSyncedAt: result.status === "synced" || result.status === "idle"
+        ? new Date().toISOString()
+        : this.state.lastSyncedAt,
+      error: result.error,
+    };
+    this.emit();
+    return result;
   }
 
   async refreshState(): Promise<StorageState> {
@@ -87,6 +123,7 @@ export class StorageManager {
 
   private createRepositories(): StorageRepositoryBundle {
     if (this.mode === "device") {
+      this.syncEngine = null;
       return {
         lists: this.localRepository.lists,
         tasks: this.localRepository.tasks,
@@ -95,6 +132,9 @@ export class StorageManager {
       };
     }
 
+    this.syncEngine = new SyncEngine(this.localRepository.sync, this.syncTransport, {
+      replica: new LocalReplica(this.localRepository.getDatabase()),
+    });
     const cloud = new CloudRepository(this.apiRepositories, this.localRepository, {
       callbacks: {
         onRemoteSuccess: (replicaAvailable) => {
@@ -146,6 +186,10 @@ export class StorageManager {
   private emit(): void {
     this.listeners.forEach((listener) => listener(this.state));
   }
+
+  private readonly handleOnline = (): void => {
+    void this.syncNow();
+  };
 }
 
 export const defaultStorageManager = new StorageManager();
