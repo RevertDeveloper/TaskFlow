@@ -52,15 +52,31 @@ function StorageIndicator({ storage }: { storage: NonNullable<ReturnType<typeof 
       ? "Almacenamiento no disponible"
       : storage.mode === "device"
         ? "Solo dispositivo"
-        : storage.source === "local"
-          ? "Cloud sin conexión"
-          : "Cloud";
+        : storage.syncStatus === "syncing"
+          ? "Sincronizando"
+          : storage.syncStatus === "paused"
+            ? "Sin conexion"
+            : storage.syncStatus === "error"
+              ? "Error de sincronizacion"
+              : storage.pendingOperations > 0
+                ? "Pendiente"
+                : storage.source === "remote" && !storage.isStale
+                  ? "Sincronizado"
+                  : "Cloud"
   const detail = storage.availability === "loading"
     ? "Comprobando autoridad"
     : storage.availability === "unavailable"
       ? "Revisa el estado de la aplicación"
       : storage.mode === "device"
         ? "Datos locales · sync desactivado"
+        : storage.syncStatus === "syncing"
+          ? "Comprobando cambios remotos"
+          : storage.syncStatus === "paused"
+            ? "Los cambios quedan en la replica local"
+            : storage.syncStatus === "error"
+              ? storage.error ?? "Revisa la conexion y vuelve a intentarlo"
+              : storage.pendingOperations > 0
+                ? `${storage.pendingOperations} operaciones pendientes`
         : storage.source === "local"
           ? `Réplica local · ${storage.pendingOperations} pendientes`
           : storage.pendingOperations > 0

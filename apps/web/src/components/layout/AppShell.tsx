@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
+import { PwaRegistration } from "@/components/pwa/PwaRegistration";
 import { defaultStorageManager } from "@/application/storage/StorageManager";
 import { AuthBoundary } from "@/features/auth/components/AuthBoundary";
 import { TaskWorkspaceProvider } from "@/features/tasks/application/TaskWorkspaceProvider";
@@ -26,6 +27,7 @@ export function AppShell({ children }: AppShellProps) {
           <Sidebar />
           <main className="app-frame__main">{children}</main>
           <MobileNav />
+          <PwaRegistration />
         </div>
       </TaskWorkspaceProvider>
     </AuthBoundary>

@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 9 completed
+Phase 10 implementation completed; browser installability QA pending
 
 ## Current Subphase
-9.3 - Synchronization engine, backend merge and observability completed
+10.1-10.2 - Cloud <-> Device transitions, separated resets and PWA implementation completed
 
 ## Current Task
-Phase 9 quality gate completed; next task is Phase 10
+Phase 10 automated gates completed; finish browser QA for installability, service-worker update and offline navigation
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -76,7 +76,7 @@ Phase 9 quality gate completed; next task is Phase 10
 - TF-0906: structured sync telemetry with request/sync/operation correlation
 
 ## In Progress
-- None. Phase 9 is complete and Phase 10 is next.
+- Browser QA is pending because this environment has no Chromium/Chrome executable and Playwright is not installed; the integrated browser could not connect over CDP.
 
 ## Blockers
 - `mypy` is not installed in the available API virtual environment.
@@ -92,15 +92,17 @@ Phase 9 quality gate completed; next task is Phase 10
 - Add no JWT/OAuth or duplicate password system unless a separate approved ADR changes this decision
 
 ## Last Quality Gate
-Phase 9 PASS. API Ruff, Django check, migration check and 76 tests pass. Web
-lint, strict typecheck, 44 Vitest tests and production build pass. The Sync
-matrix covers offline/reconnect, bounded retry, duplicate operation, two
-devices, conflicts, cursor repetition, ownership and partial availability.
-The 100-operation baseline is 210.28 ms locally. Real Accounts/API staging
-auth remains deferred to the smoke/deployment phase.
+Phase 10 automated checks PASS. API `pytest -q` reports 78 passed and Ruff is
+clean. Web reports 51 Vitest tests passed; strict typecheck, lint and production
+build are clean. Draft 2020-12 validation passes for the snapshot schema. HTTP
+checks return the manifest, service worker and app shell successfully; the
+service worker source excludes `/api/` from its public cache policy. Browser
+verification of actual installability, worker update and offline navigation is
+pending because the required browser tooling is unavailable. Real Accounts/API
+staging auth remains deferred to the smoke/deployment phase.
 
 ## Last Commit
 `c264915` - `fix(sync): enforce deterministic lww tie breaker`; Phase 9 closed.
 
 ## Next Task
-Start Phase 10 according to the roadmap.
+Run the Phase 10 browser QA with Chromium/Playwright, then mark the roadmap quality gate and begin Phase 11 STT Infrastructure.

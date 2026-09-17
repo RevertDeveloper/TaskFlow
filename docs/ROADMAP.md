@@ -1332,12 +1332,12 @@ Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determi
 
 ### 10.1 - Snapshot and mode switch
 
-**TF-1001 [P0]** Definir snapshot comun.
+**TF-1001 [P0]** Definir snapshot comun. **[x]**
 
 - **CREATE:** `packages/schemas/snapshot.schema.json`, `docs/sync/snapshot-format.md`.
 - **Fields:** schema_version, lists, tasks, events, sync metadata, generated_at, checksum/counts.
 
-**TF-1002 [P0]** Implementar Cloud -> Device.
+**TF-1002 [P0]** Implementar Cloud -> Device. **[x]**
 
 - Exportar snapshot remoto.
 - Validar schema y counts.
@@ -1346,7 +1346,7 @@ Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determi
 - Activar Device solo despues de verificacion.
 - Ante fallo, conservar modo anterior y datos anteriores.
 
-**TF-1003 [P0]** Implementar Device -> Cloud.
+**TF-1003 [P0]** Implementar Device -> Cloud. **[x]**
 
 - Exportar local.
 - Validar.
@@ -1355,7 +1355,7 @@ Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determi
 - Descargar cambios finales.
 - Activar Cloud solo despues de verificacion.
 
-**TF-1004 [P0]** Separar reset local, reset cloud y baja de cuenta.
+**TF-1004 [P0]** Separar reset local, reset cloud y baja de cuenta. **[x]**
 
 - Local: IndexedDB/preferences de dispositivo.
 - Cloud: datos TaskFlow del usuario con confirmacion fuerte.
@@ -1364,17 +1364,17 @@ Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determi
 
 ### 10.2 - PWA
 
-**TF-1005 [P1]** Crear manifest e installability.
+**TF-1005 [P1]** Crear manifest e installability. **[x]**
 
 - **CREATE:** `apps/web/src/app/manifest.ts`, iconos, metadata.
 - **Validar:** name, short_name, start_url, display, icons, theme_color.
 
-**TF-1006 [P1]** Implementar service worker/app shell.
+**TF-1006 [P1]** Implementar service worker/app shell. **[x]**
 
 - **CREATE:** estrategia PWA elegida y `src/infrastructure/pwa/`.
 - **Rules:** no cachear respuestas privadas como publicas; versionar caches; update prompt no destructivo; limpiar cache antigua.
 
-**TF-1007 [P1]** Definir offline UI.
+**TF-1007 [P1]** Definir offline UI. **[x]**
 
 - Indicadores: synced, syncing, pending, device-only, error.
 - Voice requiere backend salvo STT local futuro; no prometer voz offline.

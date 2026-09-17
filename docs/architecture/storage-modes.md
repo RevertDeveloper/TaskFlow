@@ -64,3 +64,22 @@ explicita para pruebas y composicion de la aplicacion.
 La sidebar muestra el modo, la fuente efectiva, si los datos son stale y el
 numero de operaciones pendientes. No afirma que exista sincronizacion
 completa antes de Phase 9.
+
+## Cambio de modo y reset
+
+`setMode` es asincrono y no cambia `mode` hasta completar el flujo:
+
+- Cloud -> Device exporta desde los repositorios remotos, valida el snapshot,
+	reemplaza IndexedDB en una transaccion, reexporta y verifica entidades,
+	counts y metadatos de sync.
+- Device -> Cloud valida el snapshot local, ejecuta `SyncEngine`, exige que no
+	queden operaciones pendientes, exporta el estado remoto final y solo entonces
+	activa Cloud.
+- Antes de la transicion se captura el estado local para rollback. Un error
+	conserva el modo y la base local anteriores.
+
+`resetLocal` borra las tablas locales, sesiones de voz y preferencias de
+dispositivo, y vuelve a sembrar Inbox. `resetCloud` exige la confirmacion
+literal `RESET TASKFLOW DATA` y llama al endpoint autenticado de borrado de
+datos TaskFlow del usuario. Ninguna de las dos operaciones modifica Accounts ni
+ejecuta una baja de cuenta.
