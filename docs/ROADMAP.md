@@ -1391,11 +1391,16 @@ Cloud Mode reconcilia cambios de uno o dos dispositivos con una politica determi
 
 ### QUALITY GATE
 
-- [ ] Ningun cambio de modo activa antes de verificar integridad.
-- [ ] Matriz Cloud/Device completa verde.
+- [x] Ningun cambio de modo activa antes de verificar integridad.
+- [x] Matriz Cloud/Device completa verde.
 - [ ] PWA instalable en navegadores objetivo.
-- [ ] Privacidad de cache auditada.
-- [ ] Reset operations separadas y confirmadas.
+- [x] Privacidad de cache auditada.
+- [x] Reset operations separadas y confirmadas.
+
+> La validacion browser de installability, actualizacion del service worker y
+> navegacion offline queda pendiente porque el entorno de desarrollo no dispone
+> de Chromium/Chrome ni Playwright. Las comprobaciones HTTP, estaticas y los
+> gates de API/web si estan completados.
 
 ### Definition of Done
 
