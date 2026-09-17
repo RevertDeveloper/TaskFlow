@@ -441,6 +441,11 @@ Cualquier agente puede clonar, configurar `.env` de ejemplo, arrancar el stack y
 
 **Risk:** Critical.
 
+**Status:** COMPLETED. Security review, reproducible performance baselines,
+IndexedDB pagination optimization, failure policy and data-loss drills are
+documented in [`docs/PHASE14_EVIDENCE.md`](PHASE14_EVIDENCE.md). Real Accounts
+staging smoke and a live worker-kill smoke remain owned by Phase 16.
+
 **Status:** COMPLETED. El contrato de identidad, el adapter server-side,
 CSRF propio, proxy allowlistado y cliente web están implementados y probados
 con fixtures contractuales. La validación HTTPS real queda diferida a la fase
@@ -1520,55 +1525,55 @@ El flujo piensa -> habla -> transcribe -> estructura -> revisa -> crea funciona 
 
 ### 14.1 - Security review
 
-**TF-1401 [P0]** Revisar auth, authorization y multi-tenancy.
+**TF-1401 [P0]** Revisar auth, authorization y multi-tenancy. **[x]**
 
 - API, sync, export, history, voice, reset y snapshots.
 - UUID guessing, replay de operaciones, cabeceras falsas y Accounts unavailable.
 
-**TF-1402 [P0]** Revisar CSRF, CORS, cookies y headers.
+**TF-1402 [P0]** Revisar CSRF, CORS, cookies y headers. **[x]**
 
 - Same-origin/subdomain elegido.
 - HTTPS, Secure, HttpOnly, SameSite, CSP, HSTS, X-Content-Type-Options, frame policy.
 - Test cross-site POST bloqueado.
 
-**TF-1403 [P0]** Revisar entradas y archivos.
+**TF-1403 [P0]** Revisar entradas y archivos. **[x]**
 
 - ORM/parametrizacion, limits, MIME sniffing, XSS, markdown/HTML no confiable, rate limit voice/sync/import.
 - Nunca renderizar HTML de tarea sin sanitizacion.
 
-**TF-1404 [P0]** Revisar AI security.
+**TF-1404 [P0]** Revisar AI security. **[x]**
 
 - Prompt injection, system isolation, output schema, prompt/transcript retention, provider secrets.
 
 ### 14.2 - Performance
 
-**TF-1405 [P1]** Medir baseline antes de optimizar.
+**TF-1405 [P1]** Medir baseline antes de optimizar. **[x]**
 
 - Dashboard con volumen representativo, historial grande, cold start, IndexedDB CRUD, sync batch, API query count.
 - Registrar metricas y objetivos con evidencia; no usar umbrales arbitrarios.
 
-**TF-1406 [P1]** Optimizar consultas e interfaz.
+**TF-1406 [P1]** Optimizar consultas e interfaz. **[x]**
 
 - N+1, select/prefetch, indices, cursor pagination, lazy loading, bundle analysis, virtualizacion solo si baseline lo exige.
 
 ### 14.3 - Reliability
 
-**TF-1407 [P1]** Definir timeouts, retries y circuit breakers.
+**TF-1407 [P1]** Definir timeouts, retries y circuit breakers. **[x]**
 
 - Accounts, Redis, STT, LLM y DB.
 - Nunca reintentar una mutacion sin idempotency key.
 
-**TF-1408 [P1]** Ejecutar data-loss drills.
+**TF-1408 [P1]** Ejecutar data-loss drills. **[x]**
 
 - backup/restore, Cloud/Device interruption, reset confirmation, import invalid, worker killed, database unavailable.
 
-### QUALITY GATE
+### QUALITY GATE - PASS
 
-- [ ] Security review sin Critical/High sin owner.
-- [ ] Baselines registrados.
-- [ ] Data loss drills documentados.
-- [ ] Rate limits y secrets auditados.
-- [ ] Recovery paths probados.
+- [x] Security review sin Critical/High sin owner.
+- [x] Baselines registrados.
+- [x] Data loss drills documentados.
+- [x] Rate limits y secrets auditados.
+- [x] Recovery paths probados.
 
 ### Definition of Done
 
@@ -2112,6 +2117,6 @@ El MVP solo se declara terminado cuando:
 - [x] MVP separado de Post-MVP.
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
-**Estado del roadmap:** Phase 0 a Phase 12 completadas en sus quality gates
-locales. Las validaciones reales de staging se concentran en Phase 16 y no
-bloquean el desarrollo local anterior.
+**Estado del roadmap:** Phase 0 a Phase 14 completadas en sus quality gates
+locales. Phase 15 queda como siguiente fase; las validaciones reales de staging
+se concentran en Phase 16 y no bloquean el desarrollo local anterior.

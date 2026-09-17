@@ -1,13 +1,13 @@
 # Current State
 
 ## Current Phase
-Phase 13 completed
+Phase 14 completed
 
 ## Current Subphase
-13.1-13.2 - Voice review, smart routing and atomic confirmation completed
+14.1-14.3 - Security review, performance baseline and reliability hardening completed
 
 ## Current Task
-Phase 13 quality gate completed; next task is Phase 14 Security, Performance & Reliability Hardening
+Phase 14 quality gate completed; next task is Phase 15 Testing & Production Hardening
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -94,6 +94,14 @@ Phase 13 quality gate completed; next task is Phase 14 Security, Performance & R
 - TF-1302: versioned VoiceReviewDraft with schema validation, TTL and transcript purge policy
 - TF-1303: responsive VoiceReview and VoiceTaskDraftEditor components
 - TF-1304: atomic, ownership-safe and idempotent voice task confirmation
+- TF-1401: auth, authorization and multi-tenancy security review
+- TF-1402: CSRF, same-origin, cookies and security headers review
+- TF-1403: input, audio upload and rate-limit review
+- TF-1404: AI prompt, schema, retention and provider-secret review
+- TF-1405: reproducible API and IndexedDB performance baselines
+- TF-1406: IndexedDB history pagination optimization based on baseline
+- TF-1407: timeout, retry, idempotency and failure policy
+- TF-1408: data-loss drills, including PostgreSQL backup/restore
 
 ## In Progress
 - None. Phase 13 is complete.
@@ -106,6 +114,8 @@ Phase 13 quality gate completed; next task is Phase 14 Security, Performance & R
 - Integrated browser CDP smoke could not start in this environment; frontend HTTP,
   component tests, typecheck, lint and build are green.
 - The isolated frontend browser run reports `/api/v1/auth/me` as 404 because the API/reverse proxy is not part of that process; API contract and authentication tests remain green.
+- Real Accounts staging smoke and a live worker-kill smoke remain deferred to
+	Phase 16, with owners recorded in `docs/PHASE14_EVIDENCE.md`.
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -119,16 +129,16 @@ Phase 13 quality gate completed; next task is Phase 14 Security, Performance & R
 - Keep voice review drafts separate from transcripts and audio, with a configurable TTL and idempotent confirmation.
 
 ## Last Quality Gate
-Phase 13 PASS. API `pytest -q` reports 121 passed; review/routing contracts,
-ownership isolation, quota lifecycle, idempotent confirmation and migration
-apply/reverse pass. Web reports 58 passed, with typecheck, lint and build green.
-OpenAPI validation exits 0 with no new voice warnings. Real Accounts/API
-staging auth remains deferred to the smoke/deployment phase; the existing
-`mypy` unused-ignore baseline and integrated browser CDP timeout remain outside
-this phase.
+Phase 14 PASS. API `pytest -q` reports 127 passed; web reports 60 passed across
+21 files, with typecheck and lint green. Security evidence, API query-count
+baseline, IndexedDB baseline, timeout policy, fail-closed Accounts handling,
+cross-site CSRF blocking and PostgreSQL backup/restore are documented in
+`docs/PHASE14_EVIDENCE.md`. Real Accounts staging auth, live worker-kill smoke,
+the existing `mypy` unused-ignore baseline and integrated browser CDP timeout
+remain outside this phase.
 
 ## Last Commit
 Phase 11 closeout commit series completed; see `git log` for the four traceable commits.
 
 ## Next Task
-Begin Phase 14 Security, Performance & Reliability Hardening.
+Begin Phase 15 Testing & Production Hardening.
