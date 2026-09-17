@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taskflow.carlosrevert.es/schemas/voice-review-draft.schema.json",
+  "title": "TaskFlow voice review draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "tasks", "source"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "tasks": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {"$ref": "#/$defs/task"}
+    },
+    "source": {"$ref": "#/$defs/source"}
+  },
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid"},
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description", "list_id", "classification_hint", "confidence", "routing"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1, "maxLength": 500},
+        "description": {"type": ["string", "null"], "maxLength": 2000},
+        "list_id": {"$ref": "#/$defs/uuid"},
+        "classification_hint": {"enum": ["explicit", "current", "semantic", "inbox", "ambiguous"]},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "routing": {"enum": ["explicit", "current", "semantic", "inbox"]}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {"const": "voice_transcript"},
+        "provider": {"type": "string", "minLength": 1, "maxLength": 64},
+        "language": {"type": "string", "minLength": 1, "maxLength": 16}
+      }
+    }
+  }
+}

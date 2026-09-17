@@ -12,7 +12,12 @@ from apps.tasks.api import (
     TaskDetailView,
     TaskReopenView,
 )
-from apps.voice.api import VoiceSessionCollectionView, VoiceSessionDetailView
+from apps.voice.api import (
+    VoiceReviewConfirmView,
+    VoiceReviewView,
+    VoiceSessionCollectionView,
+    VoiceSessionDetailView,
+)
 from config.health import health, readiness
 
 urlpatterns = [
@@ -55,6 +60,16 @@ urlpatterns = [
         "api/v1/voice/sessions/<str:session_id>/",
         VoiceSessionDetailView.as_view(),
         name="taskflow-voice-session-detail",
+    ),
+    path(
+        "api/v1/voice/sessions/<str:session_id>/review/",
+        VoiceReviewView.as_view(),
+        name="taskflow-voice-review",
+    ),
+    path(
+        "api/v1/voice/reviews/<str:draft_id>/confirm/",
+        VoiceReviewConfirmView.as_view(),
+        name="taskflow-voice-review-confirm",
     ),
     path(
         "api/accounts/verify-email/resend/",

@@ -1,9 +1,14 @@
 import json
+import os
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_ROOT = Path(
+    os.environ["TASKFLOW_REPO_ROOT"]
+    if "TASKFLOW_REPO_ROOT" in os.environ
+    else Path(__file__).resolve().parents[3]
+)
 
 
 def test_sync_schemas_are_valid() -> None:

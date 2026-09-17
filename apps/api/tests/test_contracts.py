@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,11 @@ from jsonschema import Draft202012Validator
 pytestmark = pytest.mark.django_db
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_ROOT = Path(
+    os.environ["TASKFLOW_REPO_ROOT"]
+    if "TASKFLOW_REPO_ROOT" in os.environ
+    else Path(__file__).resolve().parents[3]
+)
 ERROR_SCHEMA = PROJECT_ROOT / "packages" / "schemas" / "error.schema.json"
 
 

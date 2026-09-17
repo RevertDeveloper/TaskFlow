@@ -7,7 +7,7 @@ DOMAIN_TARGETS = [
     ("tasks", "0003_task_sync_metadata"),
     ("history", "0002_alter_taskevent_external_user_id"),
     ("sync", "0003_syncoperation_result"),
-    ("voice", "0004_voicesession_quota_validated"),
+    ("voice", "0005_voicereviewdraft"),
 ]
 DOMAIN_ZERO_TARGETS = [
     ("voice", None),
@@ -30,6 +30,7 @@ def test_domain_migrations_apply_and_reverse() -> None:
         "history_taskevent",
         "sync_syncoperation",
         "voice_voicesession",
+        "voice_voicereviewdraft",
     } <= tables
 
     executor.migrate(DOMAIN_ZERO_TARGETS)

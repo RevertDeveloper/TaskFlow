@@ -1,19 +1,33 @@
 from uuid import UUID
 
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 
-from apps.ai.domain.ports import AIQuotaClient, AIQuotaError, AIQuotaRejected, AIQuotaUnavailable
+from apps.ai.domain.ports import (
+    AIQuotaClient,
+    AIQuotaError,
+    AIQuotaRejected,
+    AIQuotaUnavailable,
+    TaskExtractionError,
+)
 from apps.ai.router import get_ai_quota_client
 from apps.authentication.domain.models import AuthenticatedPrincipal
 from apps.common.api import TaskFlowAPIView, error_response, success_response
+from apps.tasks.serializers import TaskOutputSerializer
 
-from .models import VoiceSession
+from .models import VoiceReviewDraft, VoiceSession
 from .permissions import CanAccessVoice
 from .selectors import get_owned_voice_session
 from .serializers import VoiceSessionOutputSerializer, VoiceUploadSerializer
+from .serializers_review import (
+    VoiceReviewConfirmSerializer,
+    VoiceReviewDraftOutputSerializer,
+    VoiceReviewRequestSerializer,
+)
 from .services.audio_upload import AudioValidationError, cleanup_session_audio, store_uploaded_audio
+from .services.review import confirm_voice_tasks, create_review_draft
 from .tasks import transcribe_voice_session
 
 
@@ -91,11 +105,113 @@ class VoiceSessionDetailView(TaskFlowAPIView):
         return success_response(VoiceSessionOutputSerializer(session).data)
 
 
+class VoiceReviewView(TaskFlowAPIView):
+    permission_classes = (CanAccessVoice,)
+
+    @extend_schema(
+        operation_id="voice_review_create",
+        request=VoiceReviewRequestSerializer,
+        responses={201: VoiceReviewDraftOutputSerializer},
+    )
+    def post(self, request, session_id: str):  # type: ignore[no-untyped-def]
+        session_uuid = _parse_uuid(session_id)
+        serializer = VoiceReviewRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            draft = create_review_draft(
+                _external_user_id(request),
+                session_uuid,
+                current_list_id=serializer.validated_data.get("current_list_id"),
+                request_headers=request.headers,
+                quota=get_ai_quota_client(),
+            )
+        except (AIQuotaRejected, AIQuotaUnavailable) as exc:
+            return error_response(
+                exc.code,
+                "La operación de IA no está disponible.",
+                status_code=429 if isinstance(exc, AIQuotaRejected) else 503,
+            )
+        except AIQuotaError as exc:
+            return error_response(
+                exc.code,
+                "La operación de IA no está disponible.",
+                status_code=503,
+            )
+        except TaskExtractionError as exc:
+            return error_response(
+                _safe_ai_error_code(exc),
+                "No se pudo preparar la revisión de voz.",
+                status_code=503,
+            )
+        return success_response(
+            VoiceReviewDraftOutputSerializer(draft).data,
+            status_code=201,
+        )
+
+    @extend_schema(
+        operation_id="voice_review_retrieve",
+        responses={200: VoiceReviewDraftOutputSerializer},
+    )
+    def get(self, request, session_id: str):  # type: ignore[no-untyped-def]
+        session = get_owned_voice_session(_external_user_id(request), session_id)
+        try:
+            draft = session.review_draft
+        except VoiceReviewDraft.DoesNotExist as exc:
+            raise ValidationError(
+                {"draft": "La sesión todavía no tiene un borrador de revisión."}
+            ) from exc
+        if draft.status == draft.Status.DRAFT and draft.expires_at <= timezone.now():
+            return error_response(
+                "draft_expired",
+                "El borrador de voz ha caducado.",
+                status_code=410,
+            )
+        return success_response(VoiceReviewDraftOutputSerializer(draft).data)
+
+
+class VoiceReviewConfirmView(TaskFlowAPIView):
+    permission_classes = (CanAccessVoice,)
+
+    @extend_schema(
+        operation_id="voice_review_confirm",
+        request=VoiceReviewConfirmSerializer,
+        responses={201: VoiceReviewDraftOutputSerializer},
+    )
+    def post(self, request, draft_id: str):  # type: ignore[no-untyped-def]
+        serializer = VoiceReviewConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = confirm_voice_tasks(
+            _external_user_id(request),
+            _parse_uuid(draft_id),
+            idempotency_key=serializer.validated_data["idempotency_key"],
+            tasks=serializer.validated_data["tasks"],
+        )
+        return success_response(
+            {
+                "draft": VoiceReviewDraftOutputSerializer(result.draft).data,
+                "tasks": TaskOutputSerializer(result.tasks, many=True).data,
+            },
+            status_code=201,
+        )
+
+
 def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
     principal = request.user
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ValidationError("La identidad de Accounts no está disponible.")
     return principal.external_user_id
+
+
+def _parse_uuid(value: str) -> UUID:
+    try:
+        return UUID(value)
+    except ValueError as exc:
+        raise ValidationError({"id": "Debe ser un UUID válido."}) from exc
+
+
+def _safe_ai_error_code(error: TaskExtractionError) -> str:
+    code = getattr(error, "code", "provider_error")
+    return code if code.isidentifier() and len(code) <= 64 else "provider_error"
 
 
 def _fail_upload_for_quota(session: VoiceSession, code: str, *, status_code: int):

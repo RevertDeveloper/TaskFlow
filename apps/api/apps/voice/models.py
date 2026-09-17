@@ -25,3 +25,29 @@ class VoiceSession(OwnedTimestampedModel):
             models.Index(fields=("external_user_id", "status")),
             models.Index(fields=("external_user_id", "updated_at")),
         ]
+
+
+class VoiceReviewDraft(OwnedTimestampedModel):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        CONFIRMED = "confirmed", "Confirmed"
+        EXPIRED = "expired", "Expired"
+
+    session = models.OneToOneField(
+        VoiceSession,
+        on_delete=models.CASCADE,
+        related_name="review_draft",
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+    schema_version = models.PositiveSmallIntegerField(default=1)
+    payload = models.JSONField(default=dict)
+    expires_at = models.DateTimeField()
+    confirmation_key = models.UUIDField(null=True, blank=True, unique=True)
+    confirmed_task_ids = models.JSONField(default=list)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=("external_user_id", "status")),
+            models.Index(fields=("external_user_id", "expires_at")),
+        ]

@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -11,7 +12,11 @@ from apps.ai.services.prompts import AvailableList, build_extraction_prompt
 pytestmark = pytest.mark.django_db
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_ROOT = Path(
+    os.environ["TASKFLOW_REPO_ROOT"]
+    if "TASKFLOW_REPO_ROOT" in os.environ
+    else Path(__file__).resolve().parents[3]
+)
 PACKAGE_SCHEMA = PROJECT_ROOT / "packages" / "schemas" / "task-extraction.schema.json"
 APP_SCHEMA = (
     PROJECT_ROOT / "apps" / "api" / "apps" / "ai" / "schemas" / "task_extraction.schema.json"
