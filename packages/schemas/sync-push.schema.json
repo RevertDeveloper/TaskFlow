@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taskflow.carlosrevert.es/schemas/sync-push.schema.json",
+  "title": "TaskFlow sync push request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "operations"],
+  "properties": {
+    "version": {"const": 1},
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {"$ref": "#/$defs/operation"}
+    }
+  },
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "device_id",
+        "entity_type",
+        "entity_id",
+        "mutation",
+        "client_version",
+        "client_timestamp",
+        "payload_version",
+        "payload"
+      ],
+      "properties": {
+        "operation_id": {"$ref": "#/$defs/uuid"},
+        "device_id": {"$ref": "#/$defs/uuid"},
+        "entity_type": {"enum": ["list", "task"]},
+        "entity_id": {"$ref": "#/$defs/uuid"},
+        "mutation": {"enum": ["create", "update", "delete"]},
+        "client_version": {"type": "integer", "minimum": 0},
+        "client_timestamp": {"type": "string", "format": "date-time"},
+        "payload_version": {"const": 1},
+        "payload": {
+          "type": "object",
+          "maxProperties": 16
+        },
+        "idempotency_key": {"$ref": "#/$defs/uuid"}
+      }
+    }
+  }
+}

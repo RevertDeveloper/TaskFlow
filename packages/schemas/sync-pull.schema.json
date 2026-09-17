@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taskflow.carlosrevert.es/schemas/sync-pull.schema.json",
+  "title": "TaskFlow sync pull response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "cursor", "has_more", "changes"],
+  "properties": {
+    "version": {"const": 1},
+    "cursor": {"type": ["string", "null"], "maxLength": 512},
+    "has_more": {"type": "boolean"},
+    "changes": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["entity_type", "entity_id", "operation", "updated_at", "data"],
+        "properties": {
+          "entity_type": {"enum": ["list", "task"]},
+          "entity_id": {"type": "string", "format": "uuid"},
+          "operation": {"enum": ["upsert", "delete"]},
+          "updated_at": {"type": "string", "format": "date-time"},
+          "data": {"type": "object"}
+        }
+      }
+    }
+  }
+}
