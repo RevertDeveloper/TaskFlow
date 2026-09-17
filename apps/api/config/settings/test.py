@@ -7,3 +7,4 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 ACCOUNTS_QUOTA_MODE = "fake"
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}

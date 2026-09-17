@@ -13,6 +13,7 @@ from .services.push import push_operations
 
 class SyncPushView(TaskFlowAPIView):
     permission_classes = (CanAccessSync,)
+    throttle_scope = "sync_push"
 
     @extend_schema(operation_id="sync_push", request=SyncPushSerializer)
     def post(self, request):  # type: ignore[no-untyped-def]

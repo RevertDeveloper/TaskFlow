@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 from apps.ai.domain.ports import (
     AIQuotaClient,
     SpeechToTextConfigurationError,
@@ -54,7 +52,6 @@ def get_ai_quota_client() -> AIQuotaClient:
         float(getattr(settings, "ACCOUNTS_TIMEOUT_SECONDS", 2)),
     )
 
-@lru_cache(maxsize=8)
 def _build_quota_client(
     mode: str,
     base_url: str,

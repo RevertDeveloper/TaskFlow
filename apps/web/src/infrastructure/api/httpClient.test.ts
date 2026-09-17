@@ -43,6 +43,29 @@ describe("TaskFlowHttpClient", () => {
     expect(headers.get("X-CSRFToken")).toBe("csrf-value");
   });
 
+  it("keeps the request timeout active with an external abort signal", async () => {
+    vi.useFakeTimers();
+    const request = vi.fn<typeof fetch>().mockImplementation(
+      (_input, init) => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), {
+          once: true,
+        });
+      }),
+    );
+    const client = new TaskFlowHttpClient("", 10, request);
+    const externalController = new AbortController();
+
+    try {
+      const pending = expect(
+        client.get("/api/v1/example/", { signal: externalController.signal }),
+      ).rejects.toMatchObject({ status: 408, code: "request_timeout" });
+      await vi.advanceTimersByTimeAsync(10);
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps multipart uploads as FormData and sends CSRF", async () => {
     document.cookie = "taskflowcsrftoken=csrf-value";
     const request = vi.fn<typeof fetch>().mockResolvedValue(

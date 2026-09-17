@@ -39,6 +39,7 @@ class MeView(APIView):
 @extend_schema(exclude=True)
 class AccountsAuthProxyView(APIView):
     permission_classes = (AllowAny,)
+    throttle_scope = "auth_proxy"
     proxy = AccountsAuthProxy()
 
     def dispatch(self, request, *args, **kwargs):  # type: ignore[no-untyped-def]

@@ -169,3 +169,19 @@ def test_mutations_require_taskflow_csrf(monkeypatch) -> None:  # type: ignore[n
 
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "permission_denied"
+
+
+def test_authenticated_cross_site_post_is_blocked_even_with_a_valid_csrf_token(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+
+    response = client.post(
+        "/api/v1/lists/",
+        data={"name": "Origen externo"},
+        content_type="application/json",
+        secure=True,
+        HTTP_ORIGIN="https://evil.example",
+        HTTP_X_CSRFTOKEN=client.csrf_token,
+    )
+
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "permission_denied"

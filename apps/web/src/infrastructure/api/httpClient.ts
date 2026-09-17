@@ -63,6 +63,15 @@ export class TaskFlowHttpClient {
   private async send<T>(path: string, options: RequestOptions): Promise<T> {
     const controller = new AbortController();
     const timeout = globalThis.setTimeout(() => controller.abort(), options.timeoutMs ?? this.timeoutMs);
+    const externalSignal = options.signal;
+    const abortFromExternalSignal = () => controller.abort(externalSignal?.reason);
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        abortFromExternalSignal();
+      } else {
+        externalSignal.addEventListener("abort", abortFromExternalSignal, { once: true });
+      }
+    }
     const headers = new Headers(options.headers);
     const method = options.method?.toUpperCase() ?? "GET";
     const isMultipart = typeof FormData !== "undefined" && options.body instanceof FormData;
@@ -87,7 +96,7 @@ export class TaskFlowHttpClient {
         credentials: "include",
         cache: "no-store",
         headers,
-        signal: options.signal ?? controller.signal,
+        signal: controller.signal,
       });
       if (!response.ok) {
         throw new TaskFlowApiError(response.status, await readErrorPayload(response));
@@ -103,6 +112,7 @@ export class TaskFlowHttpClient {
       throw error;
     } finally {
       globalThis.clearTimeout(timeout);
+      externalSignal?.removeEventListener("abort", abortFromExternalSignal);
     }
   }
 }

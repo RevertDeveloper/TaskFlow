@@ -62,6 +62,17 @@ def test_accounts_unavailable_fails_closed_with_service_error() -> None:
     assert raised.value.status_code == 503
 
 
+def test_accounts_malformed_response_fails_closed_with_service_error() -> None:
+    from apps.authentication.infrastructure.accounts_client import AccountsMalformedResponseError
+
+    with pytest.raises(AccountsUnavailable) as raised:
+        AccountsSessionAuthentication(
+            FakeClient(error=AccountsMalformedResponseError())
+        ).authenticate(FakeRequest())
+
+    assert raised.value.status_code == 503
+
+
 def test_authenticated_mutation_requires_taskflow_csrf(monkeypatch) -> None:  # type: ignore[no-untyped-def]
     monkeypatch.setattr(
         "apps.authentication.infrastructure.accounts_authentication.CsrfViewMiddleware.process_view",

@@ -26,6 +26,7 @@ class ResetCloudSerializer(serializers.Serializer):
 )
 class ResetCloudView(TaskFlowAPIView):
     permission_classes = (CanAccessLists,)
+    throttle_scope = "data_reset"
 
     def post(self, request):  # type: ignore[no-untyped-def]
         serializer = ResetCloudSerializer(data=request.data)

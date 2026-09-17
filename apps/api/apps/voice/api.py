@@ -40,6 +40,7 @@ class VoiceQueueUnavailable(APIException):
 class VoiceSessionCollectionView(TaskFlowAPIView):
     permission_classes = (CanAccessVoice,)
     parser_classes = (MultiPartParser, FormParser)
+    throttle_scope = "voice_upload"
 
     @extend_schema(
         operation_id="voice_session_upload",

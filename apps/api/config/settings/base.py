@@ -31,11 +31,16 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 # TaskFlow has its own CSRF boundary; Accounts' CSRF cookie is never validated
 # with TaskFlow secrets.
 CSRF_COOKIE_NAME = "taskflowcsrftoken"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
 
 LOGGING = {
     "version": 1,
@@ -140,8 +145,22 @@ REST_FRAMEWORK = {
         "apps.authentication.infrastructure.accounts_authentication.AccountsSessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_THROTTLE_CLASSES": ("apps.common.throttling.TaskFlowScopedRateThrottle",),
+    "DEFAULT_THROTTLE_RATES": {
+        "voice_upload": os.getenv("TASKFLOW_THROTTLE_VOICE_UPLOAD", "10/min"),
+        "sync_push": os.getenv("TASKFLOW_THROTTLE_SYNC_PUSH", "60/min"),
+        "data_reset": os.getenv("TASKFLOW_THROTTLE_DATA_RESET", "3/hour"),
+        "auth_proxy": os.getenv("TASKFLOW_THROTTLE_AUTH_PROXY", "20/min"),
+    },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.common.api.taskflow_exception_handler",
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+    }
 }
 
 SPECTACULAR_SETTINGS = {
