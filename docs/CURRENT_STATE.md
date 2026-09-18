@@ -151,7 +151,7 @@ open because `mypy config` reports the inherited baseline, while real Accounts
 staging auth and physical screen-reader QA remain deferred.
 
 ## Last Commit
-Phase 11 closeout commit series completed; see `git log` for the four traceable commits.
+Phase 15 evidence commit series completed: `0f3cff4`, `a4996e9` and `a6c04b3`.
 
 ## Next Task
 Resolve the API mypy baseline, then run the staging Accounts smoke and manual QA
