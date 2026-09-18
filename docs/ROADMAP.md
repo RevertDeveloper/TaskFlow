@@ -1651,7 +1651,7 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 ### QUALITY GATE
 
-- [ ] CI verde en clean checkout; `mypy config` mantiene 80 diagnósticos heredados en 24 archivos API.
+- [ ] CI verde en clean checkout. **Bloqueador TF-1509:** `mypy config` mantiene 80 diagnósticos heredados en 24 archivos API. Owner: mantenimiento API. Criterio de salida: ejecución sin diagnósticos en `config` y evidencia CI adjunta.
 - [x] Cobertura significativa medida: web sobre 60% en las cuatro métricas y API sobre 80% en líneas.
 - [x] E2E smoke automatizado: 9 casos pasan; 3 skips están condicionados por proyecto/credenciales.
 - [x] No hay fallos ni flakiness observados en la ejecución local repetida.
@@ -1660,7 +1660,9 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 ### Definition of Done
 
 La evidencia automatizada de la release candidate está disponible. El cierre
-formal queda pendiente del baseline `mypy` y del signoff de staging/manual QA.
+formal queda pendiente del bloqueador TF-1509 (`mypy`) y del signoff de
+staging/manual QA. TF-1509 queda separado de Phase 16 porque el typecheck debe
+resolverse en el código API antes del cierre de release candidate.
 
 ---
 

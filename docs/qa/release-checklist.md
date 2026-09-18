@@ -19,6 +19,7 @@ real cuando no se proporcionan variables de staging.
 | Micrófono denegado | `VoiceRecorder.test.tsx`, `audio.test.ts` | PASS |
 | Proveedor no disponible | `test_voice_infrastructure.py`, `test_ai_quota.py`, `VoiceReview.test.tsx` | PASS fail-closed |
 | Reset/import | `StorageManager.test.ts`, `Snapshot.test.ts`, E2E reset con confirmación | PASS |
+| Typecheck API | `mypy config` | BLOCKED: TF-1509, 80 diagnósticos heredados en 24 archivos; owner: mantenimiento API |
 | Accounts real sobre HTTPS | smoke con variables de staging | DEFERRED a Phase 16 |
 | Lector de pantalla físico | revisión manual en navegador objetivo | DEFERRED a QA de staging |
 
@@ -26,4 +27,6 @@ real cuando no se proporcionan variables de staging.
 
 La suite automatizada y la cobertura son gates de CI. Las filas `DEFERRED`
 dependen de staging o de hardware/servicios externos que el roadmap asigna a
-Phase 16; no se presentan como validaciones reales completadas.
+Phase 16; no se presentan como validaciones reales completadas. El bloqueo
+TF-1509 debe cerrarse con `mypy config` sin diagnósticos antes de marcar Phase
+15 como PASS formal.

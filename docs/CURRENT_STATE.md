@@ -120,7 +120,9 @@ collecting staging/manual QA signoff before Phase 16.
 - `mypy config` reaches the code but reports 80 diagnostics in 24 API files,
   including pre-existing `unused-ignore` comments and sync/service type errors.
   API tests, coverage and Ruff pass; the CI typecheck baseline needs a separate
-  cleanup before the Phase 15 gate can be marked PASS.
+    cleanup before the Phase 15 gate can be marked PASS. Tracked as TF-1509;
+    owner: API maintainers; exit criterion: `mypy config` returns zero
+    diagnostics in CI.
 - Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
 - Integrated browser CDP smoke could not start in this environment; frontend HTTP,
   component tests, typecheck, lint and build are green.
