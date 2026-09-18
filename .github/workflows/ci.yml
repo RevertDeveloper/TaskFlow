@@ -37,10 +37,16 @@ jobs:
         run: npm run typecheck
 
       - name: Test
-        run: npm test
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E release candidate
+        run: npm run test:e2e
 
   api:
     name: API checks
@@ -77,7 +83,7 @@ jobs:
           git diff --exit-code -- ../../docs/api/openapi.yaml
 
       - name: Tests
-        run: python -m pytest
+        run: python -m pytest --cov=apps --cov-report=term-missing --cov-fail-under=80
 
   infrastructure:
     name: Infrastructure checks

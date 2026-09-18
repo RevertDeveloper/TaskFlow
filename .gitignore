@@ -19,5 +19,8 @@ dist/
 # Test and tooling output
 .pytest_cache/
 .coverage
+coverage.json
 coverage/
+playwright-report/
+test-results/
 .DS_Store
