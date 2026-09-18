@@ -1591,23 +1591,37 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 ### 15.1 - Backend
 
-**TF-1501 [P0]** Unit/service tests: dominio, casos de uso, merge, quota adapter, AI parsing.
+**TF-1501 [P0]** Unit/service tests: dominio, casos de uso, merge, quota adapter, AI parsing. **[x]**
 
-**TF-1502 [P0]** API integration: auth, permissions, pagination, errors, migrations, health/readiness.
+- Evidencia: suites API existentes y `127 passed`; cobertura API `86.48%` de líneas.
 
-**TF-1503 [P0]** Contract tests: OpenAPI, JSON Schema, version compatibility y generated frontend client.
+**TF-1502 [P0]** API integration: auth, permissions, pagination, errors, migrations, health/readiness. **[x]**
+
+- Evidencia: `pytest`, Django checks, aislamiento, health/readiness y Compose pasan.
+
+**TF-1503 [P0]** Contract tests: OpenAPI, JSON Schema, version compatibility y generated frontend client. **[x]**
+
+- Evidencia: OpenAPI `spectacular --validate`, diff estable y validación JSON Schema en CI.
 
 ### 15.2 - Frontend
 
-**TF-1504 [P1]** Unit/component: tokens, forms, TaskCard, VoiceReview, SyncIndicator, StorageManager adapters.
+**TF-1504 [P1]** Unit/component: tokens, forms, TaskCard, VoiceReview, SyncIndicator, StorageManager adapters. **[x]**
 
-**TF-1505 [P1]** Integration: fake repositories, Cloud/Device switch, offline queue, error recovery.
+- Evidencia: 60 tests web; cobertura `64.81%` statements, `61.89%` branches, `60.31%` functions y `65.93%` lines.
 
-**TF-1506 [P1]** E2E Playwright: login, CRUD, history, PWA, mobile navigation, voice review y reset seguro.
+**TF-1505 [P1]** Integration: fake repositories, Cloud/Device switch, offline queue, error recovery. **[x]**
+
+- Evidencia: `StorageManager`, repositorios, SyncEngine y recuperación cubiertos por tests deterministas.
+
+**TF-1506 [P1]** E2E Playwright: login, CRUD, history, PWA, mobile navigation, voice review y reset seguro. **[x]**
+
+- Evidencia: Playwright `9 passed, 3 skipped` en desktop/mobile Chromium; el smoke real requiere variables de staging.
 
 ### 15.3 - Test matrix
 
-**TF-1507 [P0]** Mantener matriz versionada.
+**TF-1507 [P0]** Mantener matriz versionada. **[x]**
+
+- Evidencia: `docs/qa/test-matrix.md` versiona alcance, estados y deferreds.
 
 | Area | Cases minimos |
 |---|---|
@@ -1623,7 +1637,7 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 ### 15.4 - Manual QA
 
-**TF-1508 [P1]** Crear `docs/qa/release-checklist.md` con evidencias de:
+**TF-1508 [P1]** Crear `docs/qa/release-checklist.md` con evidencias de: **[x]**
 
 - desktop/mobile;
 - slow network/offline;
@@ -1637,15 +1651,16 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 ### QUALITY GATE
 
-- [ ] CI verde en clean checkout.
-- [ ] Cobertura significativa de dominio y permisos; objetivo inicial medido y acordado.
-- [ ] E2E smoke completo.
-- [ ] No flaky tests sin issue owner.
-- [ ] Manual QA firmado y artefactos guardados.
+- [ ] CI verde en clean checkout; `mypy config` mantiene 80 diagnósticos heredados en 24 archivos API.
+- [x] Cobertura significativa medida: web sobre 60% en las cuatro métricas y API sobre 80% en líneas.
+- [x] E2E smoke automatizado: 9 casos pasan; 3 skips están condicionados por proyecto/credenciales.
+- [x] No hay fallos ni flakiness observados en la ejecución local repetida.
+- [ ] Manual QA firmado y artefactos guardados; Accounts real y lector físico quedan deferred a staging/Phase 16.
 
 ### Definition of Done
 
-El sistema tiene evidencia automatizada y manual suficiente para una release candidate.
+La evidencia automatizada de la release candidate está disponible. El cierre
+formal queda pendiente del baseline `mypy` y del signoff de staging/manual QA.
 
 ---
 
@@ -2118,5 +2133,6 @@ El MVP solo se declara terminado cuando:
 - [x] Incompatibilidades, riesgos, assumptions y decisiones cerradas visibles.
 
 **Estado del roadmap:** Phase 0 a Phase 14 completadas en sus quality gates
-locales. Phase 15 queda como siguiente fase; las validaciones reales de staging
-se concentran en Phase 16 y no bloquean el desarrollo local anterior.
+locales. Phase 15 tiene su implementación y evidencia automatizada completadas;
+su cierre formal queda pendiente del baseline `mypy` heredado y de las
+validaciones reales de staging/manual QA que se concentran en Phase 16.

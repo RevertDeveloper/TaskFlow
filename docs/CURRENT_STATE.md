@@ -1,13 +1,14 @@
 # Current State
 
 ## Current Phase
-Phase 14 completed
+Phase 15 implementation complete; final quality gate pending
 
 ## Current Subphase
-14.1-14.3 - Security review, performance baseline and reliability hardening completed
+15.1-15.4 - Automated testing, coverage gates and release-candidate E2E completed
 
 ## Current Task
-Phase 14 quality gate completed; next task is Phase 15 Testing & Production Hardening
+Close the Phase 15 quality gate by resolving the inherited API mypy baseline and
+collecting staging/manual QA signoff before Phase 16.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -102,14 +103,24 @@ Phase 14 quality gate completed; next task is Phase 15 Testing & Production Hard
 - TF-1406: IndexedDB history pagination optimization based on baseline
 - TF-1407: timeout, retry, idempotency and failure policy
 - TF-1408: data-loss drills, including PostgreSQL backup/restore
+- TF-1501: backend unit/service test evidence and API coverage gate
+- TF-1502: API integration, auth, permission, health and readiness test evidence
+- TF-1503: OpenAPI, JSON Schema and generated-client contract validation
+- TF-1504: frontend unit/component coverage gate at 60% minimum
+- TF-1505: frontend integration coverage for repositories, mode switch and sync
+- TF-1506: Playwright release-candidate suite for desktop and mobile Chromium
+- TF-1507: versioned Phase 15 test matrix in `docs/qa/test-matrix.md`
+- TF-1508: release checklist and evidence in `docs/qa/release-checklist.md`
 
 ## In Progress
-- None. Phase 13 is complete.
+- Phase 15 automated evidence is complete; release closure remains pending the
+	inherited API mypy baseline and staging/manual QA evidence.
 
 ## Blockers
-- `mypy config` reaches the code but reports pre-existing `unused-ignore`
-	diagnostics across several API apps; the Phase 11 test/lint/build gate is
-	green, but the CI typecheck baseline needs a separate cleanup.
+- `mypy config` reaches the code but reports 80 diagnostics in 24 API files,
+  including pre-existing `unused-ignore` comments and sync/service type errors.
+  API tests, coverage and Ruff pass; the CI typecheck baseline needs a separate
+  cleanup before the Phase 15 gate can be marked PASS.
 - Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
 - Integrated browser CDP smoke could not start in this environment; frontend HTTP,
   component tests, typecheck, lint and build are green.
@@ -129,16 +140,17 @@ Phase 14 quality gate completed; next task is Phase 15 Testing & Production Hard
 - Keep voice review drafts separate from transcripts and audio, with a configurable TTL and idempotent confirmation.
 
 ## Last Quality Gate
-Phase 14 PASS. API `pytest -q` reports 127 passed; web reports 60 passed across
-21 files, with typecheck and lint green. Security evidence, API query-count
-baseline, IndexedDB baseline, timeout policy, fail-closed Accounts handling,
-cross-site CSRF blocking and PostgreSQL backup/restore are documented in
-`docs/PHASE14_EVIDENCE.md`. Real Accounts staging auth, live worker-kill smoke,
-the existing `mypy` unused-ignore baseline and integrated browser CDP timeout
-remain outside this phase.
+Phase 15 automated gate partially passes. API reports 127 passed with 86.48%
+line coverage; web reports 60 passed with 64.81% statements, 61.89% branches,
+60.31% functions and 65.93% lines; Playwright reports 9 passed and 3 skipped
+across desktop/mobile Chromium. Web lint, typecheck and build pass; API Ruff,
+Django checks, OpenAPI validation and Compose validation pass. The gate remains
+open because `mypy config` reports the inherited baseline, while real Accounts
+staging auth and physical screen-reader QA remain deferred.
 
 ## Last Commit
 Phase 11 closeout commit series completed; see `git log` for the four traceable commits.
 
 ## Next Task
-Begin Phase 15 Testing & Production Hardening.
+Resolve the API mypy baseline, then run the staging Accounts smoke and manual QA
+signoff required to close Phase 15.
