@@ -30,7 +30,7 @@ from .services.update_list import update_list
 class ListCollectionView(TaskFlowAPIView):
     permission_classes = (CanAccessLists,)
 
-    def get(self, request):  # type: ignore[no-untyped-def]
+    def get(self, request):
         user_id = _external_user_id(request)
         ensure_inbox_for_user(user_id)
         queryset = lists_for_user(user_id)
@@ -41,7 +41,7 @@ class ListCollectionView(TaskFlowAPIView):
             queryset = queryset.filter(is_archived=archived == "true")
         return paginated_response(request, queryset, ListOutputSerializer)
 
-    def post(self, request):  # type: ignore[no-untyped-def]
+    def post(self, request):
         serializer = ListCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         task_list = create_list(_external_user_id(request), **serializer.validated_data)
@@ -60,11 +60,11 @@ class ListCollectionView(TaskFlowAPIView):
 class ListDetailView(TaskFlowAPIView):
     permission_classes = (CanAccessLists,)
 
-    def get(self, request, list_id: str):  # type: ignore[no-untyped-def]
+    def get(self, request, list_id: str):
         task_list = self._get_list(request, list_id)
         return success_response(ListOutputSerializer(task_list).data)
 
-    def patch(self, request, list_id: str):  # type: ignore[no-untyped-def]
+    def patch(self, request, list_id: str):
         serializer = ListUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         task_list = update_list(
@@ -74,15 +74,15 @@ class ListDetailView(TaskFlowAPIView):
         )
         return success_response(ListOutputSerializer(task_list).data)
 
-    def delete(self, request, list_id: str):  # type: ignore[no-untyped-def]
+    def delete(self, request, list_id: str):
         delete_list(_external_user_id(request), _parse_uuid(list_id))
         return success_response(None, status_code=204)
 
-    def _get_list(self, request, list_id: str):  # type: ignore[no-untyped-def]
+    def _get_list(self, request, list_id: str):
         return get_owned_list(_external_user_id(request), _parse_uuid(list_id))
 
 
-def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
+def _external_user_id(request) -> int:
     principal = request.user
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ResourceNotFound("List not found")

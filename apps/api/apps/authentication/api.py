@@ -19,7 +19,7 @@ class CsrfView(APIView):
     permission_classes = (AllowAny,)
 
     @method_decorator(ensure_csrf_cookie)
-    def get(self, request):  # type: ignore[no-untyped-def]
+    def get(self, request):
         return Response({"detail": "CSRF cookie set"})
 
 
@@ -29,7 +29,7 @@ class CsrfView(APIView):
 class MeView(APIView):
     permission_classes = (AllowAny,)
 
-    def get(self, request):  # type: ignore[no-untyped-def]
+    def get(self, request):
         principal = request.user
         if not isinstance(principal, AuthenticatedPrincipal):
             return Response({"authenticated": False, "user": None})
@@ -42,19 +42,19 @@ class AccountsAuthProxyView(APIView):
     throttle_scope = "auth_proxy"
     proxy = AccountsAuthProxy()
 
-    def dispatch(self, request, *args, **kwargs):  # type: ignore[no-untyped-def]
+    def dispatch(self, request, *args, **kwargs):
         try:
             return super().dispatch(request, *args, **kwargs)
         except AccountsProxyError as exc:
             return Response({"detail": str(exc)}, status=503)
 
-    def get(self, request, route: str):  # type: ignore[no-untyped-def]
+    def get(self, request, route: str):
         return self._forward(request, route)
 
-    def post(self, request, route: str):  # type: ignore[no-untyped-def]
+    def post(self, request, route: str):
         return self._forward(request, route)
 
-    def _forward(self, request, route: str):  # type: ignore[no-untyped-def]
+    def _forward(self, request, route: str):
         try:
             upstream = self.proxy.forward(route, request.method, request.body, request.headers)
         except ValueError:
@@ -89,5 +89,5 @@ class AccountsSessionAuthenticationScheme(OpenApiAuthenticationExtension):
     )
     name = "taskflowSession"
 
-    def get_security_definition(self, auto_schema):  # type: ignore[no-untyped-def]
+    def get_security_definition(self, auto_schema):
         return {"type": "apiKey", "in": "cookie", "name": "sessionid"}

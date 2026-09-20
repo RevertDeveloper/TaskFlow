@@ -33,7 +33,7 @@ def pull_changes(external_user_id: int, *, cursor: str | None, limit: int) -> di
         entity_type, entity = page[-1]
         next_cursor = encode_cursor(entity.updated_at, entity_type, entity.id)
 
-    result = {
+    result: dict[str, object] = {
         "version": 1,
         "cursor": next_cursor,
         "has_more": has_more,
@@ -51,7 +51,7 @@ def pull_changes(external_user_id: int, *, cursor: str | None, limit: int) -> di
     return result
 
 
-def _changes_for_model(model, external_user_id: int, cursor, entity_type: str):  # type: ignore[no-untyped-def]
+def _changes_for_model(model, external_user_id: int, cursor, entity_type: str):
     queryset = model.objects.filter(external_user_id=external_user_id)
     if cursor is None:
         return queryset

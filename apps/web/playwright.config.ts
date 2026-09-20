@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const externalBaseUrl = process.env.TASKFLOW_E2E_BASE_URL;
+const productionServer = process.env.TASKFLOW_E2E_MODE === "production";
 const baseURL = externalBaseUrl ?? "http://127.0.0.1:3100";
 
 export default defineConfig({
@@ -35,9 +36,11 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-        command: "npm run dev -- --port 3100",
+        command: productionServer
+          ? "rm -rf .next/standalone/public .next/standalone/.next/static && cp -R public .next/standalone/public && cp -R .next/static .next/standalone/.next/static && PORT=3100 HOSTNAME=127.0.0.1 node .next/standalone/server.js"
+          : "npm run dev -- --port 3100",
         url: "http://127.0.0.1:3100/login",
-        reuseExistingServer: !process.env.CI,
+        reuseExistingServer: productionServer ? false : !process.env.CI,
         timeout: 120_000,
       },
 });

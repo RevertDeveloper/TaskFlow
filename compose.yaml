@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: infra/docker/web.Dockerfile
+      target: development
     command: npm run dev
     ports:
       - "${WEB_PORT:-10700}:3000"

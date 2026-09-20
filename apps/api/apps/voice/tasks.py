@@ -11,7 +11,7 @@ from .services.transcribe_voice import (
 
 
 @shared_task(bind=True, max_retries=settings.AI_STT_TASK_MAX_RETRIES, acks_late=True)
-def transcribe_voice_session(self, session_id: str):  # type: ignore[no-untyped-def]
+def transcribe_voice_session(self, session_id: str):
     quota = get_ai_quota_client()
     try:
         session = process_voice_session(session_id, quota=quota)

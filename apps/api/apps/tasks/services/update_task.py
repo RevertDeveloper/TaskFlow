@@ -50,7 +50,7 @@ def update_task(
     record_event(
         external_user_id=external_user_id,
         task_id=task.id,
-        event_type=TaskEvent.EventType.TASK_UPDATED,
+        event_type=str(TaskEvent.EventType.TASK_UPDATED),
         payload={"fields": sorted(changes)},
     )
     return task

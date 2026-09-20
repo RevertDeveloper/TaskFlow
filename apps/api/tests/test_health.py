@@ -4,7 +4,7 @@ from unittest.mock import patch
 from uuid import UUID
 
 import pytest
-from django.test import Client
+from django.test import Client, override_settings
 
 from apps.common.middleware import JsonLogFormatter
 
@@ -47,6 +47,18 @@ def test_api_ready_returns_503_without_internal_dependency_details() -> None:
         "checks": {"configuration": True, "database": False, "migrations": False},
     }
     assert "secret" not in response.content.decode().lower()
+
+
+@override_settings(TASKFLOW_METRICS_TOKEN="metrics-test-token")
+def test_metrics_endpoint_requires_token_and_returns_prometheus_payload() -> None:
+    forbidden = Client().get("/api/metrics")
+    assert forbidden.status_code == 403
+
+    allowed = Client().get("/api/metrics", HTTP_X_METRICS_TOKEN="metrics-test-token")
+
+    assert allowed.status_code == 200
+    assert allowed["Content-Type"].startswith("text/plain")
+    assert b"taskflow_http_requests_total" in allowed.content
 
 
 def test_request_id_is_preserved_when_valid() -> None:

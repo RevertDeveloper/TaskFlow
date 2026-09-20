@@ -23,4 +23,5 @@ coverage.json
 coverage/
 playwright-report/
 test-results/
+var/
 .DS_Store

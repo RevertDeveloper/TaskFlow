@@ -411,6 +411,8 @@ test("manifest y service worker mantienen el app shell fuera de la API", async (
 test("reset cloud exige confirmación fuerte y no se mezcla con Accounts", async ({ page }) => {
   await installApiFixtures(page);
   await page.goto("/app/dashboard");
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
   await page.evaluate(async () => {
     await fetch("/api/v1/auth/csrf/", { credentials: "include" });
   });

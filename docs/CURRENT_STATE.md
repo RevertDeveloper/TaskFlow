@@ -1,14 +1,15 @@
 # Current State
 
 ## Current Phase
-Phase 15 implementation complete; final quality gate pending
+Phase 16 implementation complete; production quality gate pending
 
 ## Current Subphase
-15.1-15.4 - Automated testing, coverage gates and release-candidate E2E completed
+16.1-16.4 - Production artifacts, release workflow and operational runbooks implemented
 
 ## Current Task
-Close the Phase 15 quality gate by resolving the inherited API mypy baseline and
-collecting staging/manual QA signoff before Phase 16.
+Close the Phase 16 quality gate by provisioning the real Accounts service key,
+running the HTTPS staging smoke, and completing backup/restore, rollback,
+alerting and manual accessibility signoff.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -111,24 +112,32 @@ collecting staging/manual QA signoff before Phase 16.
 - TF-1506: Playwright release-candidate suite for desktop and mobile Chromium
 - TF-1507: versioned Phase 15 test matrix in `docs/qa/test-matrix.md`
 - TF-1508: release checklist and evidence in `docs/qa/release-checklist.md`
+- TF-1601: separated development, test, staging and production Compose environments
+- TF-1602: multi-stage non-root images, healthchecks and explicit migrations
+- TF-1603: release workflow with quality gate, image scan and protected promotion jobs
+- TF-1604: application/database/prompt rollback runbook
+- TF-1605: structured logs, protected metrics and operational observability docs
+- TF-1606: versioned Prometheus alert rules and activation notes
+- TF-1607: backup/restore scripts with retention, checksum and restore runbook
+- TF-0209: implementation path and smoke evidence template prepared; real staging pending
 
 ## In Progress
-- Phase 15 automated evidence is complete; release closure remains pending the
-	inherited API mypy baseline and staging/manual QA evidence.
+- Phase 16 implementation artifacts are complete; real staging, production and
+    manual QA evidence remain pending.
 
 ## Blockers
-- `mypy config` reaches the code but reports 80 diagnostics in 24 API files,
-  including pre-existing `unused-ignore` comments and sync/service type errors.
-  API tests, coverage and Ruff pass; the CI typecheck baseline needs a separate
-    cleanup before the Phase 15 gate can be marked PASS. Tracked as TF-1509;
-    owner: API maintainers; exit criterion: `mypy config` returns zero
-    diagnostics in CI.
-- Real Accounts staging smoke is deferred to Phase 16 and is not a development blocker.
-- Integrated browser CDP smoke could not start in this environment; frontend HTTP,
-  component tests, typecheck, lint and build are green.
-- The isolated frontend browser run reports `/api/v1/auth/me` as 404 because the API/reverse proxy is not part of that process; API contract and authentication tests remain green.
-- Real Accounts staging smoke and a live worker-kill smoke remain deferred to
-	Phase 16, with owners recorded in `docs/PHASE14_EVIDENCE.md`.
+- `ACCOUNTS_TASKFLOW_SERVICE_KEY` is not provisioned in this workspace. It must
+    be rotated once in Accounts Admin and stored only in the secure staging/
+    production environment.
+- The public TaskFlow proxy currently returns `502` because the external host
+    has `web` and `api` stopped; this environment cannot start the real public
+    deployment or configure its HTTPS proxy.
+- Real Accounts HTTPS smoke, session expiry, CSRF and shared-cookie checks are
+    pending a staging domain and demo account.
+- Backup/restore and rollback drills have scripts and documentation but have
+    not been executed against a staging environment.
+- Alert rules are versioned; Prometheus/exporters and a test alert are not
+    connected in this workspace.
 
 ## Decisions
 - Use Accounts session-based identity as the canonical source of identity
@@ -142,17 +151,17 @@ collecting staging/manual QA signoff before Phase 16.
 - Keep voice review drafts separate from transcripts and audio, with a configurable TTL and idempotent confirmation.
 
 ## Last Quality Gate
-Phase 15 automated gate partially passes. API reports 127 passed with 86.48%
-line coverage; web reports 60 passed with 64.81% statements, 61.89% branches,
-60.31% functions and 65.93% lines; Playwright reports 9 passed and 3 skipped
-across desktop/mobile Chromium. Web lint, typecheck and build pass; API Ruff,
-Django checks, OpenAPI validation and Compose validation pass. The gate remains
-open because `mypy config` reports the inherited baseline, while real Accounts
-staging auth and physical screen-reader QA remain deferred.
+Automated checks remain green for the touched production slice: API health and
+security tests `9 passed`, metrics protection tests `8 passed`, rewrite test
+`1 passed`, API and web Docker builds pass, and production/staging Compose plus
+operational scripts validate. The Phase 16 gate remains open because public
+deployment is stopped, the real Accounts key/staging domain are unavailable,
+and restore/rollback/accessibility/alert drills are not evidenced.
 
 ## Last Commit
 Phase 15 evidence commit series completed: `0f3cff4`, `a4996e9` and `a6c04b3`.
 
 ## Next Task
-Resolve the API mypy baseline, then run the staging Accounts smoke and manual QA
-signoff required to close Phase 15.
+Provision the staging Accounts application key and run the protected release
+workflow on the staging runner; record real HTTPS, backup/restore, rollback,
+alert and accessibility evidence before promoting production.

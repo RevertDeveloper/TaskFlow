@@ -6,8 +6,8 @@ Medición local del 2026-09-18 sobre el checkout de Phase 15:
 
 | Suite | Comando | Resultado | Umbral del gate |
 | --- | --- | --- | --- |
-| Web | `npm run test:coverage` desde `apps/web` | 60 tests, 64.81% statements, 61.89% branches, 60.31% functions, 65.93% lines | 60% en las cuatro métricas |
-| API | `docker compose --env-file .env.example -f compose.yaml -f compose.dev.yaml run --rm -e DJANGO_SETTINGS_MODULE=config.settings.test -e ACCOUNTS_QUOTA_MODE=fake api python -m pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q` | 127 tests, 86.48% de líneas | 80% de líneas |
+| Web | `npm run test:coverage` desde `apps/web` | 65 tests, 65.46% statements globales | 60% en las cuatro métricas |
+| API | `python -m pytest --cov=apps --cov-report=term-missing --cov-fail-under=80 -q` | 127 tests, 87% de líneas | 80% de líneas |
 
 La suite API usa `pytest-cov` en CI con `--cov-fail-under=80`. La cobertura de
 branches y functions se observa en la suite web, pero no se fija todavía como

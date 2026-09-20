@@ -21,7 +21,7 @@ from .serializers import HistoryOutputSerializer
 class HistoryView(TaskFlowAPIView):
     permission_classes = (CanAccessHistory,)
 
-    def get(self, request):  # type: ignore[no-untyped-def]
+    def get(self, request):
         queryset = events_for_user(_external_user_id(request))
         task_id = request.query_params.get("task_id")
         if task_id:
@@ -38,7 +38,7 @@ class HistoryView(TaskFlowAPIView):
 class ListHistoryView(TaskFlowAPIView):
     permission_classes = (CanAccessHistory,)
 
-    def get(self, request, list_id: str):  # type: ignore[no-untyped-def]
+    def get(self, request, list_id: str):
         parsed_list_id = _parse_uuid(list_id)
         get_owned_list(_external_user_id(request), parsed_list_id)
         return paginated_response(
@@ -48,7 +48,7 @@ class ListHistoryView(TaskFlowAPIView):
         )
 
 
-def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
+def _external_user_id(request) -> int:
     principal = request.user
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ResourceNotFound("History not found")

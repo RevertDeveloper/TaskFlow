@@ -1,4 +1,5 @@
 import logging
+from time import perf_counter
 from uuid import UUID
 
 from django.conf import settings
@@ -13,6 +14,8 @@ from apps.ai.domain.ports import (
     SpeechToTextUnavailable,
 )
 from apps.ai.router import get_speech_to_text_provider
+from apps.common.metrics import observe_voice_provider
+from apps.common.middleware import current_request_id
 from apps.voice.models import VoiceSession
 
 from .audio_upload import cleanup_session_audio, get_session_audio_path
@@ -40,19 +43,47 @@ def process_voice_session(
         return _fail_with_cleanup(normalized_id, "audio_missing")
 
     quota_validated = bool(session.quota_validated)
+    selected_provider: SpeechToTextProvider | None = provider
+    provider_started_at = perf_counter()
     try:
         selected_provider = provider or get_speech_to_text_provider()
         if quota is not None and not quota_validated:
             quota.validate(request_id=normalized_id, action="voice_transcription")
             quota_validated = True
             VoiceSession.objects.filter(pk=normalized_id).update(quota_validated=True)
+        provider_started_at = perf_counter()
         result = selected_provider.transcribe(audio_path)
+        provider_latency_seconds = perf_counter() - provider_started_at
+        observe_voice_provider(
+            type(selected_provider).__name__, "success", provider_latency_seconds
+        )
+        logger.info(
+            "voice_provider_completed",
+            extra={
+                "voice_session_id": str(normalized_id),
+                "provider": type(selected_provider).__name__,
+                "provider_latency_ms": round(provider_latency_seconds * 1000, 2),
+                "request_id": current_request_id(),
+            },
+        )
     except (SpeechToTextTimeout, SpeechToTextUnavailable) as exc:
+        provider_name = type(selected_provider).__name__ if selected_provider else "unknown"
+        observe_voice_provider(
+            provider_name, "timeout", perf_counter() - provider_started_at
+        )
         _restore_uploaded(normalized_id)
         raise RetryableTranscriptionError from exc
     except SpeechToTextError:
+        provider_name = type(selected_provider).__name__ if selected_provider else "unknown"
+        observe_voice_provider(
+            provider_name, "provider_error", perf_counter() - provider_started_at
+        )
         return _fail_with_quota(normalized_id, "provider_error", quota)
     except Exception:
+        provider_name = type(selected_provider).__name__ if selected_provider else "unknown"
+        observe_voice_provider(
+            provider_name, "error", perf_counter() - provider_started_at
+        )
         logger.error("voice_transcription_failed", extra={"voice_session_id": str(normalized_id)})
         return _fail_with_quota(normalized_id, "processing_error", quota)
 

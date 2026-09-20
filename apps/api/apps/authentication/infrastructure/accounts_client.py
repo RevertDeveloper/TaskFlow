@@ -40,7 +40,11 @@ class AccountsSessionClient:
         timeout_seconds: float | None = None,
         transport: Transport | None = None,
     ) -> None:
-        configured_url = base_url or os.getenv("ACCOUNTS_BASE_URL", "https://cuenta.carlosrevert.es")
+        configured_url = (
+            base_url
+            if base_url is not None
+            else os.getenv("ACCOUNTS_BASE_URL") or "https://cuenta.carlosrevert.es"
+        )
         self.base_url = _validated_base_url(configured_url)
         self.timeout_seconds = timeout_seconds or float(
             os.getenv("ACCOUNTS_TIMEOUT_SECONDS", "2")
@@ -124,5 +128,5 @@ def _urllib_transport(
 
 
 class _NoRedirectHandler(BaseHandler):
-    def redirect_request(self, request, response, code, msg, headers, new_url):  # type: ignore[no-untyped-def]
+    def redirect_request(self, request, response, code, msg, headers, new_url):
         return None

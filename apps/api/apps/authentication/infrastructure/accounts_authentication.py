@@ -4,6 +4,8 @@ from django.middleware.csrf import CsrfViewMiddleware, get_token
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import APIException, PermissionDenied
 
+from apps.common.metrics import observe_accounts_validation
+
 from .accounts_client import (
     AccountsMalformedResponseError,
     AccountsSessionClient,
@@ -27,9 +29,14 @@ class AccountsSessionAuthentication(BaseAuthentication):
         try:
             principal = self.client.get_current_user(_request_headers(request))
         except (AccountsMalformedResponseError, AccountsUnavailableError) as exc:
+            observe_accounts_validation(
+                "malformed" if isinstance(exc, AccountsMalformedResponseError) else "unavailable"
+            )
             raise AccountsUnavailable() from exc
         if principal is None:
+            observe_accounts_validation("anonymous")
             return None
+        observe_accounts_validation("authenticated")
         self.enforce_csrf(request)
         return principal, None
 

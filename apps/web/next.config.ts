@@ -25,13 +25,19 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
 ];
+const apiInternalUrl = (process.env.API_INTERNAL_URL ?? "http://127.0.0.1:10701").replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  output: "standalone",
+  skipTrailingSlashRedirect: true,
   allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
+  },
+  async rewrites() {
+    return [{ source: "/api/:path*", destination: `${apiInternalUrl}/api/:path*` }];
   },
   env: {
     NEXT_PUBLIC_STORAGE_MODE: process.env.STORAGE_MODE ?? "cloud",

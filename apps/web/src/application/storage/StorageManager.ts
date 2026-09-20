@@ -39,6 +39,8 @@ export class StorageManager {
   private state: StorageState;
   private syncEngine: SyncEngine | null = null;
   private modeTransition: Promise<void> | null = null;
+  private syncRetryTimer: number | null = null;
+  private syncRetryAttempt = 0;
 
   constructor(options: StorageManagerOptions = {}) {
     this.mode = options.mode ?? configuredStorageMode();
@@ -125,6 +127,11 @@ export class StorageManager {
         : this.state.lastSyncedAt,
       error: result.error,
     };
+    if (result.status === "error" && pendingOperations.length > 0) {
+      this.scheduleSyncRetry();
+    } else if (pendingOperations.length === 0) {
+      this.syncRetryAttempt = 0;
+    }
     this.emit();
     return result;
   }
@@ -205,6 +212,9 @@ export class StorageManager {
         onMutation: () => {
           void this.refreshState();
         },
+        onQueuedMutation: () => {
+          this.scheduleSyncRetry();
+        },
       },
     });
     return {
@@ -267,6 +277,7 @@ export class StorageManager {
   }
 
   private readonly handleOnline = (): void => {
+    this.cancelScheduledSync();
     void this.syncNow();
   };
 
@@ -276,6 +287,25 @@ export class StorageManager {
       this.emit();
     }
   };
+
+  private scheduleSyncRetry(): void {
+    if (typeof window === "undefined" || this.mode !== "cloud" || this.syncRetryTimer !== null) {
+      return;
+    }
+    const delayMs = Math.min(30_000, 1_000 * 2 ** this.syncRetryAttempt);
+    this.syncRetryAttempt = Math.min(this.syncRetryAttempt + 1, 5);
+    this.syncRetryTimer = window.setTimeout(() => {
+      this.syncRetryTimer = null;
+      void this.syncNow();
+    }, delayMs);
+  }
+
+  private cancelScheduledSync(): void {
+    if (this.syncRetryTimer !== null) {
+      window.clearTimeout(this.syncRetryTimer);
+      this.syncRetryTimer = null;
+    }
+  }
 }
 
 export const defaultStorageManager = new StorageManager();

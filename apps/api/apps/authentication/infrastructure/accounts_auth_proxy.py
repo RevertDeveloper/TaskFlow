@@ -43,7 +43,11 @@ class AccountsAuthProxy:
         timeout_seconds: float | None = None,
         transport: ProxyTransport | None = None,
     ) -> None:
-        configured_url = base_url or os.getenv("ACCOUNTS_BASE_URL", "https://cuenta.carlosrevert.es")
+        configured_url = (
+            base_url
+            if base_url is not None
+            else os.getenv("ACCOUNTS_BASE_URL") or "https://cuenta.carlosrevert.es"
+        )
         self.base_url = _validated_base_url(configured_url)
         self.timeout_seconds = timeout_seconds or float(
             os.getenv("ACCOUNTS_TIMEOUT_SECONDS", "2")
@@ -103,7 +107,7 @@ def _urllib_proxy_transport(
         return _response_from_http(exc)
 
 
-def _response_from_http(response) -> AccountsProxyResponse:  # type: ignore[no-untyped-def]
+def _response_from_http(response) -> AccountsProxyResponse:
     set_cookie = tuple(response.headers.get_all("Set-Cookie", []))
     return AccountsProxyResponse(
         status_code=response.status,

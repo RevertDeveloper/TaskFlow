@@ -1,0 +1,54 @@
+groups:
+  - name: taskflow-availability
+    rules:
+      - alert: TaskFlowApiDown
+        expr: up{job="taskflow-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: taskflow-api
+        annotations:
+          summary: "TaskFlow API no está disponible"
+          description: "El scrape del API falla durante más de dos minutos."
+
+      - alert: TaskFlowHttp5xx
+        expr: sum(rate(taskflow_http_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(taskflow_http_requests_total[5m])), 1) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: taskflow-api
+        annotations:
+          summary: "TaskFlow supera el 5% de respuestas 5xx"
+          description: "Revisar release, dependencias y request_id en los logs."
+
+  - name: taskflow-integrations
+    rules:
+      - alert: TaskFlowAccountsUnavailable
+        expr: sum(rate(taskflow_accounts_validations_total{outcome=~"timeout|upstream_error"}[10m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: accounts
+        annotations:
+          summary: "Accounts no está disponible para TaskFlow"
+          description: "La autenticación delegada falla por timeout o upstream."
+
+      - alert: TaskFlowSyncConflicts
+        expr: sum(rate(taskflow_sync_operations_total{result=~"conflict|rejected"}[15m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: taskflow-sync
+        annotations:
+          summary: "Aumentan los conflictos de sincronización"
+          description: "Revisar aislamiento, cursor y operaciones rechazadas."
+
+      - alert: TaskFlowVoiceProviderFailures
+        expr: sum(rate(taskflow_voice_transcriptions_total{result=~"failure|provider_error"}[10m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          service: taskflow-voice
+        annotations:
+          summary: "El proveedor de voz está fallando"
+          description: "Revisar latencia, límites y disponibilidad del proveedor."

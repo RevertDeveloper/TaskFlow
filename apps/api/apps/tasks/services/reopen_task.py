@@ -23,6 +23,6 @@ def reopen_task(external_user_id: int, task_id: UUID) -> Task:
     record_event(
         external_user_id=external_user_id,
         task_id=task.id,
-        event_type=TaskEvent.EventType.TASK_REOPENED,
+        event_type=str(TaskEvent.EventType.TASK_REOPENED),
     )
     return task

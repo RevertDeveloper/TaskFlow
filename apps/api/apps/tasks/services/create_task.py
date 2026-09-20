@@ -16,7 +16,7 @@ def create_task(
     list_id: UUID,
     title: str,
     description: str = "",
-    source: str = Task.Source.MANUAL,
+    source: str = str(Task.Source.MANUAL),
     position: int = 0,
 ) -> Task:
     task_list = get_owned_list(external_user_id, list_id)
@@ -36,7 +36,7 @@ def create_task(
     record_event(
         external_user_id=external_user_id,
         task_id=task.id,
-        event_type=TaskEvent.EventType.TASK_CREATED,
+        event_type=str(TaskEvent.EventType.TASK_CREATED),
         payload={"source": task.source},
     )
     return task

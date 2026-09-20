@@ -28,7 +28,7 @@ class ResetCloudView(TaskFlowAPIView):
     permission_classes = (CanAccessLists,)
     throttle_scope = "data_reset"
 
-    def post(self, request):  # type: ignore[no-untyped-def]
+    def post(self, request):
         serializer = ResetCloudSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if serializer.validated_data["confirmation"] != RESET_CONFIRMATION:

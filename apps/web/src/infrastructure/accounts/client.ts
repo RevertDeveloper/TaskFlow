@@ -55,7 +55,15 @@ export function safeNextPath(next: string | null | undefined): string {
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
     return "/";
   }
-  return next;
+  try {
+    const parsed = new URL(next, "https://taskflow.invalid");
+    if (parsed.origin !== "https://taskflow.invalid") {
+      return "/";
+    }
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return "/";
+  }
 }
 
 async function accountsMutation<T>(path: string, body: T): Promise<Response> {

@@ -2,6 +2,7 @@ import Dexie from "dexie";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { TaskFlowApiError } from "@/infrastructure/api/httpClient";
+import type { SyncOperation } from "@/domain/sync/models";
 import { openTaskFlowDatabase, TaskFlowDatabase } from "@/infrastructure/indexeddb/database";
 import { LocalRepository } from "@/infrastructure/repositories/LocalRepository";
 import { StorageManager } from "./StorageManager";
@@ -11,6 +12,7 @@ const databaseNames: string[] = [];
 
 describe("StorageManager", () => {
   afterEach(async () => {
+    vi.useRealTimers();
     await Promise.all(databaseNames.splice(0).map((name) => Dexie.delete(name)));
   });
 
@@ -102,6 +104,31 @@ describe("StorageManager", () => {
 
     expect(manager.getSnapshot()).toMatchObject({ source: "local", isStale: true, pendingOperations: 1, syncStatus: "error" });
     await expect(manager.repositories.sync.findPending()).resolves.toHaveLength(1);
+  });
+
+  it("retries queued cloud mutations while the browser remains online", async () => {
+    const localRepository = await createLocalRepository();
+    const syncTransport = {
+      push: vi.fn(async (operations: SyncOperation[]) => ({
+        version: 1 as const,
+        syncId: "sync-queued",
+        accepted: operations.map((operation) => ({ operationId: operation.id })),
+        rejected: [],
+        conflicts: [],
+        changes: [],
+      })),
+      pull: vi.fn().mockResolvedValue({ version: 1 as const, cursor: null, hasMore: false, changes: [] }),
+    };
+    const apiRepositories = fakeApiRepositories({
+      lists: fakeListRepository(vi.fn().mockResolvedValue([]), vi.fn().mockRejectedValue(new TypeError("network down"))),
+    });
+    const manager = new StorageManager({ mode: "cloud", localRepository, apiRepositories, syncTransport });
+
+    await expect(manager.repositories.lists.create({ name: "Reintentar" })).resolves.toMatchObject({ name: "Reintentar" });
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+
+    expect(syncTransport.push).toHaveBeenCalledTimes(1);
+    await expect(manager.repositories.sync.findPending()).resolves.toHaveLength(0);
   });
 
   it("drains cloud sync and exposes the last successful run", async () => {

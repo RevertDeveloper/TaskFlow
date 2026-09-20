@@ -13,7 +13,7 @@ class SyncOperationInputSerializer(serializers.Serializer):
     payload = serializers.JSONField()
     idempotency_key = serializers.UUIDField(required=False)
 
-    def validate_payload(self, value):  # type: ignore[no-untyped-def]
+    def validate_payload(self, value):
         if not isinstance(value, dict):
             raise serializers.ValidationError("El payload debe ser un objeto JSON.")
         return value

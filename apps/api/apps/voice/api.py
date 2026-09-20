@@ -47,7 +47,7 @@ class VoiceSessionCollectionView(TaskFlowAPIView):
         request=VoiceUploadSerializer,
         responses={202: VoiceSessionOutputSerializer},
     )
-    def post(self, request):  # type: ignore[no-untyped-def]
+    def post(self, request):
         serializer = VoiceUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user_id = _external_user_id(request)
@@ -101,7 +101,7 @@ class VoiceSessionDetailView(TaskFlowAPIView):
         operation_id="voice_session_retrieve",
         responses={200: VoiceSessionOutputSerializer},
     )
-    def get(self, request, session_id: str):  # type: ignore[no-untyped-def]
+    def get(self, request, session_id: str):
         session = get_owned_voice_session(_external_user_id(request), session_id)
         return success_response(VoiceSessionOutputSerializer(session).data)
 
@@ -114,7 +114,7 @@ class VoiceReviewView(TaskFlowAPIView):
         request=VoiceReviewRequestSerializer,
         responses={201: VoiceReviewDraftOutputSerializer},
     )
-    def post(self, request, session_id: str):  # type: ignore[no-untyped-def]
+    def post(self, request, session_id: str):
         session_uuid = _parse_uuid(session_id)
         serializer = VoiceReviewRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -153,7 +153,7 @@ class VoiceReviewView(TaskFlowAPIView):
         operation_id="voice_review_retrieve",
         responses={200: VoiceReviewDraftOutputSerializer},
     )
-    def get(self, request, session_id: str):  # type: ignore[no-untyped-def]
+    def get(self, request, session_id: str):
         session = get_owned_voice_session(_external_user_id(request), session_id)
         try:
             draft = session.review_draft
@@ -178,7 +178,7 @@ class VoiceReviewConfirmView(TaskFlowAPIView):
         request=VoiceReviewConfirmSerializer,
         responses={201: VoiceReviewDraftOutputSerializer},
     )
-    def post(self, request, draft_id: str):  # type: ignore[no-untyped-def]
+    def post(self, request, draft_id: str):
         serializer = VoiceReviewConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = confirm_voice_tasks(
@@ -196,7 +196,7 @@ class VoiceReviewConfirmView(TaskFlowAPIView):
         )
 
 
-def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
+def _external_user_id(request) -> int:
     principal = request.user
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ValidationError("La identidad de Accounts no está disponible.")

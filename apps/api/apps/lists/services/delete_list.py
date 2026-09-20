@@ -29,13 +29,13 @@ def delete_list(external_user_id: int, list_id: UUID) -> None:
         record_event(
             external_user_id=external_user_id,
             task_id=task.id,
-            event_type=TaskEvent.EventType.TASK_MOVED,
+            event_type=str(TaskEvent.EventType.TASK_MOVED),
             payload={"from_list_id": str(previous_list_id), "to_list_id": str(inbox.id)},
         )
 
     record_event(
         external_user_id=external_user_id,
-        event_type=TaskEvent.EventType.LIST_DELETED,
+        event_type=str(TaskEvent.EventType.LIST_DELETED),
         payload={"list_id": str(task_list.id)},
     )
     task_list.deleted_at = timezone.now()

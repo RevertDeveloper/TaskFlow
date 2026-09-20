@@ -1,0 +1,150 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      target: runner
+      args:
+        API_INTERNAL_URL: http://api:8000
+        STORAGE_MODE: cloud
+    image: ${TASKFLOW_IMAGE_REGISTRY:-taskflow}/web:${TASKFLOW_RELEASE:-local}
+    command: ["node", "server.js"]
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "${WEB_PORT:-10700}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: runtime
+    image: ${TASKFLOW_IMAGE_REGISTRY:-taskflow}/api:${TASKFLOW_RELEASE:-local}
+    command:
+      - gunicorn
+      - config.wsgi:application
+      - --bind
+      - 0.0.0.0:8000
+      - --workers
+      - "2"
+      - --access-logfile
+      - "-"
+      - --error-logfile
+      - "-"
+    ports:
+      - "127.0.0.1:${API_PORT:-10701}:8000"
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_DEBUG: "false"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?DJANGO_ALLOWED_HOSTS is required}
+      TASKFLOW_PUBLIC_URL: ${TASKFLOW_PUBLIC_URL:?TASKFLOW_PUBLIC_URL is required}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      REDIS_URL: redis://redis:6379/0
+      ACCOUNTS_BASE_URL: ${ACCOUNTS_BASE_URL:?ACCOUNTS_BASE_URL is required}
+      ACCOUNTS_TIMEOUT_SECONDS: ${ACCOUNTS_TIMEOUT_SECONDS:-2}
+      ACCOUNTS_APPLICATION_SLUG: ${ACCOUNTS_APPLICATION_SLUG:-taskflow}
+      ACCOUNTS_QUOTA_MODE: ${ACCOUNTS_QUOTA_MODE:-accounts}
+      ACCOUNTS_TASKFLOW_SERVICE_KEY: ${ACCOUNTS_TASKFLOW_SERVICE_KEY:?ACCOUNTS_TASKFLOW_SERVICE_KEY is required}
+      AI_PROVIDER: ${AI_PROVIDER:?AI_PROVIDER is required}
+      AI_STT_PROVIDER: ${AI_STT_PROVIDER:-}
+      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-}
+      AI_LLM_MAX_RETRIES: ${AI_LLM_MAX_RETRIES:-1}
+      AI_MAX_LLM_RESPONSE_CHARS: ${AI_MAX_LLM_RESPONSE_CHARS:-20000}
+      AI_AUDIO_TEMP_DIR: /app/var/audio
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      TASKFLOW_METRICS_TOKEN: ${TASKFLOW_METRICS_TOKEN:?TASKFLOW_METRICS_TOKEN is required}
+    volumes:
+      - taskflow_production_audio:/app/var/audio
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: runtime
+    image: ${TASKFLOW_IMAGE_REGISTRY:-taskflow}/api:${TASKFLOW_RELEASE:-local}
+    command: ["celery", "-A", "config.celery:app", "worker", "--loglevel=INFO", "--concurrency=1"]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      REDIS_URL: redis://redis:6379/0
+      ACCOUNTS_BASE_URL: ${ACCOUNTS_BASE_URL:?ACCOUNTS_BASE_URL is required}
+      ACCOUNTS_TIMEOUT_SECONDS: ${ACCOUNTS_TIMEOUT_SECONDS:-2}
+      ACCOUNTS_APPLICATION_SLUG: ${ACCOUNTS_APPLICATION_SLUG:-taskflow}
+      ACCOUNTS_QUOTA_MODE: ${ACCOUNTS_QUOTA_MODE:-accounts}
+      ACCOUNTS_TASKFLOW_SERVICE_KEY: ${ACCOUNTS_TASKFLOW_SERVICE_KEY:?ACCOUNTS_TASKFLOW_SERVICE_KEY is required}
+      AI_PROVIDER: ${AI_PROVIDER:?AI_PROVIDER is required}
+      AI_STT_PROVIDER: ${AI_STT_PROVIDER:-}
+      AI_LLM_PROVIDER: ${AI_LLM_PROVIDER:-}
+      AI_LLM_MAX_RETRIES: ${AI_LLM_MAX_RETRIES:-1}
+      AI_MAX_LLM_RESPONSE_CHARS: ${AI_MAX_LLM_RESPONSE_CHARS:-20000}
+      AI_AUDIO_TEMP_DIR: /app/var/audio
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - taskflow_production_audio:/app/var/audio
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A config.celery:app inspect ping --timeout=2 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - taskflow_production_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - taskflow_production_redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  taskflow_production_audio:
+  taskflow_production_postgres_data:
+  taskflow_production_redis_data:

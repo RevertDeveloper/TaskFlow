@@ -16,7 +16,7 @@ class SyncPushView(TaskFlowAPIView):
     throttle_scope = "sync_push"
 
     @extend_schema(operation_id="sync_push", request=SyncPushSerializer)
-    def post(self, request):  # type: ignore[no-untyped-def]
+    def post(self, request):
         serializer = SyncPushSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         result = push_operations(
@@ -35,7 +35,7 @@ class SyncPullView(TaskFlowAPIView):
             OpenApiParameter(name="limit", type=int, required=False),
         ],
     )
-    def get(self, request):  # type: ignore[no-untyped-def]
+    def get(self, request):
         serializer = SyncPullQuerySerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         try:
@@ -49,7 +49,7 @@ class SyncPullView(TaskFlowAPIView):
         return success_response(result)
 
 
-def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
+def _external_user_id(request) -> int:
     principal = request.user
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ValidationError("La identidad de Accounts no está disponible.")

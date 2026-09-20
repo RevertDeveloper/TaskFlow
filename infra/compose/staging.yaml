@@ -1,0 +1,25 @@
+services:
+  web:
+    ports:
+      - "${STAGING_WEB_PORT:-10800}:3000"
+
+  api:
+    ports:
+      - "127.0.0.1:${STAGING_API_PORT:-10801}:8000"
+
+  db:
+    volumes:
+      - taskflow_staging_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    volumes:
+      - taskflow_staging_redis_data:/data
+
+  worker:
+    volumes:
+      - taskflow_staging_audio:/app/var/audio
+
+volumes:
+  taskflow_staging_audio:
+  taskflow_staging_postgres_data:
+  taskflow_staging_redis_data:

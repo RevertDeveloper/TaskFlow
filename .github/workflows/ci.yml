@@ -46,7 +46,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: E2E release candidate
-        run: npm run test:e2e
+        run: TASKFLOW_E2E_MODE=production npm run test:e2e
 
   api:
     name: API checks

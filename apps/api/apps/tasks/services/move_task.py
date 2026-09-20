@@ -27,7 +27,7 @@ def move_task(external_user_id: int, task_id: UUID, *, list_id: UUID) -> Task:
     record_event(
         external_user_id=external_user_id,
         task_id=task.id,
-        event_type=TaskEvent.EventType.TASK_MOVED,
+        event_type=str(TaskEvent.EventType.TASK_MOVED),
         payload={"from_list_id": str(previous_list_id), "to_list_id": str(target_list.id)},
     )
     return task

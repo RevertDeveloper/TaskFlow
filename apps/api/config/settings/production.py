@@ -1,3 +1,5 @@
+import os
+
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
@@ -9,6 +11,20 @@ if SECRET_KEY == "development-only-key" or len(SECRET_KEY) < 50:  # noqa: F405
 
 if not ALLOWED_HOSTS:  # noqa: F405
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must contain at least one host")
+
+public_url = os.getenv("TASKFLOW_PUBLIC_URL", "").rstrip("/")
+if not public_url.startswith("https://"):
+    raise ImproperlyConfigured("TASKFLOW_PUBLIC_URL must use HTTPS in production")
+
+if os.getenv("DJANGO_ALLOWED_HOSTS", "").strip() in {"", "localhost", "127.0.0.1"}:
+    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must contain the production hostname")
+if not os.getenv("TASKFLOW_METRICS_TOKEN"):
+    raise ImproperlyConfigured("TASKFLOW_METRICS_TOKEN is required in production")
+
+CSRF_TRUSTED_ORIGINS = [public_url]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = True
+USE_X_FORWARDED_HOST = True
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

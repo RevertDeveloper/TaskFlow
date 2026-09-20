@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
+from typing import NotRequired, TypedDict
 from uuid import UUID, uuid4
 
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -7,6 +8,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.common.exceptions import ProtectedResourceError, ResourceNotFound
+from apps.common.metrics import observe_sync_result
 from apps.common.middleware import current_request_id
 from apps.history.models import TaskEvent
 from apps.history.services import record_event
@@ -38,6 +40,12 @@ class SyncConflict(Exception):
         self.code = code
 
 
+class SyncProcessResult(TypedDict):
+    result: str
+    response: dict[str, object]
+    change: NotRequired[dict[str, object]]
+
+
 def push_operations(
     external_user_id: int, operations: Sequence[Mapping[str, object]]
 ) -> dict[str, object]:
@@ -49,12 +57,14 @@ def push_operations(
 
     for operation in operations:
         result = _process_operation(external_user_id, operation)
-        bucket = {
+        buckets: dict[str, list[dict[str, object]]] = {
             "accepted": accepted,
             "rejected": rejected,
             "conflicts": conflicts,
-        }[result["result"]]
+        }
+        bucket = buckets[result["result"]]
         bucket.append(result["response"])
+        observe_sync_result(result["result"])
         logger.info(
             "sync_operation_processed",
             extra={
@@ -87,7 +97,9 @@ def push_operations(
     }
 
 
-def _process_operation(external_user_id: int, operation: Mapping[str, object]) -> dict[str, object]:
+def _process_operation(
+    external_user_id: int, operation: Mapping[str, object]
+) -> SyncProcessResult:
     operation_id = _uuid(operation, "operation_id")
     idempotency_key = operation.get("idempotency_key") or operation_id
     if not isinstance(idempotency_key, UUID):
@@ -115,23 +127,25 @@ def _process_operation(external_user_id: int, operation: Mapping[str, object]) -
             entity = _apply_operation(external_user_id, operation)
             _ensure_lww_order(previous, entity, operation)
             _stamp_sync_version(entity, operation)
-            stored = _save_operation(external_user_id, operation, SyncOperation.Result.ACCEPTED, "")
+            stored = _save_operation(
+                external_user_id, operation, str(SyncOperation.Result.ACCEPTED), ""
+            )
     except SyncConflict as exc:
         stored = _save_failed_operation(
-            external_user_id, operation, SyncOperation.Result.CONFLICT, exc.code
+            external_user_id, operation, str(SyncOperation.Result.CONFLICT), exc.code
         )
         return {"result": "conflicts", "response": _failure_response(stored, exc)}
     except (DjangoValidationError, ProtectedResourceError, ResourceNotFound, SyncRejected) as exc:
         code, message = _error_details(exc)
         stored = _save_failed_operation(
-            external_user_id, operation, SyncOperation.Result.REJECTED, code
+            external_user_id, operation, str(SyncOperation.Result.REJECTED), code
         )
         return {"result": "rejected", "response": _failure_response(stored, message)}
     except IntegrityError:
         stored = _save_failed_operation(
             external_user_id,
             operation,
-            SyncOperation.Result.CONFLICT,
+            str(SyncOperation.Result.CONFLICT),
             "entity_exists",
         )
         return {
@@ -151,7 +165,7 @@ def _process_operation(external_user_id: int, operation: Mapping[str, object]) -
     return {
         "result": "accepted",
         "response": response,
-        "change": serialize_change(operation["entity_type"], entity),
+        "change": serialize_change(_string(operation, "entity_type"), entity),
     }
 
 
@@ -189,7 +203,7 @@ def _existing_entity(external_user_id: int, operation: Mapping[str, object]):
     return None
 
 
-def _ensure_lww_order(previous, entity, operation) -> None:  # type: ignore[no-untyped-def]
+def _ensure_lww_order(previous, entity, operation) -> None:
     if previous is None:
         return
     if entity.updated_at < previous.updated_at:
@@ -197,20 +211,24 @@ def _ensure_lww_order(previous, entity, operation) -> None:  # type: ignore[no-u
     if entity.updated_at != previous.updated_at:
         return
 
-    candidate = _version_key(operation["client_version"], _uuid(operation, "operation_id"))
+    candidate = _version_key(
+        _integer(operation, "client_version"), _uuid(operation, "operation_id")
+    )
     current = _version_key(previous.sync_client_version or 0, previous.sync_operation_id)
     if candidate <= current:
         raise SyncConflict("stale_operation", "La operación pierde el desempate de sincronización.")
 
 
 def _stamp_sync_version(entity, operation: Mapping[str, object]) -> None:
-    entity.sync_client_version = int(operation["client_version"])
+    entity.sync_client_version = _integer(operation, "client_version")
     entity.sync_operation_id = _uuid(operation, "operation_id")
     entity.save(update_fields=["sync_client_version", "sync_operation_id"])
 
 
 def _version_key(client_version: object, operation_id: UUID | None) -> tuple[int, str]:
-    return int(client_version), str(operation_id or "")
+    if not isinstance(client_version, int) or isinstance(client_version, bool):
+        raise SyncRejected("invalid_payload", "El campo client_version no es válido.")
+    return client_version, str(operation_id or "")
 
 
 def _apply_list(
@@ -233,7 +251,7 @@ def _apply_list(
         task_list.save(force_insert=True)
         record_event(
             external_user_id=external_user_id,
-            event_type=TaskEvent.EventType.LIST_CREATED,
+            event_type=str(TaskEvent.EventType.LIST_CREATED),
             payload={"list_id": str(entity_id)},
         )
         return task_list
@@ -273,7 +291,9 @@ def _apply_task(
             list=task_list,
             title=_required_string(payload, "title"),
             description=_optional_string(payload, "description"),
-            source=_optional_choice(payload, "source", Task.Source.MANUAL, Task.Source.values),
+            source=_optional_choice(
+                payload, "source", str(Task.Source.MANUAL), Task.Source.values
+            ),
             position=_optional_int(payload, "position", 0),
         )
         task.full_clean()
@@ -281,7 +301,7 @@ def _apply_task(
         record_event(
             external_user_id=external_user_id,
             task_id=entity_id,
-            event_type=TaskEvent.EventType.TASK_CREATED,
+            event_type=str(TaskEvent.EventType.TASK_CREATED),
             payload={"source": task.source},
         )
         return task
@@ -329,12 +349,12 @@ def _save_operation(
         entity_type=_string(operation, "entity_type"),
         entity_id=_uuid(operation, "entity_id"),
         operation=_string(operation, "mutation"),
-        client_version=int(operation["client_version"]),
+        client_version=_integer(operation, "client_version"),
         occurred_at=operation["client_timestamp"],
         processed_at=timezone.now(),
         idempotency_key=operation.get("idempotency_key") or _uuid(operation, "operation_id"),
-        payload_version=int(operation["payload_version"]),
-        payload=dict(operation["payload"]),
+        payload_version=_integer(operation, "payload_version"),
+        payload=dict(_mapping(operation, "payload")),
         result=result,
         error_code=error_code,
     )
@@ -356,7 +376,7 @@ def _save_failed_operation(
         )
 
 
-def _stored_result(operation: SyncOperation) -> dict[str, object]:
+def _stored_result(operation: SyncOperation) -> SyncProcessResult:
     result = operation.result
     response = {
         "operation_id": str(operation.id),
@@ -385,7 +405,7 @@ def _failure_response(operation: SyncOperation, error: Exception | str) -> dict[
     }
 
 
-def _result(bucket: str, operation_id: UUID, code: str, message: str) -> dict[str, object]:
+def _result(bucket: str, operation_id: UUID, code: str, message: str) -> SyncProcessResult:
     return {
         "result": bucket,
         "response": {"operation_id": str(operation_id), "code": code, "message": message},
@@ -423,6 +443,20 @@ def _uuid_value(value: object, key: str) -> UUID:
         return UUID(str(value))
     except (ValueError, AttributeError, TypeError) as exc:
         raise SyncRejected("invalid_uuid", f"El campo {key} no contiene un UUID válido.") from exc
+
+
+def _integer(operation: Mapping[str, object], key: str) -> int:
+    value = operation.get(key)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise SyncRejected("invalid_payload", f"El campo {key} no es válido.")
+    return value
+
+
+def _mapping(operation: Mapping[str, object], key: str) -> Mapping[str, object]:
+    value = operation.get(key)
+    if not isinstance(value, Mapping):
+        raise SyncRejected("invalid_payload", f"El campo {key} no es válido.")
+    return value
 
 
 def _string(operation: Mapping[str, object], key: str) -> str:
@@ -478,18 +512,22 @@ def _optional_bool_or_none(payload: Mapping[str, object], key: str) -> bool | No
     return value
 
 
-def _optional_choice(payload: Mapping[str, object], key: str, default: str, choices) -> str:  # type: ignore[no-untyped-def]
+def _optional_choice(
+    payload: Mapping[str, object], key: str, default: str, choices: Sequence[str]
+) -> str:
     value = payload.get(key, default)
-    if value not in choices:
+    if not isinstance(value, str) or value not in choices:
         raise SyncRejected("invalid_payload", f"El campo {key} no es válido.")
     return value
 
 
-def _optional_choice_or_none(payload: Mapping[str, object], key: str, choices) -> str | None:  # type: ignore[no-untyped-def]
+def _optional_choice_or_none(
+    payload: Mapping[str, object], key: str, choices: Sequence[str]
+) -> str | None:
     value = payload.get(key)
     if value is None:
         return None
-    if value not in choices:
+    if not isinstance(value, str) or value not in choices:
         raise SyncRejected("invalid_payload", f"El campo {key} no es válido.")
     return value
 

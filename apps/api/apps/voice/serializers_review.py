@@ -45,7 +45,7 @@ class VoiceReviewDraftOutputSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def to_representation(self, instance):  # type: ignore[no-untyped-def]
+    def to_representation(self, instance):
         representation = super().to_representation(instance)
         representation["tasks"] = instance.payload.get("tasks", [])
         representation["source"] = instance.payload.get("source", {})

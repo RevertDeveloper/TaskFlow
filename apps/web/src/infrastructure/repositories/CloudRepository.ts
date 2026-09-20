@@ -12,6 +12,7 @@ import { LocalReplica } from "./LocalReplica";
 export type CloudRepositoryCallbacks = {
   onRemoteSuccess: (replicaAvailable: boolean) => void;
   onLocalFallback: (error: unknown) => void;
+  onQueuedMutation?: () => void;
   onReplicaFailure: (error: unknown) => void;
   onMutation: () => void;
 };
@@ -179,6 +180,7 @@ export class CloudRepository {
       const result = await local();
       this.callbacks.onLocalFallback(error);
       this.callbacks.onMutation();
+      this.callbacks.onQueuedMutation?.();
       return result;
     }
   }

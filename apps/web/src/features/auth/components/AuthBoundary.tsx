@@ -24,6 +24,7 @@ export function AuthBoundary({
   loading = <p>Cargando sesión...</p>,
 }: AuthBoundaryProps) {
   const [state, setState] = useState<AuthState>({ status: "loading" });
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -47,14 +48,22 @@ export function AuthBoundary({
     return () => {
       active = false;
     };
-  }, []);
+  }, [retryNonce]);
 
-  return renderState(state, { children, anonymous, emailPending, blocked, unavailable, loading });
+  return renderState(state, {
+    children,
+    anonymous,
+    emailPending,
+    blocked,
+    unavailable,
+    loading,
+    onRetry: () => setRetryNonce((current) => current + 1),
+  });
 }
 
 function renderState(
   state: AuthState,
-  content: Omit<AuthBoundaryProps, "children"> & { children: ReactNode },
+  content: Omit<AuthBoundaryProps, "children"> & { children: ReactNode; onRetry: () => void },
 ): ReactNode {
   switch (state.status) {
     case "authenticated":
@@ -66,7 +75,14 @@ function renderState(
     case "blocked":
       return content.blocked;
     case "accounts-unavailable":
-      return content.unavailable;
+      return (
+        <div className="auth-retry">
+          {content.unavailable}
+          <button className="ui-button ui-button--secondary" type="button" onClick={content.onRetry}>
+            Reintentar
+          </button>
+        </div>
+      );
     case "loading":
       return content.loading;
   }

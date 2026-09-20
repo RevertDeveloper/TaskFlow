@@ -1,0 +1,206 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Tag de release ya publicado o version a publicar"
+        required: true
+        type: string
+      publish_images:
+        description: "Publicar las imagenes en GHCR"
+        required: true
+        default: true
+        type: boolean
+      deploy_staging:
+        description: "Promover al runner protegido de staging"
+        required: true
+        default: true
+        type: boolean
+      deploy_production:
+        description: "Promover a produccion tras staging"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Release quality gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Web checks
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test:coverage
+          npm run build
+
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E release candidate
+        working-directory: apps/web
+        run: TASKFLOW_E2E_MODE=production npm run test:e2e
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/api/requirements-dev.txt
+
+      - name: API checks
+        working-directory: apps/api
+        run: |
+          python -m pip install -r requirements-dev.txt
+          ruff check .
+          python -m mypy config
+          python manage.py check
+          python manage.py migrate --check
+          python manage.py spectacular --file ../../docs/api/openapi.yaml --validate
+          git diff --exit-code -- ../../docs/api/openapi.yaml
+          python -m pytest --cov=apps --cov-report=term-missing --cov-fail-under=80
+
+      - name: Infrastructure checks
+        env:
+          DJANGO_SECRET_KEY: release-validation-key-that-is-long-enough-for-compose-check-1234567890
+          DJANGO_ALLOWED_HOSTS: taskflow.carlosrevert.es
+          TASKFLOW_PUBLIC_URL: https://taskflow.carlosrevert.es
+          DATABASE_URL: postgresql://taskflow:taskflow@db:5432/taskflow
+          POSTGRES_DB: taskflow
+          POSTGRES_USER: taskflow
+          POSTGRES_PASSWORD: release-validation-password
+          ACCOUNTS_BASE_URL: https://cuenta.carlosrevert.es
+          ACCOUNTS_TASKFLOW_SERVICE_KEY: release-validation-service-key
+          AI_PROVIDER: fake
+          TASKFLOW_METRICS_TOKEN: release-validation-metrics-token
+        run: |
+          bash -n infra/scripts/*.sh
+          docker compose --project-name taskflow-release-check --env-file .env.example -f compose.production.yaml config --quiet
+          docker compose --project-name taskflow-release-check --env-file .env.example -f compose.yaml -f compose.dev.yaml config --quiet
+
+  images:
+    name: Build and scan images
+    needs: quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      release: ${{ steps.release.outputs.release }}
+      registry: ${{ steps.release.outputs.registry }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release
+        id: release
+        env:
+          INPUT_RELEASE: ${{ inputs.release }}
+        run: |
+          release="$INPUT_RELEASE"
+          if [[ -z "$release" ]]; then
+            release="${GITHUB_REF_NAME#v}"
+          fi
+          [[ "$release" =~ ^[A-Za-z0-9._-]+$ ]]
+          registry="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/taskflow"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "registry=$registry" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        if: github.event_name == 'push' || inputs.publish_images == true
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build API image
+        env:
+          IMAGE: ${{ steps.release.outputs.registry }}/api:${{ steps.release.outputs.release }}
+        run: docker build --target runtime --tag "$IMAGE" --file infra/docker/api.Dockerfile .
+
+      - name: Build web image
+        env:
+          IMAGE: ${{ steps.release.outputs.registry }}/web:${{ steps.release.outputs.release }}
+        run: docker build --target runner --tag "$IMAGE" --file infra/docker/web.Dockerfile .
+
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.release.outputs.registry }}/api:${{ steps.release.outputs.release }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Scan web image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.release.outputs.registry }}/web:${{ steps.release.outputs.release }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Publish images
+        if: github.event_name == 'push' || inputs.publish_images == true
+        env:
+          API_IMAGE: ${{ steps.release.outputs.registry }}/api:${{ steps.release.outputs.release }}
+          WEB_IMAGE: ${{ steps.release.outputs.registry }}/web:${{ steps.release.outputs.release }}
+        run: |
+          docker push "$API_IMAGE"
+          docker push "$WEB_IMAGE"
+
+  staging:
+    name: Deploy staging and smoke
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_staging == true
+    needs: images
+    runs-on: [self-hosted, taskflow-staging]
+    environment:
+      name: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Deploy
+        env:
+          TASKFLOW_ENV_FILE: ${{ vars.TASKFLOW_ENV_FILE }}
+          TASKFLOW_PROJECT_NAME: taskflow-staging
+          TASKFLOW_RELEASE: ${{ needs.images.outputs.release }}
+          TASKFLOW_IMAGE_REGISTRY: ${{ needs.images.outputs.registry }}
+        run: ./infra/scripts/deploy.sh staging
+
+  production:
+    name: Deploy production and smoke
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_staging == true && inputs.deploy_production == true
+    needs: [images, staging]
+    runs-on: [self-hosted, taskflow-production]
+    environment:
+      name: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Deploy
+        env:
+          TASKFLOW_ENV_FILE: ${{ vars.TASKFLOW_ENV_FILE }}
+          TASKFLOW_PROJECT_NAME: taskflow-production
+          TASKFLOW_RELEASE: ${{ needs.images.outputs.release }}
+          TASKFLOW_IMAGE_REGISTRY: ${{ needs.images.outputs.registry }}
+        run: ./infra/scripts/deploy.sh production

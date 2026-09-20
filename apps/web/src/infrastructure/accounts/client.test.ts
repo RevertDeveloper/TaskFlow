@@ -10,6 +10,7 @@ describe("safeNextPath", () => {
   it("rejects external and protocol-relative redirects", () => {
     expect(safeNextPath("https://evil.example")).toBe("/");
     expect(safeNextPath("//evil.example")).toBe("/");
+    expect(safeNextPath("/\\evil.example")).toBe("/");
     expect(safeNextPath(undefined)).toBe("/");
   });
 });

@@ -34,7 +34,7 @@ from .services import (
 class TaskCollectionView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
-    def get(self, request):  # type: ignore[no-untyped-def]
+    def get(self, request):
         user_id = _external_user_id(request)
         queryset = active_tasks_for_user(user_id).select_related("list")
         status_filter = request.query_params.get("status")
@@ -47,7 +47,7 @@ class TaskCollectionView(TaskFlowAPIView):
             queryset = queryset.filter(list_id=_parse_uuid(list_filter))
         return paginated_response(request, queryset, TaskOutputSerializer)
 
-    def post(self, request):  # type: ignore[no-untyped-def]
+    def post(self, request):
         serializer = TaskCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         task = create_task(_external_user_id(request), **serializer.validated_data)
@@ -66,11 +66,11 @@ class TaskCollectionView(TaskFlowAPIView):
 class TaskDetailView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
-    def get(self, request, task_id: str):  # type: ignore[no-untyped-def]
+    def get(self, request, task_id: str):
         task = self._get_task(request, task_id)
         return success_response(TaskOutputSerializer(task).data)
 
-    def patch(self, request, task_id: str):  # type: ignore[no-untyped-def]
+    def patch(self, request, task_id: str):
         serializer = TaskUpdateSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         values = dict(serializer.validated_data)
@@ -83,11 +83,11 @@ class TaskDetailView(TaskFlowAPIView):
         )
         return success_response(TaskOutputSerializer(task).data)
 
-    def delete(self, request, task_id: str):  # type: ignore[no-untyped-def]
+    def delete(self, request, task_id: str):
         delete_task(_external_user_id(request), _parse_uuid(task_id))
         return success_response(None, status_code=204)
 
-    def _get_task(self, request, task_id: str):  # type: ignore[no-untyped-def]
+    def _get_task(self, request, task_id: str):
         return get_owned_task(_external_user_id(request), _parse_uuid(task_id))
 
 
@@ -101,7 +101,7 @@ class TaskDetailView(TaskFlowAPIView):
 class TaskCompleteView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
-    def post(self, request, task_id: str):  # type: ignore[no-untyped-def]
+    def post(self, request, task_id: str):
         task = complete_task(_external_user_id(request), _parse_uuid(task_id))
         return success_response(TaskOutputSerializer(task).data)
 
@@ -116,12 +116,12 @@ class TaskCompleteView(TaskFlowAPIView):
 class TaskReopenView(TaskFlowAPIView):
     permission_classes = (CanAccessTasks,)
 
-    def post(self, request, task_id: str):  # type: ignore[no-untyped-def]
+    def post(self, request, task_id: str):
         task = reopen_task(_external_user_id(request), _parse_uuid(task_id))
         return success_response(TaskOutputSerializer(task).data)
 
 
-def _external_user_id(request) -> int:  # type: ignore[no-untyped-def]
+def _external_user_id(request) -> int:
     principal = request.user
     if not isinstance(principal, AuthenticatedPrincipal):
         raise ResourceNotFound("Task not found")

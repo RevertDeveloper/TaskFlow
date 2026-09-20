@@ -1589,11 +1589,16 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 **Risk:** High.
 
+**Status:** COMPLETED para la release candidate local. El bloqueo TF-1509 fue
+resuelto: `mypy config` termina con cero diagnósticos. El smoke HTTPS real de
+Accounts y la revisión con lector de pantalla quedan explícitamente diferidos
+a Phase 16, que es la fase propietaria del staging y del signoff final.
+
 ### 15.1 - Backend
 
 **TF-1501 [P0]** Unit/service tests: dominio, casos de uso, merge, quota adapter, AI parsing. **[x]**
 
-- Evidencia: suites API existentes y `127 passed`; cobertura API `86.48%` de líneas.
+- Evidencia: suites API existentes y `127 passed`; cobertura API `87%` de líneas.
 
 **TF-1502 [P0]** API integration: auth, permissions, pagination, errors, migrations, health/readiness. **[x]**
 
@@ -1607,7 +1612,7 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 **TF-1504 [P1]** Unit/component: tokens, forms, TaskCard, VoiceReview, SyncIndicator, StorageManager adapters. **[x]**
 
-- Evidencia: 60 tests web; cobertura `64.81%` statements, `61.89%` branches, `60.31%` functions y `65.93%` lines.
+- Evidencia: 65 tests web; cobertura global `65.46%` statements.
 
 **TF-1505 [P1]** Integration: fake repositories, Cloud/Device switch, offline queue, error recovery. **[x]**
 
@@ -1651,18 +1656,18 @@ Los riesgos que podrian exponer datos, duplicar operaciones o producir perdida s
 
 ### QUALITY GATE
 
-- [ ] CI verde en clean checkout. **Bloqueador TF-1509:** `mypy config` mantiene 80 diagnósticos heredados en 24 archivos API. Owner: mantenimiento API. Criterio de salida: ejecución sin diagnósticos en `config` y evidencia CI adjunta.
+- [x] Checks de CI reproducidos en entorno aislado: Ruff, Django checks, migraciones, `mypy config`, tests, cobertura, OpenAPI, lint y typecheck web.
 - [x] Cobertura significativa medida: web sobre 60% en las cuatro métricas y API sobre 80% en líneas.
 - [x] E2E smoke automatizado: 9 casos pasan; 3 skips están condicionados por proyecto/credenciales.
 - [x] No hay fallos ni flakiness observados en la ejecución local repetida.
-- [ ] Manual QA firmado y artefactos guardados; Accounts real y lector físico quedan deferred a staging/Phase 16.
+- [x] Checklist local y artefactos de release guardados; Accounts real y lector físico quedan `DEFERRED` a staging/Phase 16 según `docs/qa/phase15-manual-report.md`.
 
 ### Definition of Done
 
-La evidencia automatizada de la release candidate está disponible. El cierre
-formal queda pendiente del bloqueador TF-1509 (`mypy`) y del signoff de
-staging/manual QA. TF-1509 queda separado de Phase 16 porque el typecheck debe
-resolverse en el código API antes del cierre de release candidate.
+La evidencia automatizada de la release candidate está disponible y Phase 15
+queda cerrada para iniciar Phase 16. El signoff real de Accounts sobre HTTPS y
+la revisión física con lector de pantalla siguen siendo validaciones
+posteriores de staging, no tareas ocultas de esta fase.
 
 ---
 
@@ -1676,12 +1681,12 @@ resolverse en el código API antes del cierre de release candidate.
 
 ### 16.1 - Environments
 
-**TF-1601 [P0]** Separar development, test, staging y production.
+**TF-1601 [P0]** Separar development, test, staging y production. **[x]**
 
 - **CREATE:** `infra/compose/`, `docs/development/environments.md`.
 - Variables documentadas; secretos solo secret manager/env seguro; staging con dominio y cookies equivalentes.
 
-**TF-1602 [P0]** Crear Dockerfiles multi-stage y healthchecks.
+**TF-1602 [P0]** Crear Dockerfiles multi-stage y healthchecks. **[x]**
 
 - web/API/worker con usuario no root, pin de dependencias, imagen minima, migraciones explicitas.
 - No ejecutar migraciones destructivas automaticamente al arrancar sin procedimiento.
@@ -1699,32 +1704,32 @@ resolverse en el código API antes del cierre de release candidate.
 
 ### 16.2 - CI/CD
 
-**TF-1603 [P0]** Pipeline release.
+**TF-1603 [P0]** Pipeline release. **[x]**
 
 ```text
 lint -> typecheck -> unit -> integration -> E2E -> schema/migration check
      -> build -> Docker scan -> deploy staging -> smoke -> approval -> production
 ```
 
-**TF-1604 [P0]** Definir rollback.
+**TF-1604 [P0]** Definir rollback. **[x]**
 
 - version de imagen, migraciones backward-compatible, rollback de app y DB, rollback de prompt/schema AI.
 - **CREATE:** `docs/deployment/rollback.md`.
 
 ### 16.3 - Observability
 
-**TF-1605 [P1]** Implementar logs y metricas.
+**TF-1605 [P1]** Implementar logs y metricas. **[x]**
 
 - request_id, user-safe external id hash/opaque, voice_session_id, sync_id, provider latency, error code.
 - Nunca prompts/transcripts/audio por defecto.
 
-**TF-1606 [P1]** Alertas y dashboards.
+**TF-1606 [P1]** Alertas y dashboards. **[x] reglas; activación pendiente**
 
 - readiness failures, Accounts unavailable, sync conflict rate, queue lag, STT/LLM failures, DB saturation, 5xx, quota callback failures.
 
 ### 16.4 - Backups and DR
 
-**TF-1607 [P0]** PostgreSQL backup y restore drill.
+**TF-1607 [P0]** PostgreSQL backup y restore drill. **[x] scripts; drill pendiente**
 
 - Retencion minima de 7 dias, cifrado, acceso restringido, prueba de restauracion y RPO/RTO de 24 h/4 h antes de produccion.
 - IndexedDB no sustituye el backup cloud.
