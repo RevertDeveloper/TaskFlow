@@ -16,7 +16,7 @@ from apps.lists.models import List
 from apps.lists.selectors import get_owned_list
 from apps.lists.services.delete_list import delete_list
 from apps.lists.services.update_list import update_list
-from apps.notes.models import Note
+from apps.notes.models import Folder, Note
 from apps.sync.models import SyncOperation
 from apps.tasks.models import Task
 from apps.tasks.services.complete_task import complete_task
@@ -187,6 +187,8 @@ def _apply_operation(external_user_id: int, operation: Mapping[str, object]):
         return _apply_task(external_user_id, entity_id, mutation, payload)
     if entity_type == "note":
         return _apply_note(external_user_id, entity_id, mutation, payload)
+    if entity_type == "folder":
+        return _apply_folder(external_user_id, entity_id, mutation, payload)
     raise SyncRejected("invalid_entity_type", "El tipo de entidad no es válido.")
 
 
@@ -208,6 +210,8 @@ def _existing_entity(external_user_id: int, operation: Mapping[str, object]):
             id=entity_id,
             external_user_id=external_user_id,
         ).first()
+    if entity_type == "folder":
+        return Folder.objects.select_for_update().filter(id=entity_id, external_user_id=external_user_id).first()
     return None
 
 
@@ -383,6 +387,25 @@ def _apply_note(
         existing.save(update_fields=["deleted_at", "updated_at"])
         return existing
     raise SyncRejected("invalid_mutation", "La mutación no es válida para la nota.")
+
+
+def _apply_folder(external_user_id: int, entity_id: UUID, mutation: str, payload: Mapping[str, object]):
+    existing = Folder.objects.filter(id=entity_id, external_user_id=external_user_id).first()
+    if mutation == "create":
+        if existing:
+            raise SyncConflict("entity_exists", "La carpeta ya existe en el servidor.")
+        folder = Folder(id=entity_id, external_user_id=external_user_id, name=_optional_string(payload, "name")[:120], position=_integer(payload, "position"), parent_id=_optional_uuid(payload, "parentId"))
+        folder.full_clean(); folder.save(force_insert=True); return folder
+    if not existing:
+        raise SyncRejected("not_found", "La entidad no existe para este usuario.")
+    if mutation == "delete":
+        existing.deleted_at = timezone.now(); existing.save(update_fields=["deleted_at", "updated_at"]); return existing
+    if mutation == "update":
+        for field, key in (("name", "name"), ("position", "position")):
+            if key in payload: setattr(existing, field, payload[key])
+        if "parentId" in payload: existing.parent_id = _optional_uuid(payload, "parentId")
+        existing.full_clean(); existing.save(); return existing
+    raise SyncRejected("invalid_mutation", "La mutación no es válida para la carpeta.")
 
 
 def _save_operation(

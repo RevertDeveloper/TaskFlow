@@ -2,7 +2,7 @@ import Dexie from "dexie";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createUuid, TaskFlowDatabase, openTaskFlowDatabase } from "./database";
-import { IndexedDbNoteRepository } from "./IndexedDbNoteRepository";
+import { extractTags, IndexedDbNoteRepository } from "./IndexedDbNoteRepository";
 
 const names: string[] = [];
 
@@ -26,6 +26,16 @@ describe("IndexedDbNoteRepository", () => {
     expect(await repository.findById(note.id)).toBeNull();
     await repository.restore(note.id);
     expect(await repository.findById(note.id)).toMatchObject({ id: note.id, pinned: true });
+  });
+
+  it("derives unique tags from note text and keeps them searchable", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const blocks = [{ id: createUuid(), type: "paragraph" as const, spans: [{ text: "Ideas #Trabajo #trabajo y #café" }] }];
+    expect(extractTags(blocks)).toEqual(["café", "trabajo"]);
+    const note = await repository.create({ folderId: null, blocks });
+    expect(note.tags).toEqual(["café", "trabajo"]);
+    expect((await repository.search("café"))[0]?.id).toBe(note.id);
   });
 
   it("normalizes nested checklist indentation before persistence", async () => {

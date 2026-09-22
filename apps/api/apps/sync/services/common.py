@@ -6,10 +6,10 @@ from uuid import UUID
 from django.utils.dateparse import parse_datetime
 
 from apps.lists.models import List
-from apps.notes.models import Note
+from apps.notes.models import Folder, Note
 from apps.tasks.models import Task
 
-ENTITY_ORDER = {"list": 0, "task": 1, "note": 2}
+ENTITY_ORDER = {"list": 0, "task": 1, "note": 2, "folder": 3}
 
 
 class InvalidSyncCursor(ValueError):
@@ -37,7 +37,7 @@ def decode_cursor(value: str | None) -> tuple[datetime, str, UUID] | None:
         raise InvalidSyncCursor("El cursor de sincronización no es válido.") from exc
 
 
-def serialize_change(entity_type: str, entity: List | Task | Note) -> dict[str, object]:
+def serialize_change(entity_type: str, entity: List | Task | Note | Folder) -> dict[str, object]:
     if entity_type == "list":
         assert isinstance(entity, List)
         deleted_at = entity.deleted_at
@@ -70,7 +70,7 @@ def serialize_change(entity_type: str, entity: List | Task | Note) -> dict[str, 
             "updated_at": entity.updated_at.isoformat(),
             "deleted_at": deleted_at.isoformat() if deleted_at else None,
         }
-    else:
+    elif entity_type == "note":
         assert isinstance(entity, Note)
         deleted_at = entity.deleted_at
         data = {
@@ -83,6 +83,15 @@ def serialize_change(entity_type: str, entity: List | Task | Note) -> dict[str, 
             "archived_at": entity.archived_at.isoformat() if entity.archived_at else None,
             "created_at": entity.created_at.isoformat(),
             "updated_at": entity.updated_at.isoformat(),
+            "deleted_at": deleted_at.isoformat() if deleted_at else None,
+        }
+    else:
+        assert isinstance(entity, Folder)
+        deleted_at = entity.deleted_at
+        data = {
+            "id": str(entity.id), "parent_id": str(entity.parent_id) if entity.parent_id else None,
+            "name": entity.name, "position": entity.position,
+            "created_at": entity.created_at.isoformat(), "updated_at": entity.updated_at.isoformat(),
             "deleted_at": deleted_at.isoformat() if deleted_at else None,
         }
     return {

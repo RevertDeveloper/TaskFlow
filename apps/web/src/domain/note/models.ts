@@ -63,4 +63,4 @@ export type NoteDraft = {
   firstLine?: string;
 };
 
-export type NotePatch = Partial<Pick<Note, "blocks" | "folderId" | "pinned">>;
+export type NotePatch = Partial<Pick<Note, "blocks" | "folderId" | "pinned" | "tags">>;

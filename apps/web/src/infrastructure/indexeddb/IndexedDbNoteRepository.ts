@@ -40,15 +40,17 @@ export class IndexedDbNoteRepository implements NoteRepository {
     await openTaskFlowDatabase(this.database);
     const now = new Date().toISOString();
     const note = createNote(draft, now);
-    await this.database.notes.add(toRecord(note));
-    await enqueueSync(this.database, note.id, "create", {
-      entityId: note.id,
-      title: note.title,
-      blocks: note.blocks,
-      folderId: note.folderId,
-      pinned: note.pinned,
+    const storedNote = toNote(toRecord(note));
+    await this.database.notes.add(toRecord(storedNote));
+    await enqueueSync(this.database, storedNote.id, "create", {
+      entityId: storedNote.id,
+      title: storedNote.title,
+      blocks: storedNote.blocks,
+      folderId: storedNote.folderId,
+      pinned: storedNote.pinned,
     });
-    return note;
+    notifyLocalChange();
+    return storedNote;
   }
 
   async update(id: string, patch: NotePatch): Promise<Note> {
@@ -59,11 +61,14 @@ export class IndexedDbNoteRepository implements NoteRepository {
       blocks: patch.blocks === undefined ? current.blocks : normalizeBlocks(patch.blocks),
       folderId: patch.folderId === undefined ? current.folderId : patch.folderId,
       pinned: patch.pinned === undefined ? current.pinned : patch.pinned,
+      tags: patch.tags === undefined ? current.tags : [...new Set(patch.tags)],
       updatedAt: new Date().toISOString(),
     };
-    await this.database.notes.put(toRecord(next));
-    await enqueueSync(this.database, id, "update", { entityId: id, ...patch });
-    return next;
+    const storedNote = toNote(toRecord(next));
+    await this.database.notes.put(toRecord(storedNote));
+    await enqueueSync(this.database, id, "update", { entityId: id, ...patch, tags: storedNote.tags });
+    notifyLocalChange();
+    return storedNote;
   }
 
   async softDelete(id: string): Promise<void> {
@@ -72,18 +77,32 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const deletedAt = new Date().toISOString();
     await this.database.notes.put({ ...current, deletedAt, updatedAt: deletedAt });
     await enqueueSync(this.database, id, "delete", { entityId: id });
+    notifyLocalChange();
   }
 
   async restore(id: string): Promise<void> {
     await openTaskFlowDatabase(this.database);
     const current = await getNoteRecord(this.database, id);
     await this.database.notes.put({ ...current, deletedAt: null, updatedAt: new Date().toISOString() });
+    notifyLocalChange();
   }
+}
+
+function notifyLocalChange(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("taskflow:local-change", { detail: "note" }));
 }
 
 export function buildSearchIndex(note: Note): string {
   const body = note.blocks.map(extractBlockText).join(" ");
   return `${note.title} ${body} ${note.tags.join(" ")}`.toLowerCase();
+}
+
+export function extractTags(blocks: BlockNode[]): string[] {
+  const text = blocks.map(extractBlockText).join(" ");
+  const tags = new Set<string>();
+  const matcher = /(^|[^\w#])#([\w\u00c0-\u024f-]+)/gu;
+  for (const match of text.matchAll(matcher)) tags.add(match[2].toLowerCase());
+  return [...tags].sort();
 }
 
 export function deriveNoteTitle(blocks: BlockNode[], firstLine = ""): string {
@@ -132,7 +151,9 @@ function createInitialBlocks(firstLine?: string): BlockNode[] {
 }
 
 function toRecord(note: Note): LocalNoteRecord {
-  return { ...note, blocks: normalizeBlocks(note.blocks), searchIndex: buildSearchIndex(note) };
+  const blocks = normalizeBlocks(note.blocks);
+  const normalizedNote = { ...note, blocks, tags: extractTags(blocks) };
+  return { ...normalizedNote, searchIndex: buildSearchIndex(normalizedNote) };
 }
 
 function toNote(record: LocalNoteRecord): Note {

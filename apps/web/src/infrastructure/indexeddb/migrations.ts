@@ -41,9 +41,12 @@ export function registerMigrations(database: Dexie): void {
     ]);
   });
   database.version(CURRENT_SCHEMA_VERSION).stores(SCHEMA_V3).upgrade((transaction) => {
-    return transaction.table("app_state").put({
-      key: APP_STATE_KEYS.schemaVersion,
-      value: CURRENT_SCHEMA_VERSION,
-    });
+    return Promise.all([
+      transaction.table("folders").toCollection().modify((record: Record<string, unknown>) => {
+        record.emoji ??= "";
+        record.createdAt ??= record.updatedAt ?? new Date().toISOString();
+      }),
+      transaction.table("app_state").put({ key: APP_STATE_KEYS.schemaVersion, value: CURRENT_SCHEMA_VERSION }),
+    ]);
   });
 }

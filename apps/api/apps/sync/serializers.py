@@ -4,7 +4,7 @@ from rest_framework import serializers
 class SyncOperationInputSerializer(serializers.Serializer):
     operation_id = serializers.UUIDField()
     device_id = serializers.UUIDField()
-    entity_type = serializers.ChoiceField(choices=("list", "task", "note"))
+    entity_type = serializers.ChoiceField(choices=("list", "task", "note", "folder"))
     entity_id = serializers.UUIDField()
     mutation = serializers.ChoiceField(choices=("create", "update", "delete"))
     client_version = serializers.IntegerField(min_value=0)

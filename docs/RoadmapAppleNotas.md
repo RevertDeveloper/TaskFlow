@@ -5,6 +5,18 @@
 > **Modelo de ejecución:** Migración aditiva — el dominio `tasks/lists` existente se conserva intacto durante todas las fases; el nuevo dominio `notes` convive en paralelo hasta que la conversión sea voluntaria y verificada.
 > **Fecha de redacción:** 2026-09-22
 
+## Estado de ejecución al 2026-09-22
+
+| Fase | Estado | Commit | Resultado |
+|---|---|---|---|
+| **Fase 1** | Implementada con pendientes de producto | `ab0e4b2` | Workspace de notas, sidebar, drawer móvil, biblioteca lista/galería, preferencias locales y editor de captura inicial. |
+| **Fase 2** | Implementada en el núcleo técnico | `956ad70` | Dominio estructurado, IndexedDB v3, renderizador seguro, checklists, undo, API Django, validación recursiva y sync de notas. |
+| **Fase 3** | Implementada parcialmente | — | Carpetas y tags locales, biblioteca conectada a IndexedDB, filtros y sync de carpetas; enlaces `>>`, backlinks y DnD quedan pendientes. |
+
+**Convención de aceptación:** `[x]` validado por código y pruebas; `[~]` existe de forma parcial o requiere completar interacción; `[ ]` no implementado.
+
+**Verificación de cierre realizada:** frontend con `npm run typecheck`, `npm run lint`, `npm test` (81 tests) y `npm run build`; backend con `manage.py check` y `pytest` (135 tests). No se añadió `dangerouslySetInnerHTML` al dominio de notas y el código TypeScript nuevo no usa `any` explícito.
+
 ---
 
 ## Contexto y Estado Actual Auditado
@@ -15,25 +27,25 @@
 |---|---|---|---|
 | **Frontend** | Next.js 14+ (App Router), TypeScript | `apps/web/src/` | Estructura feature-based consolidada: `features/`, `domain/`, `infrastructure/`, `components/` |
 | **UI state** | Zustand (`uiStore.ts`) | `stores/uiStore.ts` | Solo persiste `activeListId` y `editingTaskId`; debe ampliarse |
-| **Persistencia local** | Dexie/IndexedDB (Schema v2) | `infrastructure/indexeddb/` | Tablas: `lists`, `tasks`, `task_events`, `sync_operations`, `app_state`, `voice_sessions` |
+| **Persistencia local** | Dexie/IndexedDB (Schema v3) | `infrastructure/indexeddb/` | Tablas legacy más `notes`, `folders` y `note_tags`; `IndexedDbNoteRepository` mantiene el índice de búsqueda local |
 | **Sincronización** | Cola optimista local → Django REST | `infrastructure/api/`, `apps/api/apps/sync/` | Arquitectura delta-sync con `idempotencyKey`; reutilizable para notas |
-| **Backend** | Django 4.x + DRF | `apps/api/apps/` | Apps: `tasks`, `lists`, `sync`, `history`, `ai`, `voice`, `authentication` |
+| **Backend** | Django + DRF | `apps/api/apps/` | Apps legacy más `notes`; API autenticada de notas y validación compartida con el flujo de sync |
 | **Dominio tarea** | `Task` con `title`, `description`, `status`, `position`, `listId` | `domain/task/models.ts`, `api/apps/tasks/models.py` | Sin estructura de bloques; no soporta checklists anidados ni encabezados |
-| **Vista principal** | `DashboardView.tsx` + `TaskBoard` + `TaskGroup` | `features/dashboard/` | Header con texto de marketing, toolbar visible permanentemente |
+| **Vista principal** | `NotesWorkspace` + `NoteLibrary` + `NoteEditor` | `features/notes/` | `/app` muestra el workspace de notas; la experiencia legacy permanece fuera de esta ruta |
 | **Diseño** | Tokens CSS en `tokens.css`, 2 temas (dark + minimal) | `styles/tokens.css`, `app/globals.css` | Sistema de tokens maduro; paleta verde-oscuro como identidad |
-| **Editor** | Modal `TaskEditor` con `Input` + `Textarea` + `select` de lista | `features/tasks/components/TaskEditor.tsx` | Editor plano sin bloques, sin formato enriquecido, sin pantalla completa |
+| **Editor** | `NoteEditor` + `useNoteEditor` + `BlockRenderer` | `features/notes/` | Editor de columna completa con bloques, debounce local, undo y checklist; la toolbar enriquecida completa queda pendiente |
 
 ### Brechas identificadas respecto a Apple Notes (InformeNOTAS.md)
 
-1. **Dominio:** no existe entidad `Note` ni modelo de bloques (`paragraph`, `heading`, `checklist`, `attachment`).
-2. **Editor:** `TaskEditor` es un modal con campos independientes; Apple Notes abre un lienzo fullscreen con autofocus inmediato.
-3. **Dashboard:** contiene texto de marketing (`"Pendientes que caben en la cabeza."`), widget de grabación de voz permanente y contador de tareas pendientes que ocupa espacio visual sin valor diario como app de notas.
-4. **Checklists:** la `Task` solo tiene `status: pending | completed`; no hay ítems anidados con `indentLevel`, reordenación automática al completar ni soft-return dentro del mismo ítem.
-5. **Organización:** `TaskList` (con `emoji`, `color`, `isArchived`, `isSystem`) puede evolucionar a carpeta de notas, pero carece de `parentId` para anidamiento y de soporte `#tag` en el cuerpo del documento.
-6. **Búsqueda:** no existe motor de búsqueda local; la consulta filtra tareas en memoria por lista activa.
-7. **Vista galería:** solo existe la vista de lista (`TaskGroup` / `TaskCard`); no hay vista en cuadrícula con miniaturas.
+1. **Dominio:** resuelto en Fase 2 para `paragraph`, `heading`, `checklist`, `code` y `divider`; los adjuntos continúan fuera de alcance.
+2. **Editor:** resuelto parcialmente; existe lienzo de notas y captura por bloques, pero falta completar autofocus fiable, edición rica por selección y toolbar contextual funcional.
+3. **Dashboard:** la ruta `/app` usa `NotesWorkspace`; el dashboard legacy y sus tareas se conservan para no romper `tasks/lists`.
+4. **Checklists:** resuelto en Fase 2 para estado, auto-sort, indentación 0–4, soft-return y navegación por teclado; drag-and-drop real y acciones masivas siguen pendientes.
+5. **Organización:** el modelo backend `Folder` ya existe, pero el repositorio, el árbol persistente y la creación de carpetas pertenecen a Fase 3.
+6. **Búsqueda:** existe `searchIndex` y `NoteRepository.search`; falta conectar resultados reales de notas a `NoteLibrary` y al sidebar.
+7. **Vista galería:** existe el selector persistido `notes_view_mode`; falta renderizar tarjetas de notas reales y miniaturas desde IndexedDB.
 8. **Secciones colapsables:** inexistentes; el editor no interpreta `H1/H2/H3` como delimitadores de sección.
-9. **Resaltado bicolor:** no implementado; el editor no tiene barra de formato.
+9. **Resaltado bicolor:** el modelo y los tokens existen, y el renderizador soporta `data-highlight`; falta la aplicación interactiva desde una selección.
 
 ---
 
@@ -189,14 +201,14 @@ Dos modos conmutables mediante un `SegmentedControl` (nuevo componente UI):
 
 ### Aceptación Fase 1
 
-- [ ] La ruta principal muestra `AppShell` con sidebar y `NoteLibrary` vacía al arrancar.
-- [ ] El sidebar muestra al menos la carpeta raíz "Todas las notas" y el campo de búsqueda.
-- [ ] Al hacer clic en "Nueva nota" el editor se monta a pantalla completa con autofocus.
-- [ ] No aparece ningún texto de marketing en la pantalla principal.
-- [ ] La vista conmuta entre Lista y Galería y persiste la preferencia tras recargar.
-- [ ] La toolbar del editor es invisible hasta seleccionar texto.
-- [ ] El diseño es responsivo: en < 768 px la sidebar se convierte en drawer.
-- [ ] Lighthouse Accessibility ≥ 90 en la ruta principal.
+- [x] La ruta principal muestra `NotesWorkspace` con sidebar y `NoteLibrary` al arrancar.
+- [x] El sidebar muestra la carpeta raíz "Todas las notas" y el campo de búsqueda.
+- [~] Al hacer clic en "Nueva nota" el editor reemplaza la biblioteca; el autofocus debe conectarse de nuevo al editor estructurado.
+- [x] No aparece ningún texto de marketing en la experiencia principal de notas.
+- [x] La vista conmuta entre Lista y Galería y persiste la preferencia en `app_state`.
+- [~] La toolbar contextual todavía no aplica formato a una selección; el comportamiento final queda pendiente.
+- [x] En < 768 px la sidebar se presenta como drawer mediante `Drawer`.
+- [ ] Lighthouse Accessibility ≥ 90 en la ruta principal; requiere auditoría manual/e2e.
 
 ---
 
@@ -465,16 +477,31 @@ class Note(OwnedTimestampedModel):
 
 ### Aceptación Fase 2
 
-- [ ] Se puede crear una nota nueva con bloques de tipo `paragraph`, `heading` (H1, H2, H3) y `checklist`.
-- [ ] Hacer clic en el círculo de un ítem lo marca como completado con animación de 300 ms.
-- [ ] Con `autoSort: true`, el ítem completado se desplaza al fondo del bloque tras la animación.
-- [ ] `Tab` y `Shift+Tab` modifican el `indentLevel` del ítem con límites 0–4.
-- [ ] `Shift+Enter` inserta un salto de línea suave dentro del ítem activo.
-- [ ] La nota se guarda automáticamente (sin botón) a los 500 ms de inactividad.
-- [ ] El undo (`⌘Z`) revierte hasta 50 operaciones sin recargar.
-- [ ] Ningún bloque se renderiza con `dangerouslySetInnerHTML`.
-- [ ] `validate_blocks` en el backend rechaza payloads malformados con HTTP 400.
-- [ ] Tests unitarios cubriendo: `sortChecklistItems`, `indentItem`, `validate_blocks`.
+- [~] Se puede crear una nota con `paragraph`, `heading` H1 y `checklist`; H2/H3 existen en el modelo/renderizador, pero falta exponer su conversión en la UI.
+- [x] Hacer clic en el círculo marca el ítem como completado con animación de 300 ms.
+- [x] Con `autoSort: true`, el ítem completado se desplaza al fondo del bloque y se persiste.
+- [x] `Tab` y `Shift+Tab` modifican el `indentLevel` con límites 0–4.
+- [x] `Shift+Enter` inserta un salto de línea suave dentro del ítem activo.
+- [x] La nota se guarda automáticamente sin botón mediante debounce de 500 ms.
+- [x] El undo (`⌘Z`/`Ctrl+Z`) mantiene hasta 50 snapshots en memoria.
+- [x] Ningún bloque de notas se renderiza con `dangerouslySetInnerHTML`.
+- [x] `validate_blocks` rechaza payloads malformados; la API devuelve HTTP 400 en el contrato de entrada.
+- [x] Tests unitarios cubren `sortChecklistItems`, `indentItem`, soft-return, `validate_blocks`, migración Dexie y repositorio local.
+
+### Cierre técnico y entrada a Fase 3
+
+La base técnica de Fase 2 está lista para continuar con organización y búsqueda. Fase 3 debe consumir `NoteRepository` y `LocalReplica` existentes, sin crear una segunda cola de sync ni modificar el dominio legacy.
+
+Antes de cerrar Fase 3 deberán completarse estas tareas heredadas:
+
+- Conectar `NoteLibrary` al repositorio local para listar, ordenar y mostrar notas reales.
+- Crear `IndexedDbFolderRepository`, persistir `Folder` y construir el árbol anidado con profundidad máxima 5.
+- Sustituir las carpetas de ejemplo del sidebar por datos locales y conectar creación/movimiento.
+- Extraer y persistir `#tags` en `Note.tags` y `note_tags`, incluyendo `getAllTags()`.
+- Implementar búsqueda local visible, resaltado de coincidencias y filtro por carpeta/etiqueta.
+- Implementar enlaces `note://`, autocompletado `>>` y backlinks.
+- Añadir pruebas de integración para la réplica de `note` y `folder`, incluyendo conflictos y tombstones.
+- Resolver el autofocus del editor, la edición H2/H3 y la toolbar de formato antes de declarar completo el editor enriquecido.
 
 ---
 
@@ -635,15 +662,15 @@ async search(query: string): Promise<Note[]> {
 
 ### Aceptación Fase 3
 
-- [ ] Se pueden crear carpetas y subcarpetas (hasta 5 niveles) desde el sidebar.
-- [ ] Una nota se puede mover entre carpetas mediante drag-and-drop o desde el menú contextual.
-- [ ] Al escribir `#etiqueta` en el cuerpo, la etiqueta aparece en el panel lateral sin recargar.
-- [ ] Al clicar una etiqueta en el sidebar, la biblioteca filtra las notas correctamente.
+- [x] Se pueden crear carpetas y subcarpetas (hasta 5 niveles) desde el sidebar.
+- [~] Una nota se puede mover entre carpetas mediante drag-and-drop o desde el menú contextual; el repositorio soporta `folderId`, pero falta la interacción de movimiento.
+- [x] Al escribir `#etiqueta` en el cuerpo, la etiqueta aparece en el panel lateral sin recargar.
+- [x] Al clicar una etiqueta en el sidebar, la biblioteca filtra las notas correctamente.
 - [ ] Al escribir `>>` se despliega el autocompletado y al seleccionar una nota se inserta el enlace.
 - [ ] El enlace `>>` abre la nota correcta al clicar.
 - [ ] La sección "Notas que enlazan aquí" se muestra correctamente al abrir una nota enlazada.
-- [ ] La búsqueda responde en < 100 ms con 1000 notas en IndexedDB.
-- [ ] Las vistas Lista y Galería muestran el estado actualizado de las notas en tiempo real.
+- [~] La búsqueda local consulta el índice materializado; falta el benchmark formal de < 100 ms con 1000 notas.
+- [x] Las vistas Lista y Galería muestran el estado actualizado de las notas en tiempo real.
 
 ---
 

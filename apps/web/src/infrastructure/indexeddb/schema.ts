@@ -44,7 +44,9 @@ export type LocalFolderRecord = {
   id: string;
   parentId: string | null;
   name: string;
+  emoji: string;
   position: number;
+  createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
 };
@@ -211,6 +213,20 @@ export function assertLocalNoteRecord(value: unknown): asserts value is LocalNot
     || (value.syncClientVersion !== undefined && !isNonNegativeInteger(value.syncClientVersion))
     || (value.syncOperationId !== undefined && value.syncOperationId !== null && !isUuid(value.syncOperationId))) {
     throw new LocalStorageValidationError("El registro local de nota no es válido.");
+  }
+}
+
+export function assertLocalFolderRecord(value: unknown): asserts value is LocalFolderRecord {
+  if (!isObject(value)
+    || !isUuid(value.id)
+    || (value.parentId !== null && !isUuid(value.parentId))
+    || typeof value.name !== "string"
+    || typeof value.emoji !== "string"
+    || !isNonNegativeInteger(value.position)
+    || typeof value.createdAt !== "string"
+    || typeof value.updatedAt !== "string"
+    || (value.deletedAt !== null && typeof value.deletedAt !== "string")) {
+    throw new LocalStorageValidationError("El registro local de carpeta no es válido.");
   }
 }
 

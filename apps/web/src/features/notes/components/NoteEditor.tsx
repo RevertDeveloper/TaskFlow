@@ -7,11 +7,11 @@ import type { BlockNode, ChecklistItem } from "@/domain/note/models";
 import { useNoteEditor } from "../application/useNoteEditor";
 import { BlockRenderer } from "./BlockRenderer";
 
-type NoteEditorProps = { onBack: () => void };
+type NoteEditorProps = { noteId?: string; onBack: () => void };
 
-export function NoteEditor({ onBack }: NoteEditorProps) {
+export function NoteEditor({ noteId, onBack }: NoteEditorProps) {
   const titleRef = useRef<HTMLInputElement>(null);
-  const { blocks, loading, applyBlockOp, handleKeyDown, undo } = useNoteEditor();
+  const { blocks, loading, applyBlockOp, handleKeyDown, undo } = useNoteEditor(noteId);
 
   function replaceBlock(block: BlockNode) { applyBlockOp({ type: "replace", block }); }
   function changeText(blockId: string, text: string) {

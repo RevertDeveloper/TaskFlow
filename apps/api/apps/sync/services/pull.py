@@ -6,7 +6,7 @@ from django.db.models import Q
 
 from apps.common.middleware import current_request_id
 from apps.lists.models import List
-from apps.notes.models import Note
+from apps.notes.models import Folder, Note
 from apps.tasks.models import Task
 
 from .common import ENTITY_ORDER, decode_cursor, encode_cursor, serialize_change
@@ -19,6 +19,7 @@ def pull_changes(external_user_id: int, *, cursor: str | None, limit: int) -> di
     list_queryset = _changes_for_model(List, external_user_id, decoded, "list")
     task_queryset = _changes_for_model(Task, external_user_id, decoded, "task")
     note_queryset = _changes_for_model(Note, external_user_id, decoded, "note")
+    folder_queryset = _changes_for_model(Folder, external_user_id, decoded, "folder")
 
     changes = [
         ("list", entity)
@@ -29,6 +30,9 @@ def pull_changes(external_user_id: int, *, cursor: str | None, limit: int) -> di
     ] + [
         ("note", entity)
         for entity in note_queryset
+    ] + [
+        ("folder", entity)
+        for entity in folder_queryset
     ]
     changes.sort(key=lambda item: _change_key(item[1].updated_at, item[0], item[1].id))
     page = changes[:limit]
