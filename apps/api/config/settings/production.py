@@ -9,6 +9,8 @@ DEBUG = False
 if SECRET_KEY == "development-only-key" or len(SECRET_KEY) < 50:  # noqa: F405
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be at least 50 characters in production")
 
+ALLOWED_HOSTS = [*ALLOWED_HOSTS, "api", "localhost", "127.0.0.1"]  # noqa: F405
+
 if not ALLOWED_HOSTS:  # noqa: F405
     raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must contain at least one host")
 

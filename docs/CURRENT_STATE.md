@@ -1,15 +1,15 @@
 # Current State
 
 ## Current Phase
-Phase 16 implementation complete; production quality gate pending
+Phase 16 implementation complete; local production gate green, external signoff pending
 
 ## Current Subphase
-16.1-16.4 - Production artifacts, release workflow and operational runbooks implemented
+16.1-16.4 - Production artifacts, runtime smoke and isolated recovery drill validated
 
 ## Current Task
-Close the Phase 16 quality gate by provisioning the real Accounts service key,
-running the HTTPS staging smoke, and completing backup/restore, rollback,
-alerting and manual accessibility signoff.
+Close the remaining external Phase 16 gate with real Accounts HTTPS login/logout,
+a rollback against a previous release, connected alert delivery and manual
+accessibility signoff.
 
 ## Completed Tasks
 - TF-0001: repository inventory and repository state confirmed
@@ -120,22 +120,24 @@ alerting and manual accessibility signoff.
 - TF-1606: versioned Prometheus alert rules and activation notes
 - TF-1607: backup/restore scripts with retention, checksum and restore runbook
 - TF-0209: implementation path and smoke evidence template prepared; real staging pending
+- Local production promotion: standalone Next runtime, API, worker, PostgreSQL and Redis healthy on the documented ports
+- Anonymous private-route smoke: public TaskFlow redirects to the single Accounts login with a safe `next` URL
+- Backup/restore drill: isolated Compose project restored a checksum-verified PostgreSQL backup, migrated and returned readiness 200
 
 ## In Progress
-- Phase 16 implementation artifacts are complete; real staging, production and
-    manual QA evidence remain pending.
+- Real Accounts HTTPS login/logout/session-expiry smoke, previous-release rollback,
+    connected alert delivery and manual accessibility QA remain pending.
 
 ## Blockers
 - `ACCOUNTS_TASKFLOW_SERVICE_KEY` is not provisioned in this workspace. It must
     be rotated once in Accounts Admin and stored only in the secure staging/
     production environment.
-- The public TaskFlow proxy currently returns `502` because the external host
-    has `web` and `api` stopped; this environment cannot start the real public
-    deployment or configure its HTTPS proxy.
+- The public anonymous flow is operational; authenticated smoke still requires
+    a protected demo account and real Accounts session.
 - Real Accounts HTTPS smoke, session expiry, CSRF and shared-cookie checks are
     pending a staging domain and demo account.
-- Backup/restore and rollback drills have scripts and documentation but have
-    not been executed against a staging environment.
+- Backup/restore has passed in an isolated local Compose drill; rollback against
+    a previous release still requires staging history.
 - Alert rules are versioned; Prometheus/exporters and a test alert are not
     connected in this workspace.
 
@@ -151,17 +153,17 @@ alerting and manual accessibility signoff.
 - Keep voice review drafts separate from transcripts and audio, with a configurable TTL and idempotent confirmation.
 
 ## Last Quality Gate
-Automated checks remain green for the touched production slice: API health and
-security tests `9 passed`, metrics protection tests `8 passed`, rewrite test
-`1 passed`, API and web Docker builds pass, and production/staging Compose plus
-operational scripts validate. The Phase 16 gate remains open because public
-deployment is stopped, the real Accounts key/staging domain are unavailable,
-and restore/rollback/accessibility/alert drills are not evidenced.
+Local production checks are green: web lint/typecheck/tests/build, API suite
+`128 passed`, Django `check --deploy` with zero errors, Compose config, shell
+syntax, standalone runtime health, public anonymous redirect, and isolated
+backup/restore/readiness drill. The Phase 16 gate remains open only for the
+external Accounts session smoke, previous-release rollback, connected alerts
+and manual accessibility signoff.
 
 ## Last Commit
 Phase 15 evidence commit series completed: `0f3cff4`, `a4996e9` and `a6c04b3`.
 
 ## Next Task
-Provision the staging Accounts application key and run the protected release
-workflow on the staging runner; record real HTTPS, backup/restore, rollback,
-alert and accessibility evidence before promoting production.
+Provision or select the protected staging Accounts demo and run the release
+workflow; record real HTTPS session, rollback, alert and accessibility evidence
+before declaring Phase 16 complete.

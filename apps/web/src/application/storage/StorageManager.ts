@@ -9,6 +9,7 @@ import { taskFlowApiRepositories, type ApiRepositoryBundle } from "@/infrastruct
 import { CloudRepository } from "@/infrastructure/repositories/CloudRepository";
 import { LocalRepository } from "@/infrastructure/repositories/LocalRepository";
 import { LocalReplica } from "@/infrastructure/repositories/LocalReplica";
+import { TaskFlowDatabase } from "@/infrastructure/indexeddb/database";
 import { configuredStorageMode, type StorageMode } from "./StorageMode";
 import { SnapshotService } from "./SnapshotService";
 import type { StorageState, StorageStateListener } from "./StorageState";
@@ -22,6 +23,7 @@ export type StorageRepositoryBundle = {
 
 export type StorageManagerOptions = {
   mode?: StorageMode;
+  databaseName?: string;
   localRepository?: LocalRepository;
   apiRepositories?: ApiRepositoryBundle;
   syncTransport?: SyncTransport;
@@ -44,7 +46,9 @@ export class StorageManager {
 
   constructor(options: StorageManagerOptions = {}) {
     this.mode = options.mode ?? configuredStorageMode();
-    this.localRepository = options.localRepository ?? new LocalRepository();
+    this.localRepository = options.localRepository ?? new LocalRepository({
+      database: options.databaseName ? new TaskFlowDatabase(options.databaseName) : undefined,
+    });
     this.apiRepositories = options.apiRepositories ?? taskFlowApiRepositories;
     this.syncTransport = options.syncTransport ?? new HttpSyncTransport();
     this.snapshotService = options.snapshotService ?? new SnapshotService(
@@ -66,6 +70,10 @@ export class StorageManager {
 
   getSnapshot(): StorageState {
     return this.state;
+  }
+
+  getLocalRepository(): LocalRepository {
+    return this.localRepository;
   }
 
   subscribe(listener: StorageStateListener): () => void {

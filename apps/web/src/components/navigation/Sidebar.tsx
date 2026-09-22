@@ -1,14 +1,16 @@
 "use client";
 
-import { Cloud, HardDrive, History, LayoutDashboard, ListTodo, Settings } from "lucide-react";
+import { Cloud, HardDrive, History, Inbox, ListTodo, Settings } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { AccountControl } from "./AccountControl";
 import { useTaskWorkspace } from "@/features/tasks/application/TaskWorkspaceProvider";
 
 const navigationItems = [
-  { href: "/app/dashboard", label: "Panel", icon: LayoutDashboard },
+  { href: "/", label: "Hoy", icon: Inbox },
   { href: "/app/lists", label: "Listas", icon: ListTodo },
   { href: "/app/history", label: "Historial", icon: History },
   { href: "/app/settings", label: "Ajustes", icon: Settings },
@@ -20,8 +22,15 @@ export function Sidebar() {
 
   return (
     <aside className="app-frame__sidebar" aria-label="Navegación principal">
-      <Link className="brand-mark" href="/app/dashboard" aria-label="TaskFlow, ir al panel">
-        <span className="brand-mark__dot" aria-hidden="true" />
+      <Link className="brand-mark" href="/" aria-label="TaskFlow, ir a tus tareas">
+        <Image
+          className="brand-mark__logo"
+          src="/LogoFavicon/TaskFlow-Favicon.jpeg"
+          alt=""
+          width={56}
+          height={56}
+          priority
+        />
         <span>TaskFlow</span>
       </Link>
       <nav className="app-nav">
@@ -37,6 +46,7 @@ export function Sidebar() {
       </nav>
       <div className="app-frame__sidebar-footer">
         {storage ? <StorageIndicator storage={storage} /> : null}
+        <AccountControl />
         <p className="sidebar-note">Un lugar para lo que importa.</p>
         <ThemeSwitcher />
       </div>

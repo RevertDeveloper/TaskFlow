@@ -13,7 +13,7 @@ describe("Next production routing", () => {
 
     expect(nextConfig.skipTrailingSlashRedirect).toBe(true);
     expect(rewrites).toEqual([
-      { source: "/api/:path*", destination: "http://api:8000/api/:path*" },
+      { source: "/api/:path*", destination: "http://api:8000/api/:path*/" },
     ]);
   });
 });

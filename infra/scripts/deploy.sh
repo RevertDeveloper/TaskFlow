@@ -23,6 +23,12 @@ set +a
 : "${TASKFLOW_RELEASE:?TASKFLOW_RELEASE es obligatorio}"
 COMPOSE=(docker compose --project-name "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$ROOT_DIR/compose.production.yaml")
 
+web_config="$("${COMPOSE[@]}" config)"
+if ! grep -q 'NODE_ENV: production' <<<"$web_config" || ! grep -q 'command: node server.js' <<<"$web_config"; then
+  echo "La configuracion de release no parece de produccion: revisa compose.production.yaml" >&2
+  exit 1
+fi
+
 "${COMPOSE[@]}" pull web api worker
 "${COMPOSE[@]}" up -d --wait db redis
 "${COMPOSE[@]}" run --rm --no-deps api python manage.py check --deploy

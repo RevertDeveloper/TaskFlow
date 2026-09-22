@@ -14,7 +14,7 @@ const securityHeaders = [
       "manifest-src 'self'",
       "media-src 'self' blob:",
       "object-src 'none'",
-      "script-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
       "style-src 'self' 'unsafe-inline'",
       "worker-src 'self' blob:",
     ].join("; "),
@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
   async rewrites() {
-    return [{ source: "/api/:path*", destination: `${apiInternalUrl}/api/:path*` }];
+    return [{ source: "/api/:path*", destination: `${apiInternalUrl}/api/:path*/` }];
   },
   env: {
     NEXT_PUBLIC_STORAGE_MODE: process.env.STORAGE_MODE ?? "cloud",

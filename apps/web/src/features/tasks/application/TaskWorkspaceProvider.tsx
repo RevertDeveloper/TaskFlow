@@ -10,6 +10,7 @@ import type { ListRepository } from "@/domain/list/ports";
 import type { Task, TaskDraft, TaskPatch } from "@/domain/task/models";
 import type { TaskRepository } from "@/domain/task/ports";
 import { defaultStorageManager, type StorageManager } from "@/application/storage/StorageManager";
+import type { ProfileStorageManager } from "@/application/storage/ProfileStorageManager";
 import type { StorageState } from "@/application/storage/StorageState";
 
 export type WorkspaceRepositories = {
@@ -37,6 +38,7 @@ type TaskWorkspaceContextValue = {
   createList: (input: ListDraft) => Promise<TaskList>;
   updateList: (id: string, input: ListPatch) => Promise<TaskList>;
   deleteList: (id: string) => Promise<void>;
+  storageManager: StorageManager | ProfileStorageManager | null;
 };
 
 const TaskWorkspaceContext = createContext<TaskWorkspaceContextValue | null>(null);
@@ -48,7 +50,7 @@ export function TaskWorkspaceProvider({
 }: {
   children: ReactNode;
   repositories?: WorkspaceRepositories;
-  storageManager?: StorageManager;
+  storageManager?: StorageManager | ProfileStorageManager;
 }) {
   const manager = storageManager ?? (repositories ? null : defaultStorageManager);
   const activeRepositories = manager?.repositories ?? repositories ?? defaultStorageManager.repositories;
@@ -219,6 +221,7 @@ export function TaskWorkspaceProvider({
     createList,
     updateList,
     deleteList,
+    storageManager: manager,
   };
 
   return <TaskWorkspaceContext.Provider value={value}>{children}</TaskWorkspaceContext.Provider>;

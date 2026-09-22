@@ -5,6 +5,7 @@ import type {
   VerifyEmailInput,
 } from "@/domain/auth/models";
 
+const accountsOrigin = "https://cuenta.carlosrevert.es";
 const csrfCookieName = "taskflowcsrftoken";
 
 export class AccountsApiError extends Error {
@@ -51,6 +52,15 @@ export async function logout(): Promise<Response> {
   return accountsMutation("/api/accounts/logout/", {});
 }
 
+export function accountsLoginUrl(next?: string): string {
+  const loginUrl = new URL("/login/", accountsOrigin);
+  loginUrl.searchParams.set(
+    "next",
+    `https://taskflow.carlosrevert.es${safeNextPath(next)}`,
+  );
+  return loginUrl.toString();
+}
+
 export function safeNextPath(next: string | null | undefined): string {
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
     return "/";
@@ -91,7 +101,7 @@ function redirectToNext(next: string | undefined): void {
 }
 
 async function getCsrfToken(): Promise<string> {
-  const response = await fetch("/api/accounts/csrf/", {
+  const response = await fetch("/api/v1/auth/csrf/", {
     credentials: "include",
     cache: "no-store",
   });

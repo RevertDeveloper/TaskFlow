@@ -97,13 +97,29 @@ textarea:focus-visible {
   letter-spacing: 0.04em;
 }
 
-.brand-mark__dot {
-  display: inline-block;
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: 0 0 0 0.3rem color-mix(in srgb, var(--color-accent) 14%, transparent);
+.brand-mark__logo,
+.auth-message__logo {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: #fff;
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.16);
+}
+
+.brand-mark__logo {
+  width: 2.35rem;
+  height: 2.35rem;
+  padding: 0.12rem;
+  border-radius: 0.7rem;
+}
+
+.auth-message__logo {
+  width: 5rem;
+  height: 5rem;
+  margin-block-end: var(--space-5);
+  padding: 0.25rem;
+  border-radius: 1.25rem;
 }
 
 .app-nav {
@@ -127,6 +143,59 @@ textarea:focus-visible {
   display: grid;
   gap: var(--space-4);
   margin-block-start: auto;
+}
+
+.account-control {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.55rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+  color: var(--color-ink);
+  font-size: 0.8rem;
+}
+
+.account-control--login {
+  justify-content: center;
+  color: var(--color-accent-strong);
+  font-weight: 700;
+}
+
+.account-control__identity {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.1rem;
+}
+
+.account-control__identity strong,
+.account-control__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-control__identity small {
+  color: var(--color-ink-muted);
+  font-size: 0.68rem;
+}
+
+.account-control__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+}
+
+.mobile-nav-wrap {
+  display: none;
 }
 
 .storage-indicator {
@@ -322,6 +391,16 @@ textarea:focus-visible {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+}
+
+.voice-recorder--locked {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.voice-recorder--locked p {
+  margin: 0.2rem 0 0;
+  color: var(--color-ink-muted);
 }
 
 .voice-recorder__status,
@@ -1257,6 +1336,7 @@ textarea:focus-visible {
 }
 
 .auth-form button,
+.auth-form__link,
 .error-page button {
   min-height: 2.9rem;
   margin-block-start: var(--space-3);
@@ -1271,6 +1351,7 @@ textarea:focus-visible {
 }
 
 .auth-form button:hover,
+.auth-form__link:hover,
 .error-page button:hover {
   background: var(--color-accent-strong);
   transform: translateY(-0.1rem);
@@ -1298,10 +1379,6 @@ textarea:focus-visible {
 .auth-message {
   align-items: start;
   justify-items: start;
-}
-
-.auth-message .brand-mark__dot {
-  margin-block-end: var(--space-5);
 }
 
 .error-page {
@@ -1614,16 +1691,34 @@ textarea:focus-visible {
   }
 
   .mobile-nav {
-    position: fixed;
-    inset: auto 0 0;
+    position: static;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0.25rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  .mobile-nav-wrap {
+    position: fixed;
+    inset: auto 0 0;
+    display: grid;
+    gap: 0.35rem;
     padding: 0.5rem 0.75rem;
     border-block-start: 1px solid var(--color-border);
     background: var(--color-surface);
     backdrop-filter: blur(20px);
     z-index: var(--z-nav);
+  }
+
+  .mobile-nav-wrap .account-control {
+    min-width: 0;
+  }
+
+  .mobile-nav-wrap .account-control__button {
+    white-space: nowrap;
   }
 
   .mobile-nav a {

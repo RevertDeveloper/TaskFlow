@@ -357,15 +357,13 @@ async function installMediaRecorder(page: Page) {
   });
 }
 
-test("login delegado, CRUD de tarea y entrada en historial", async ({ page }) => {
-  await installApiFixtures(page, false);
+test("acceso delegado a Accounts, CRUD de tarea y entrada en historial", async ({ page }) => {
+  await installApiFixtures(page);
   await page.goto("/login");
-  await page.waitForLoadState("networkidle");
-  await page.getByLabel("Email o usuario").fill("demo");
-  await page.getByLabel("Contraseña").fill("fixture-password");
-  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page).toHaveURL(/^https:\/\/cuenta\.carlosrevert\.es\/login\/\?next=/);
+  await page.goto("/");
 
-  await expect(page).toHaveURL(/\/app\/dashboard$/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
   await page.getByLabel("Nueva tarea").fill("Preparar demo");
   await page.getByLabel("Nueva tarea").press("Enter");
@@ -378,10 +376,28 @@ test("login delegado, CRUD de tarea y entrada en historial", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Preparar demo", exact: true })).toHaveCount(2);
 });
 
+test("el dashboard antiguo lleva al espacio de trabajo raíz", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/app/dashboard");
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
+});
+
+test("un visitante puede usar el workspace y ve login para la IA", async ({ page }) => {
+  await installApiFixtures(page, false);
+
+  await page.goto("/");
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Iniciar sesión" }).first()).toBeVisible();
+});
+
 test("voz pasa por revisión antes de crear la tarea", async ({ page }) => {
   await installApiFixtures(page);
   await installMediaRecorder(page);
-  await page.goto("/app/dashboard");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
 
   await page.getByRole("button", { name: "Grabar" }).click();
@@ -399,7 +415,7 @@ test("manifest y service worker mantienen el app shell fuera de la API", async (
   expect(manifestResponse.ok()).toBeTruthy();
   const manifest = await manifestResponse.json();
   expect(manifest.display).toBe("standalone");
-  expect(manifest.start_url).toBe("/app/dashboard");
+  expect(manifest.start_url).toBe("/");
 
   const serviceWorkerResponse = await page.request.get("/sw.js");
   expect(serviceWorkerResponse.ok()).toBeTruthy();
@@ -410,7 +426,7 @@ test("manifest y service worker mantienen el app shell fuera de la API", async (
 
 test("reset cloud exige confirmación fuerte y no se mezcla con Accounts", async ({ page }) => {
   await installApiFixtures(page);
-  await page.goto("/app/dashboard");
+  await page.goto("/");
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
   await page.evaluate(async () => {
@@ -443,7 +459,7 @@ test("reset cloud exige confirmación fuerte y no se mezcla con Accounts", async
 test("navegación móvil expone las vistas principales", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "Este caso pertenece al proyecto móvil.");
   await installApiFixtures(page);
-  await page.goto("/app/dashboard");
+  await page.goto("/");
   const mobileNavigation = page.getByRole("navigation", { name: "Navegación móvil" });
   await expect(mobileNavigation).toBeVisible();
   await mobileNavigation.getByRole("link", { name: "Listas" }).click();
@@ -463,10 +479,12 @@ test.describe("Accounts staging real", () => {
 
   test("inicia sesión con Accounts y llega al espacio privado", async ({ page }) => {
     await page.goto("/login");
+    await page.getByRole("link", { name: "Continuar en Carlos Revert Cuenta" }).click();
+    await expect(page).toHaveURL(/cuenta\.carlosrevert\.es\/login\//);
     await page.getByLabel("Email o usuario").fill(stagingUsername!);
     await page.getByLabel("Contraseña").fill(stagingPassword!);
     await page.getByRole("button", { name: "Entrar" }).click();
-    await expect(page).toHaveURL(/\/app\/dashboard$/);
+    await expect(page).toHaveURL(/\/$/);
     await expect(page.getByRole("heading", { name: "Pendientes que caben en la cabeza." })).toBeVisible();
   });
 });

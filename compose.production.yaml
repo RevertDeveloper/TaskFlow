@@ -13,6 +13,7 @@ services:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
       API_INTERNAL_URL: http://api:8000
+      TASKFLOW_PUBLIC_URL: ${TASKFLOW_PUBLIC_URL:?TASKFLOW_PUBLIC_URL is required}
     ports:
       - "${WEB_PORT:-10700}:3000"
     depends_on:
@@ -85,6 +86,8 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.production
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?DJANGO_SECRET_KEY is required}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?DJANGO_ALLOWED_HOSTS is required}
+      TASKFLOW_PUBLIC_URL: ${TASKFLOW_PUBLIC_URL:?TASKFLOW_PUBLIC_URL is required}
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       REDIS_URL: redis://redis:6379/0
       ACCOUNTS_BASE_URL: ${ACCOUNTS_BASE_URL:?ACCOUNTS_BASE_URL is required}
@@ -99,6 +102,7 @@ services:
       AI_MAX_LLM_RESPONSE_CHARS: ${AI_MAX_LLM_RESPONSE_CHARS:-20000}
       AI_AUDIO_TEMP_DIR: /app/var/audio
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      TASKFLOW_METRICS_TOKEN: ${TASKFLOW_METRICS_TOKEN:?TASKFLOW_METRICS_TOKEN is required}
     volumes:
       - taskflow_production_audio:/app/var/audio
     depends_on:

@@ -4,16 +4,16 @@ import { Cloud, HardDrive, LogOut, RefreshCw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { defaultStorageManager } from "@/application/storage/StorageManager";
 import type { StorageMode } from "@/application/storage/StorageMode";
+import { useAuth } from "@/features/auth/components/AuthBoundary";
 import { useTaskWorkspace } from "@/features/tasks/application/TaskWorkspaceProvider";
-import { logout } from "@/infrastructure/accounts/client";
 
 type BusyAction = "mode" | "sync" | "local-reset" | "cloud-reset" | "logout" | null;
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { storage, refresh } = useTaskWorkspace();
+  const { storage, refresh, storageManager } = useTaskWorkspace();
+  const { state, logout } = useAuth();
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,10 @@ export default function SettingsPage() {
     setFeedback(null);
     setError(null);
     try {
-      await defaultStorageManager.setMode(mode);
+      if (!storageManager) {
+        throw new Error("El almacenamiento de TaskFlow no está disponible.");
+      }
+      await storageManager.setMode(mode);
       await refresh();
       setFeedback(`Modo ${mode === "cloud" ? "Cloud" : "Device"} activado.`);
     } catch (actionError) {
@@ -42,7 +45,10 @@ export default function SettingsPage() {
     setFeedback(null);
     setError(null);
     try {
-      const result = await defaultStorageManager.syncNow();
+      if (!storageManager) {
+        throw new Error("El almacenamiento de TaskFlow no está disponible.");
+      }
+      const result = await storageManager.syncNow();
       await refresh();
       setFeedback(result.status === "error" ? "La sincronización necesita atención." : "Sincronización completada.");
       if (result.error) {
@@ -63,7 +69,10 @@ export default function SettingsPage() {
     setFeedback(null);
     setError(null);
     try {
-      await defaultStorageManager.resetLocal();
+      if (!storageManager) {
+        throw new Error("El almacenamiento de TaskFlow no está disponible.");
+      }
+      await storageManager.resetLocal();
       await refresh();
       setFeedback("Los datos locales se han eliminado.");
     } catch (actionError) {
@@ -82,7 +91,10 @@ export default function SettingsPage() {
     setFeedback(null);
     setError(null);
     try {
-      await defaultStorageManager.resetCloud(confirmation);
+      if (!storageManager) {
+        throw new Error("El almacenamiento de TaskFlow no está disponible.");
+      }
+      await storageManager.resetCloud(confirmation);
       await refresh();
       setFeedback("Los datos Cloud se han eliminado.");
     } catch (actionError) {
@@ -98,7 +110,7 @@ export default function SettingsPage() {
     setError(null);
     try {
       await logout();
-      router.replace("/login");
+      router.replace("/");
     } catch (actionError) {
       setBusyAction(null);
       setError(errorMessage(actionError));
@@ -157,7 +169,7 @@ export default function SettingsPage() {
             <button className="ui-button ui-button--secondary" type="button" disabled={busyAction !== null} onClick={() => void signOut()}>
               <LogOut size={16} aria-hidden="true" /> Cerrar sesión
             </button>
-            {currentMode === "cloud" && (
+            {currentMode === "cloud" && state.status === "authenticated" && (
               <button className="ui-button ui-button--danger" type="button" disabled={busyAction !== null} onClick={() => void resetCloud()}>
                 <Trash2 size={16} aria-hidden="true" /> Borrar Cloud
               </button>

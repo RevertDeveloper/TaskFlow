@@ -14,6 +14,8 @@ import { TaskBoard } from "@/features/tasks/components/TaskBoard";
 import { TaskEditor } from "@/features/tasks/components/TaskEditor";
 import type { Task } from "@/domain/task/models";
 import { useUiStore } from "@/stores/uiStore";
+import { accountsLoginUrl } from "@/infrastructure/accounts/client";
+import { useAuth } from "@/features/auth/components/AuthBoundary";
 import type { VoiceReviewTask, VoiceReviewDraft, VoiceSessionOutput } from "@/infrastructure/api/generated/types";
 import { api } from "@/infrastructure/api/httpClient";
 import { VoiceRecorder } from "@/features/voice/components/VoiceRecorder";
@@ -21,6 +23,7 @@ import { VoiceReview } from "@/features/voice/components/VoiceReview";
 
 export function DashboardView() {
   const { lists, tasks, loading, error, refresh, createTask, updateTask, completeTask, reopenTask, deleteTask } = useTaskWorkspace();
+  const { state } = useAuth();
   const activeListId = useUiStore((state) => state.activeListId);
   const setActiveListId = useUiStore((state) => state.setActiveListId);
   const editingTaskId = useUiStore((state) => state.editingTaskId);
@@ -44,6 +47,7 @@ export function DashboardView() {
   ];
   const selectedListId = activeListId ?? "all";
   const editingTask = editingTaskId ? tasks.find((task) => task.id === editingTaskId) ?? null : null;
+  const canUseVoice = state.status === "authenticated";
 
   function openNewTask() {
     setEditingTaskId(null);
@@ -124,7 +128,17 @@ export function DashboardView() {
 
       <QuickTaskInput defaultListId={activeListId ?? inbox?.id ?? null} onCreate={createTask} />
 
-      <VoiceRecorder onAudioReady={(audio, fileName) => void handleAudioReady(audio, fileName)} disabled={voiceLoading} />
+      {canUseVoice ? (
+        <VoiceRecorder onAudioReady={(audio, fileName) => void handleAudioReady(audio, fileName)} disabled={voiceLoading} />
+      ) : (
+        <div className="voice-recorder voice-recorder--locked">
+          <div>
+            <p className="empty-panel__label">Captura por voz</p>
+            <p>Inicia sesión para convertir una grabación en tareas con IA.</p>
+          </div>
+          <a className="ui-button ui-button--secondary" href={accountsLoginUrl(currentPath())}>Iniciar sesión</a>
+        </div>
+      )}
       {voiceLoading && voiceSession ? (
         <div className="voice-processing" role="status" aria-live="polite">
           <span className="ui-spinner" aria-hidden="true" />
@@ -224,6 +238,10 @@ export function DashboardView() {
       </Modal>
     </section>
   );
+}
+
+function currentPath(): string {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
 async function pollVoiceReview(

@@ -3,7 +3,7 @@
 ## Manifest
 
 Next.js genera `/manifest.webmanifest` desde `apps/web/src/app/manifest.ts`.
-Incluye nombre, nombre corto, ruta de inicio `/app/dashboard`, scope raiz,
+Incluye nombre, nombre corto, ruta de inicio `/`, scope raiz,
 display `standalone`, colores de marca e iconos SVG en tamanos 192 y 512.
 
 ## Service worker

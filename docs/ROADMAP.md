@@ -1729,7 +1729,7 @@ lint -> typecheck -> unit -> integration -> E2E -> schema/migration check
 
 ### 16.4 - Backups and DR
 
-**TF-1607 [P0]** PostgreSQL backup y restore drill. **[x] scripts; drill pendiente**
+**TF-1607 [P0]** PostgreSQL backup y restore drill. **[x] scripts y drill local aislado**
 
 - Retencion minima de 7 dias, cifrado, acceso restringido, prueba de restauracion y RPO/RTO de 24 h/4 h antes de produccion.
 - IndexedDB no sustituye el backup cloud.
@@ -1738,9 +1738,9 @@ lint -> typecheck -> unit -> integration -> E2E -> schema/migration check
 
 - [ ] Staging replica dominios/cookies/CSRF reales.
 - [ ] TF-0209 login/logout/expired session smoke verde.
-- [ ] `check --deploy`, migrations y Docker build pasan.
-- [ ] Smoke post-deploy verde.
-- [ ] Backup restaurado con evidencia.
+- [x] `check --deploy`, migrations y Docker build pasan localmente.
+- [x] Smoke post-deploy anónimo verde en HTTPS público.
+- [x] Backup restaurado con evidencia en Compose aislado.
 - [ ] Rollback ensayado.
 - [ ] Alertas activas.
 

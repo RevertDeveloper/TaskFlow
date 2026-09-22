@@ -1,13 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Image from "next/image";
 
 import { MobileNav } from "@/components/navigation/MobileNav";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { PwaRegistration } from "@/components/pwa/PwaRegistration";
-import { defaultStorageManager } from "@/application/storage/StorageManager";
+import { ProfileStorageManager } from "@/application/storage/ProfileStorageManager";
 import { AuthBoundary } from "@/features/auth/components/AuthBoundary";
 import { TaskWorkspaceProvider } from "@/features/tasks/application/TaskWorkspaceProvider";
+import { useAuth } from "@/features/auth/components/AuthBoundary";
+import { useEffect, useState } from "react";
 
 type AppShellProps = {
   children: ReactNode;
@@ -16,32 +19,48 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   return (
     <AuthBoundary
-      anonymous={<AuthMessage title="Tu espacio te espera." detail="Inicia sesión para ver tus tareas." />}
-      emailPending={<AuthMessage title="Confirma tu email." detail="Necesitas verificar tu cuenta para continuar." />}
-      blocked={<AuthMessage title="Acceso no disponible." detail="Tu cuenta no puede acceder a TaskFlow." />}
-      unavailable={<AuthMessage title="No podemos validar tu sesión." detail="Comprueba la conexión y vuelve a intentarlo." />}
       loading={<AuthMessage title="Preparando tu espacio…" detail="Validando la sesión." />}
     >
-      <TaskWorkspaceProvider storageManager={defaultStorageManager}>
-        <div className="app-frame">
-          <Sidebar />
-          <main className="app-frame__main">{children}</main>
-          <MobileNav />
-          <PwaRegistration />
-        </div>
-      </TaskWorkspaceProvider>
+      <AuthenticatedAppShell>{children}</AuthenticatedAppShell>
     </AuthBoundary>
   );
 }
 
-function AuthMessage({ title, detail }: { title: string; detail: string }) {
+function AuthenticatedAppShell({ children }: AppShellProps) {
+  const [profileStorage] = useState(() => new ProfileStorageManager());
+  const { user } = useAuth();
+
+  useEffect(() => {
+    void profileStorage.setUser(user).catch(() => undefined);
+  }, [profileStorage, user]);
+
+  return (
+    <TaskWorkspaceProvider storageManager={profileStorage}>
+      <div className="app-frame">
+        <Sidebar />
+        <main className="app-frame__main">{children}</main>
+        <MobileNav />
+        <PwaRegistration />
+      </div>
+    </TaskWorkspaceProvider>
+  );
+}
+
+function AuthMessage({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) {
   return (
     <main className="auth-message" aria-live="polite">
-      <span className="brand-mark__dot" aria-hidden="true" />
+      <Image
+        className="auth-message__logo"
+        src="/LogoFavicon/TaskFlow-Favicon.jpeg"
+        alt="TaskFlow"
+        width={112}
+        height={112}
+        priority
+      />
       <p className="eyebrow">TaskFlow</p>
       <h1>{title}</h1>
       <p>{detail}</p>
-      <a className="text-link" href="/login">Ir al acceso</a>
+      {action}
     </main>
   );
 }
