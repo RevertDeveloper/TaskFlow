@@ -1,7 +1,7 @@
 "use client";
 
 import { FileText, Folder, Plus, Search, Tag } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Folder as NoteFolder } from "@/domain/folder/models";
 import { IndexedDbFolderRepository } from "@/infrastructure/indexeddb/IndexedDbFolderRepository";
@@ -24,6 +24,7 @@ const noteRepository = new IndexedDbNoteRepository();
 export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose, activeFolderId, activeTag, onFolderChange, onTagChange }: NoteSidebarProps) {
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const load = () => void Promise.all([folderRepository.findAll(), noteRepository.findAll()]).then(([loadedFolders, notes]) => {
@@ -32,6 +33,18 @@ export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose
     load();
     window.addEventListener("taskflow:local-change", load);
     return () => window.removeEventListener("taskflow:local-change", load);
+  }, []);
+
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
   }, []);
 
   function selectFolder(folderId: string) {
@@ -54,7 +67,7 @@ export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose
       <label className="notes-search">
         <Search size={17} aria-hidden="true" />
         <span className="sr-only">Buscar notas</span>
-        <input type="search" value={searchQuery} placeholder="Buscar notas" onChange={(event) => onSearchChange(event.target.value)} />
+        <input ref={searchRef} type="search" value={searchQuery} placeholder="Buscar notas" onChange={(event) => onSearchChange(event.target.value)} />
         <kbd>⌘K</kbd>
       </label>
       <nav className="notes-sidebar__nav" aria-label="Carpetas" role="tree">

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { BlockNode, ChecklistItem, Note, NotePatch } from "@/domain/note/models";
 import { IndexedDbNoteRepository } from "@/infrastructure/indexeddb/IndexedDbNoteRepository";
+import { expandAllSections, setSectionsCollapsed } from "./sections";
 
 const MAX_UNDO = 50;
 const defaultNoteRepository = new IndexedDbNoteRepository();
@@ -86,6 +87,25 @@ export function useNoteEditor(noteId?: string, repository = defaultNoteRepositor
   }, []);
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLElement>) => {
+    if ((event.metaKey || event.ctrlKey) && event.altKey && ["1", "2"].includes(event.key)) {
+      event.preventDefault();
+      const level = Number(event.key) as 1 | 2;
+      setBlocks((current) => {
+        const next = setSectionsCollapsed(current, level, true);
+        setDraftPatch((patch) => ({ ...patch, blocks: next }));
+        return next;
+      });
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.altKey && event.key === "0") {
+      event.preventDefault();
+      setBlocks((current) => {
+        const next = expandAllSections(current);
+        setDraftPatch((patch) => ({ ...patch, blocks: next }));
+        return next;
+      });
+      return;
+    }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
       event.preventDefault();
       undo();

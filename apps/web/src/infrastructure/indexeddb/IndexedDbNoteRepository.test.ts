@@ -2,7 +2,7 @@ import Dexie from "dexie";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createUuid, TaskFlowDatabase, openTaskFlowDatabase } from "./database";
-import { extractTags, IndexedDbNoteRepository } from "./IndexedDbNoteRepository";
+import { extractTags, IndexedDbNoteRepository, scoreNote } from "./IndexedDbNoteRepository";
 
 const names: string[] = [];
 
@@ -52,6 +52,23 @@ describe("IndexedDbNoteRepository", () => {
     });
     const stored = await database.notes.get(note.id);
     expect(stored && stored.blocks[0].type === "checklist" && stored.blocks[0].items[0].indentLevel).toBe(4);
+  });
+
+  it("orders matching notes by title, then body and tags", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const titleMatch = await repository.create({ folderId: null, firstLine: "Project launch" });
+    const bodyMatch = await repository.create({ folderId: null, blocks: [
+      { id: createUuid(), type: "heading", level: 1, spans: [{ text: "Meeting" }] },
+      { id: createUuid(), type: "paragraph", spans: [{ text: "Project notes" }] },
+    ] });
+    const tagMatch = await repository.create({ folderId: null, blocks: [
+      { id: createUuid(), type: "heading", level: 1, spans: [{ text: "Archive" }] },
+      { id: createUuid(), type: "paragraph", spans: [{ text: "#project" }] },
+    ] });
+    expect(scoreNote(titleMatch, "project")).toBeGreaterThan(scoreNote(bodyMatch, "project"));
+    expect(scoreNote(bodyMatch, "project")).toBeGreaterThan(scoreNote(tagMatch, "project"));
+    expect((await repository.search("project")).map((note) => note.id)).toEqual([titleMatch.id, bodyMatch.id, tagMatch.id]);
   });
 });
 

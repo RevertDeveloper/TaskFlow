@@ -520,6 +520,16 @@ textarea:focus-visible {
 .note-editor__formatting { position: fixed; z-index: var(--z-tooltip); top: 4.75rem; left: 50%; display: flex; align-items: center; gap: 0.15rem; padding: 0.35rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-raised); box-shadow: var(--shadow-panel); transform: translateX(-50%); }
 .note-editor__formatting button { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 0.4rem; background: transparent; color: var(--color-ink); }
 .note-editor__swatches { display: flex; gap: 0.25rem; padding-inline-start: 0.35rem; border-inline-start: 1px solid var(--color-border); }
+[data-highlight="pink"] { background: var(--color-highlight-pink); color: var(--color-highlight-pink-text); border-radius: 2px; padding-inline: 2px; }
+[data-highlight="purple"] { background: var(--color-highlight-purple); color: var(--color-highlight-purple-text); border-radius: 2px; padding-inline: 2px; }
+[data-highlight="orange"] { background: var(--color-highlight-orange); color: var(--color-highlight-orange-text); border-radius: 2px; padding-inline: 2px; }
+[data-highlight="mint"] { background: var(--color-highlight-mint); color: var(--color-highlight-mint-text); border-radius: 2px; padding-inline: 2px; }
+[data-highlight="blue"] { background: var(--color-highlight-blue); color: var(--color-highlight-blue-text); border-radius: 2px; padding-inline: 2px; }
+.note-heading-block { position: relative; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); align-items: start; }
+.note-heading-block__toggle { display: grid; width: 1.5rem; height: 2rem; place-items: center; border: 0; background: transparent; color: var(--color-ink-muted); cursor: pointer; opacity: 0; transition: opacity 150ms ease, transform 200ms ease; }
+.note-heading-block:hover .note-heading-block__toggle, .note-heading-block__toggle:focus-visible { opacity: 1; }
+.note-heading-block__toggle span { display: block; font-size: 0.7rem; }
+.note-blocks > * { content-visibility: auto; contain-intrinsic-size: 4rem; }
 .checklist-block { display: grid; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
 .checklist-item { display: flex; align-items: flex-start; gap: var(--space-2); padding-inline-start: calc(var(--indent-level) * 1.5rem); border-radius: var(--radius-sm); }
 .checklist-item--completing { animation: checklist-complete 300ms ease; }

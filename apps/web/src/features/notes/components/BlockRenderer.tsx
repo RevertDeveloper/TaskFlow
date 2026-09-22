@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 
 import type { BlockNode, InlineSpan } from "@/domain/note/models";
+import { getCollapsedBlockIds } from "../application/sections";
 import { ChecklistBlock } from "./ChecklistBlock";
 
 type BlockHandlers = {
   onChecklistChange?: (blockId: string, items: import("@/domain/note/models").ChecklistItem[]) => void;
   onTextChange?: (blockId: string, text: string) => void;
+  onTextSelection?: (blockId: string, start: number, end: number) => void;
+  onHeadingToggle?: (blockId: string) => void;
 };
 
 export function renderSpan(span: InlineSpan, key: string | number): ReactNode {
@@ -24,17 +27,23 @@ export function renderSpan(span: InlineSpan, key: string | number): ReactNode {
 }
 
 export function BlockRenderer({ blocks, handlers = {} }: { blocks: BlockNode[]; handlers?: BlockHandlers }) {
-  return <div className="note-blocks">{blocks.map((block) => renderBlock(block, handlers))}</div>;
+  const collapsedBlockIds = getCollapsedBlockIds(blocks);
+  return <div className="note-blocks">{blocks.map((block, index) => collapsedBlockIds.has(block.id)
+    ? null
+    : renderBlock(block, handlers, index, blocks))}</div>;
 }
 
-function renderBlock(block: BlockNode, handlers: BlockHandlers): ReactNode {
+function renderBlock(block: BlockNode, handlers: BlockHandlers, _index: number, _blocks: BlockNode[]): ReactNode {
   switch (block.type) {
     case "heading": {
       const Heading = `h${block.level}` as "h1" | "h2" | "h3";
-      return <Heading key={block.id}>{block.level === 1 ? null : <input className="note-block-input" value={block.spans.map((span) => span.text).join("")} aria-label={`Encabezado nivel ${block.level}`} onChange={(event) => handlers.onTextChange?.(block.id, event.target.value)} />}</Heading>;
+      return <div className="note-heading-block" key={block.id}>
+        <button className="note-heading-block__toggle" type="button" aria-label={block.collapsed ? "Expandir sección" : "Colapsar sección"} aria-expanded={!block.collapsed} onClick={() => handlers.onHeadingToggle?.(block.id)}><span aria-hidden="true">{block.collapsed ? "▶" : "▼"}</span></button>
+        <Heading>{<input className="note-block-input" value={block.spans.map((span) => span.text).join("")} aria-label={`Encabezado nivel ${block.level}`} onSelect={(event) => handlers.onTextSelection?.(block.id, event.currentTarget.selectionStart ?? 0, event.currentTarget.selectionEnd ?? 0)} onChange={(event) => handlers.onTextChange?.(block.id, event.target.value)} />}</Heading>
+      </div>;
     }
     case "paragraph":
-      return <textarea className="note-block-input note-block-input--paragraph" key={block.id} value={block.spans.map((span) => span.text).join("")} aria-label="Párrafo de la nota" onChange={(event) => handlers.onTextChange?.(block.id, event.target.value)} />;
+      return <textarea className="note-block-input note-block-input--paragraph" key={block.id} value={block.spans.map((span) => span.text).join("")} aria-label="Párrafo de la nota" onSelect={(event) => handlers.onTextSelection?.(block.id, event.currentTarget.selectionStart ?? 0, event.currentTarget.selectionEnd ?? 0)} onChange={(event) => handlers.onTextChange?.(block.id, event.target.value)} />;
     case "checklist":
       return <ChecklistBlock key={block.id} block={block} onChange={(items) => handlers.onChecklistChange?.(block.id, items)} />;
     case "code":

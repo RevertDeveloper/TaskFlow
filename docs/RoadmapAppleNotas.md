@@ -819,15 +819,19 @@ La conversión se expone como una acción de menú contextual en cada lista del 
 
 ### Aceptación Fase 4
 
-- [ ] Clicar el margen izquierdo de un `H1` colapsa su contenido con animación suave.
-- [ ] `⌘ ⌥ 1` colapsa todos los bloques H1 de la nota activa.
-- [ ] El estado colapsado persiste al cerrar y reabrir la nota.
-- [ ] Seleccionar texto y elegir un color de resaltado aplica fondo y color de texto simultáneamente.
-- [ ] Clicar el mismo color de resaltado sobre texto ya resaltado lo elimina (toggle).
-- [ ] La búsqueda ordena los resultados por relevancia (título > cuerpo > etiqueta).
-- [ ] `⌘K` focaliza el campo de búsqueda desde cualquier parte de la app.
-- [ ] Con 2000 bloques en una nota, el editor responde en < 100 ms al escribir.
-- [ ] La conversión de lista de tareas a nota genera una nota válida sin alterar los datos originales.
+- [~] Clicar el margen izquierdo de un `H1` colapsa su contenido con animación suave; el control y el estado están implementados, pero falta una prueba e2e de la animación.
+- [x] `⌘ ⌥ 1` colapsa todos los bloques H1 de la nota activa.
+- [~] El estado `collapsed` se incluye en el guardado local; falta una prueba e2e de cerrar y reabrir el editor.
+- [~] Seleccionar texto y elegir un color de resaltado actualiza el modelo y los tokens CSS; falta pintar spans parciales dentro de los campos editables.
+- [x] Clicar el mismo color de resaltado sobre texto ya resaltado lo elimina (toggle), cubierto por test unitario.
+- [x] La búsqueda ordena los resultados por relevancia (título > cuerpo > etiqueta), cubierta por test de repositorio.
+- [x] `⌘K` focaliza el campo de búsqueda desde cualquier parte de la app.
+- [~] Se añadió `content-visibility` para notas largas; la ventana virtual con `IntersectionObserver` y el benchmark de 2000 bloques quedan pendientes.
+- [ ] La conversión de lista de tareas a nota no forma parte de esta implementación y queda pendiente.
+
+### Estado de ejecución Fase 4 al 2026-09-22
+
+Implementados `sections.ts` y `formatting.ts` con pruebas unitarias, el toggle de secciones y sus atajos en el editor, la toolbar de resaltado bicolor, el scoring de búsqueda local y el atajo global `⌘K`/`Ctrl+K`. Se validó el frontend con typecheck, lint, 89 tests y build de producción. La validación backend queda pendiente en este entorno porque falta la dependencia `celery`.
 
 ---
 

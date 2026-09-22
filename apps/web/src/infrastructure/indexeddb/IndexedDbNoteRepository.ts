@@ -33,7 +33,9 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const normalized = query.trim().toLowerCase();
     const notes = await this.findAll();
     if (!normalized) return notes;
-    return notes.filter((note) => buildSearchIndex(note).includes(normalized));
+    return notes
+      .filter((note) => buildSearchIndex(note).includes(normalized))
+      .sort((left, right) => scoreNote(right, normalized) - scoreNote(left, normalized));
   }
 
   async create(draft: NoteDraft): Promise<Note> {
@@ -95,6 +97,20 @@ function notifyLocalChange(): void {
 export function buildSearchIndex(note: Note): string {
   const body = note.blocks.map(extractBlockText).join(" ");
   return `${note.title} ${body} ${note.tags.join(" ")}`.toLowerCase();
+}
+
+export function scoreNote(note: Note, query: string): number {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return 0;
+  const title = note.title.toLowerCase();
+  const body = note.blocks.map(extractBlockText).join(" ").replace(/#[\w\u00c0-\u024f-]+/gu, "").toLowerCase();
+  const tagText = note.tags.join(" ").toLowerCase();
+  let score = 0;
+  if (title.startsWith(normalized)) score += 10;
+  if (title.includes(normalized)) score += 5;
+  score += Math.min(body.split(normalized).length - 1, 5) * 3;
+  if (tagText.includes(normalized)) score += 1;
+  return score;
 }
 
 export function extractTags(blocks: BlockNode[]): string[] {
