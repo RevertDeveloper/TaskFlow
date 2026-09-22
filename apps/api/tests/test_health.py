@@ -25,6 +25,13 @@ def test_api_health_reports_live_process() -> None:
     assert response.json() == {"status": "ok"}
 
 
+def test_rewritten_api_health_and_ready_paths_accept_trailing_slashes() -> None:
+    client = Client()
+
+    assert client.get("/api/health/").status_code == 200
+    assert client.get("/api/ready/").status_code in {200, 503}
+
+
 def test_api_ready_reports_database_and_migrations() -> None:
     response = Client().get("/api/ready")
 

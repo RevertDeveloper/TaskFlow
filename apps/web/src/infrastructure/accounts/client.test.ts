@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { accountsLoginUrl, logout, safeNextPath } from "./client";
+import { accountsLoginUrl, getCurrentUser, logout, safeNextPath } from "./client";
 
 const fetchMock = vi.fn();
 
@@ -60,5 +60,24 @@ describe("logout", () => {
         headers: expect.objectContaining({ "X-CSRFToken": "csrf-token" }),
       }),
     );
+  });
+
+  it("fails with a bounded timeout when session validation hangs", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        }),
+    );
+
+    const request = getCurrentUser();
+    const rejection = expect(request).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(8_000);
+
+    await rejection;
+    vi.useRealTimers();
   });
 });

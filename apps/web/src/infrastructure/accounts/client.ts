@@ -7,6 +7,7 @@ import type {
 
 const accountsOrigin = "https://cuenta.carlosrevert.es";
 const csrfCookieName = "taskflowcsrftoken";
+const accountsRequestTimeoutMs = 8_000;
 
 export class AccountsApiError extends Error {
   readonly status: number;
@@ -19,10 +20,7 @@ export class AccountsApiError extends Error {
 }
 
 export async function getCurrentUser(): Promise<AuthMeResponse> {
-  const response = await fetch("/api/v1/auth/me/", {
-    credentials: "include",
-    cache: "no-store",
-  });
+  const response = await accountsRequest("/api/v1/auth/me/", { cache: "no-store" });
   return parseResponse<AuthMeResponse>(response);
 }
 
@@ -78,9 +76,8 @@ export function safeNextPath(next: string | null | undefined): string {
 
 async function accountsMutation<T>(path: string, body: T): Promise<Response> {
   const csrfToken = await getCsrfToken();
-  const response = await fetch(path, {
+  const response = await accountsRequest(path, {
     method: "POST",
-    credentials: "include",
     redirect: "error",
     headers: {
       "Content-Type": "application/json",
@@ -101,10 +98,7 @@ function redirectToNext(next: string | undefined): void {
 }
 
 async function getCsrfToken(): Promise<string> {
-  const response = await fetch("/api/v1/auth/csrf/", {
-    credentials: "include",
-    cache: "no-store",
-  });
+  const response = await accountsRequest("/api/v1/auth/csrf/", { cache: "no-store" });
   if (!response.ok) {
     throw await apiError(response);
   }
@@ -113,6 +107,29 @@ async function getCsrfToken(): Promise<string> {
     throw new AccountsApiError(0, "No se recibió el token CSRF de TaskFlow.");
   }
   return token;
+}
+
+async function accountsRequest(path: string, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), accountsRequestTimeoutMs);
+
+  try {
+    return await fetch(path, {
+      ...init,
+      credentials: "include",
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof AccountsApiError) {
+      throw error;
+    }
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new AccountsApiError(408, "La conexión con el servicio de cuentas ha tardado demasiado.");
+    }
+    throw new AccountsApiError(503, "El servicio de cuentas no está disponible ahora.");
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 function readCookie(name: string): string | null {

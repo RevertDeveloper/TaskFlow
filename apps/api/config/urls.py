@@ -24,7 +24,9 @@ from config.health import health, readiness
 urlpatterns = [
     path("health/", health, name="health"),
     path("api/health", health, name="api-health"),
+    path("api/health/", health, name="api-health-slash"),
     path("api/ready", readiness, name="api-ready"),
+    path("api/ready/", readiness, name="api-ready-slash"),
     path("api/metrics", metrics, name="api-metrics"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

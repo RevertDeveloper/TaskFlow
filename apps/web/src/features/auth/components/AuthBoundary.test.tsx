@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const { accountsLoginUrlMock, getCurrentUserMock } = vi.hoisted(() => ({
@@ -19,6 +19,7 @@ import { AuthBoundary } from "./AuthBoundary";
 
 describe("AuthBoundary", () => {
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
     Object.defineProperty(window, "location", { configurable: true, value: originalLocation });
     getCurrentUserMock.mockReset();
@@ -66,5 +67,19 @@ describe("AuthBoundary", () => {
 
     expect(await screen.findByText("Private content")).toBeInTheDocument();
     expect(accountsLoginUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed and offers a retry when Accounts is unavailable", async () => {
+    getCurrentUserMock.mockRejectedValue(new Error("network unavailable"));
+
+    render(
+      <AuthBoundary unavailable={<p>Accounts unavailable</p>}>
+        <p>Private content</p>
+      </AuthBoundary>,
+    );
+
+    expect(await screen.findByText("Accounts unavailable")).toBeInTheDocument();
+    expect(screen.queryByText("Private content")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 });

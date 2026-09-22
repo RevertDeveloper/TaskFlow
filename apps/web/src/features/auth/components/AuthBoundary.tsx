@@ -118,9 +118,16 @@ function renderState(
     case "email-pending":
       return content.children;
     case "blocked":
-      return content.children;
+      return content.blocked;
     case "accounts-unavailable":
-      return content.children;
+      return (
+        <>
+          {content.unavailable}
+          <button type="button" onClick={content.onRetry}>
+            Reintentar
+          </button>
+        </>
+      );
     case "loading":
       return content.loading;
   }

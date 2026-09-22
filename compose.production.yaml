@@ -150,5 +150,8 @@ services:
 
 volumes:
   taskflow_production_audio:
+    name: ${TASKFLOW_AUDIO_VOLUME_NAME:-taskflow_production_audio}
   taskflow_production_postgres_data:
+    name: ${TASKFLOW_POSTGRES_VOLUME_NAME:-taskflow_production_postgres_data}
   taskflow_production_redis_data:
+    name: ${TASKFLOW_REDIS_VOLUME_NAME:-taskflow_production_redis_data}
