@@ -11,6 +11,7 @@ import { AuthBoundary } from "@/features/auth/components/AuthBoundary";
 import { TaskWorkspaceProvider } from "@/features/tasks/application/TaskWorkspaceProvider";
 import { useAuth } from "@/features/auth/components/AuthBoundary";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type AppShellProps = {
   children: ReactNode;
@@ -29,6 +30,8 @@ export function AppShell({ children }: AppShellProps) {
 function AuthenticatedAppShell({ children }: AppShellProps) {
   const [profileStorage] = useState(() => new ProfileStorageManager());
   const { user } = useAuth();
+  const pathname = usePathname();
+  const isNotesWorkspace = pathname === "/app";
 
   useEffect(() => {
     void profileStorage.setUser(user).catch(() => undefined);
@@ -36,10 +39,8 @@ function AuthenticatedAppShell({ children }: AppShellProps) {
 
   return (
     <TaskWorkspaceProvider storageManager={profileStorage}>
-      <div className="app-frame">
-        <Sidebar />
-        <main className="app-frame__main">{children}</main>
-        <MobileNav />
+      <div className={isNotesWorkspace ? "app-frame app-frame--notes" : "app-frame"}>
+        {isNotesWorkspace ? children : <><Sidebar /><main className="app-frame__main">{children}</main><MobileNav /></>}
         <PwaRegistration />
       </div>
     </TaskWorkspaceProvider>

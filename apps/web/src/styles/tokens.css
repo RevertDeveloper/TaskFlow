@@ -29,6 +29,20 @@
   --z-nav: 20;
   --z-overlay: 40;
   --z-tooltip: 60;
+  --color-highlight-pink: rgba(255, 102, 153, 0.22);
+  --color-highlight-purple: rgba(163, 102, 255, 0.22);
+  --color-highlight-orange: rgba(255, 170, 80, 0.22);
+  --color-highlight-mint: rgba(80, 220, 180, 0.22);
+  --color-highlight-blue: rgba(80, 160, 255, 0.22);
+  --color-highlight-pink-text: #ff6699;
+  --color-highlight-purple-text: #a366ff;
+  --color-highlight-orange-text: #ffaa50;
+  --color-highlight-mint-text: #50dcb4;
+  --color-highlight-blue-text: #50a0ff;
+  --editor-line-height: 1.7;
+  --editor-max-width: 68ch;
+  --editor-padding-x: var(--space-6);
+  --editor-padding-y: var(--space-7);
 }
 
 [data-theme="minimal"] {

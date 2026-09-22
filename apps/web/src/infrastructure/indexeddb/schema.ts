@@ -11,6 +11,8 @@ export const APP_STATE_KEYS = {
   schemaVersion: "schema_version",
   clientVersion: "client_version",
   syncCursor: "sync_cursor",
+  notesViewMode: "notes_view_mode",
+  noteDraft: "note_draft",
 } as const;
 
 export type JsonPrimitive = string | number | boolean | null;
