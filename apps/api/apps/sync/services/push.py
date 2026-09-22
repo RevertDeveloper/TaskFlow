@@ -16,6 +16,7 @@ from apps.lists.models import List
 from apps.lists.selectors import get_owned_list
 from apps.lists.services.delete_list import delete_list
 from apps.lists.services.update_list import update_list
+from apps.notes.models import Note
 from apps.sync.models import SyncOperation
 from apps.tasks.models import Task
 from apps.tasks.services.complete_task import complete_task
@@ -184,6 +185,8 @@ def _apply_operation(external_user_id: int, operation: Mapping[str, object]):
         return _apply_list(external_user_id, entity_id, mutation, payload)
     if entity_type == "task":
         return _apply_task(external_user_id, entity_id, mutation, payload)
+    if entity_type == "note":
+        return _apply_note(external_user_id, entity_id, mutation, payload)
     raise SyncRejected("invalid_entity_type", "El tipo de entidad no es válido.")
 
 
@@ -197,6 +200,11 @@ def _existing_entity(external_user_id: int, operation: Mapping[str, object]):
         ).first()
     if entity_type == "task":
         return Task.objects.select_for_update().filter(
+            id=entity_id,
+            external_user_id=external_user_id,
+        ).first()
+    if entity_type == "note":
+        return Note.objects.select_for_update().filter(
             id=entity_id,
             external_user_id=external_user_id,
         ).first()
@@ -334,6 +342,47 @@ def _apply_task(
     if mutation == "delete":
         return delete_task(external_user_id, entity_id)
     raise SyncRejected("invalid_mutation", "La mutación no es válida para la tarea.")
+
+
+def _apply_note(
+    external_user_id: int, entity_id: UUID, mutation: str, payload: Mapping[str, object]
+):
+    existing = Note.objects.filter(id=entity_id, external_user_id=external_user_id).first()
+    if mutation == "create":
+        if existing:
+            raise SyncConflict("entity_exists", "La nota ya existe en el servidor.")
+        note = Note(
+            id=entity_id,
+            external_user_id=external_user_id,
+            title=_optional_string(payload, "title"),
+            blocks=payload.get("blocks", []),
+            tags=payload.get("tags", []),
+            pinned=_optional_bool_or_none(payload, "pinned") or False,
+        )
+        note.full_clean()
+        note.save(force_insert=True)
+        return note
+    if not existing:
+        raise SyncRejected("not_found", "La entidad no existe para este usuario.")
+    if existing.deleted_at is not None:
+        raise SyncConflict("tombstone_wins", "La nota ya fue eliminada en el servidor.")
+    if mutation == "update":
+        allowed = {"title", "blocks", "tags", "pinned", "archivedAt", "folderId", "entityId"}
+        if set(payload) - allowed:
+            raise SyncRejected("invalid_payload", "El payload contiene campos no permitidos.")
+        for field, key in (("title", "title"), ("blocks", "blocks"), ("tags", "tags"), ("pinned", "pinned")):
+            if key in payload:
+                setattr(existing, field, payload[key])
+        if "archivedAt" in payload:
+            existing.archived_at = payload["archivedAt"]
+        existing.full_clean()
+        existing.save()
+        return existing
+    if mutation == "delete":
+        existing.deleted_at = timezone.now()
+        existing.save(update_fields=["deleted_at", "updated_at"])
+        return existing
+    raise SyncRejected("invalid_mutation", "La mutación no es válida para la nota.")
 
 
 def _save_operation(

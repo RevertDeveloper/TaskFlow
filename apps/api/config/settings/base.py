@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     "apps.history.apps.HistoryConfig",
     "apps.sync.apps.SyncConfig",
     "apps.voice.apps.VoiceConfig",
+    "apps.notes.apps.NotesConfig",
 ]
 
 MIDDLEWARE = [

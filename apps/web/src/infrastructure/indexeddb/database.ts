@@ -7,6 +7,9 @@ import {
   DATABASE_NAME,
   type LocalAppStateRecord,
   type LocalListRecord,
+  type LocalFolderRecord,
+  type LocalNoteRecord,
+  type LocalNoteTagRecord,
   type LocalSyncOperationRecord,
   type LocalTaskEventRecord,
   type LocalTaskRecord,
@@ -22,6 +25,9 @@ export class TaskFlowDatabase extends Dexie {
   syncOperations!: Table<LocalSyncOperationRecord, string>;
   appState!: Table<LocalAppStateRecord, string>;
   voiceSessions!: Table<LocalVoiceSessionRecord, string>;
+  notes!: Table<LocalNoteRecord, string>;
+  folders!: Table<LocalFolderRecord, string>;
+  noteTags!: Table<LocalNoteTagRecord, number>;
 
   constructor(name = DATABASE_NAME) {
     super(name);
@@ -32,6 +38,9 @@ export class TaskFlowDatabase extends Dexie {
     this.syncOperations = this.table("sync_operations");
     this.appState = this.table("app_state");
     this.voiceSessions = this.table("voice_sessions");
+    this.notes = this.table("notes");
+    this.folders = this.table("folders");
+    this.noteTags = this.table("note_tags");
   }
 }
 

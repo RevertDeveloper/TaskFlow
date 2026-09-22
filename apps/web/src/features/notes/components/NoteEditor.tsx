@@ -1,66 +1,43 @@
 "use client";
 
-import { ArrowLeft, Bold, Code2, Italic, MoreHorizontal } from "lucide-react";
-import type { SyntheticEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, CheckSquare, MoreHorizontal, Plus, Undo2 } from "lucide-react";
+import { useRef } from "react";
 
-import { openTaskFlowDatabase, taskFlowDatabase } from "@/infrastructure/indexeddb/database";
+import type { BlockNode, ChecklistItem } from "@/domain/note/models";
+import { useNoteEditor } from "../application/useNoteEditor";
+import { BlockRenderer } from "./BlockRenderer";
 
 type NoteEditorProps = { onBack: () => void };
 
 export function NoteEditor({ onBack }: NoteEditorProps) {
   const titleRef = useRef<HTMLInputElement>(null);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [hasSelection, setHasSelection] = useState(false);
+  const { blocks, loading, applyBlockOp, handleKeyDown, undo } = useNoteEditor();
 
-  useEffect(() => {
-    titleRef.current?.focus();
-    void openTaskFlowDatabase().then(async () => {
-      const stored = await taskFlowDatabase.appState.get("note_draft");
-      if (stored?.value && typeof stored.value === "object" && !Array.isArray(stored.value)) {
-        const draft = stored.value;
-        if (typeof draft.title === "string") setTitle(draft.title);
-        if (typeof draft.body === "string") setBody(draft.body);
-      }
-    }).catch(() => undefined);
-  }, []);
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      void openTaskFlowDatabase()
-        .then(() => taskFlowDatabase.appState.put({ key: "note_draft", value: { title, body } }))
-        .catch(() => undefined);
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [body, title]);
-
-  function updateSelection(event: SyntheticEvent<HTMLTextAreaElement>) {
-    const textarea = event.currentTarget;
-    setHasSelection(textarea.selectionStart !== textarea.selectionEnd);
+  function replaceBlock(block: BlockNode) { applyBlockOp({ type: "replace", block }); }
+  function changeText(blockId: string, text: string) {
+    const block = blocks.find((candidate) => candidate.id === blockId);
+    if (!block || (block.type !== "paragraph" && block.type !== "heading")) return;
+    replaceBlock({ ...block, spans: [{ text }] });
   }
+  function changeChecklist(blockId: string, items: ChecklistItem[]) { applyBlockOp({ type: "checklist", blockId, items }); }
+  function addParagraph() { applyBlockOp({ type: "insert", block: { id: crypto.randomUUID(), type: "paragraph", spans: [{ text: "" }] } }); }
 
   return (
     <section className="note-editor" aria-labelledby="note-editor-title">
       <header className="note-editor__toolbar">
         <button className="icon-button" type="button" aria-label="Volver a la biblioteca" onClick={onBack}><ArrowLeft size={20} aria-hidden="true" /></button>
-        <span className="note-editor__status" aria-live="polite">Guardado localmente</span>
+        <span className="note-editor__status" aria-live="polite">{loading ? "Cargando..." : "Guardado localmente"}</span>
+        <button className="icon-button" type="button" aria-label="Deshacer" onClick={undo}><Undo2 size={18} aria-hidden="true" /></button>
+        <button className="icon-button" type="button" aria-label="Añadir bloque de texto" onClick={addParagraph}><Plus size={18} aria-hidden="true" /></button>
         <button className="icon-button" type="button" aria-label="Más opciones"><MoreHorizontal size={20} aria-hidden="true" /></button>
       </header>
-      {hasSelection ? <div className="note-editor__formatting" role="toolbar" aria-label="Formato de texto">
-        <button type="button" aria-label="Negrita"><Bold size={16} aria-hidden="true" /></button>
-        <button type="button" aria-label="Cursiva"><Italic size={16} aria-hidden="true" /></button>
-        <button type="button" aria-label="Código inline"><Code2 size={16} aria-hidden="true" /></button>
-        <span className="note-editor__swatches" aria-label="Colores de resaltado">
-          <button className="swatch swatch--pink" type="button" aria-label="Resaltar en rosa" />
-          <button className="swatch swatch--purple" type="button" aria-label="Resaltar en morado" />
-          <button className="swatch swatch--orange" type="button" aria-label="Resaltar en naranja" />
-          <button className="swatch swatch--mint" type="button" aria-label="Resaltar en menta" />
-          <button className="swatch swatch--blue" type="button" aria-label="Resaltar en azul" />
-        </span>
-      </div> : null}
-      <div className="note-editor__canvas">
-        <input ref={titleRef} className="note-editor__title" id="note-editor-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Título" aria-label="Título de la nota" />
-        <textarea className="note-editor__body" value={body} onChange={(event) => setBody(event.target.value)} onSelect={updateSelection} onMouseUp={updateSelection} onKeyUp={updateSelection} placeholder="Escribe lo que tienes en mente..." aria-label="Contenido de la nota" />
+      <div className="note-editor__canvas" onKeyDown={(event) => handleKeyDown(event)}>
+        <input ref={titleRef} className="note-editor__title" id="note-editor-title" value={blocks.find((block) => block.type === "heading")?.type === "heading" ? blocks.find((block) => block.type === "heading")?.spans[0]?.text ?? "" : ""} onChange={(event) => {
+          const heading = blocks.find((block) => block.type === "heading");
+          replaceBlock(heading?.type === "heading" ? { ...heading, spans: [{ text: event.target.value }] } : { id: crypto.randomUUID(), type: "heading", level: 1, spans: [{ text: event.target.value }] });
+        }} placeholder="Título" aria-label="Título de la nota" />
+        <BlockRenderer blocks={blocks} handlers={{ onChecklistChange: changeChecklist, onTextChange: changeText }} />
+        <button className="ui-button ui-button--secondary" type="button" onClick={() => applyBlockOp({ type: "insert", block: { id: crypto.randomUUID(), type: "checklist", autoSort: true, items: [] } })}><CheckSquare size={17} aria-hidden="true" /> Añadir checklist</button>
       </div>
     </section>
   );

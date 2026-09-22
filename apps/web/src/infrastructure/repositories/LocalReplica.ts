@@ -1,14 +1,18 @@
 import type { HistoryEntry } from "@/domain/history/models";
 import type { TaskList } from "@/domain/list/models";
 import type { Task } from "@/domain/task/models";
+import type { Note } from "@/domain/note/models";
 import type { SyncChange, SyncEntityVersion, SyncMergeDecider } from "@/domain/sync/models";
 import { openTaskFlowDatabase, taskFlowDatabase, type TaskFlowDatabase } from "@/infrastructure/indexeddb/database";
+import { buildSearchIndex } from "@/infrastructure/indexeddb/IndexedDbNoteRepository";
 import {
   assertLocalListRecord,
   assertLocalTaskRecord,
+  assertLocalNoteRecord,
   isUuid,
   type LocalListRecord,
   type LocalTaskRecord,
+  type LocalNoteRecord,
 } from "@/infrastructure/indexeddb/schema";
 import { LocalStorageValidationError } from "@/infrastructure/indexeddb/errors";
 
@@ -87,7 +91,7 @@ export class LocalReplica {
     decider: SyncMergeDecider = defaultMergeDecider,
   ): Promise<ReplicaConflict[]> {
     await openTaskFlowDatabase(this.database);
-    return this.database.transaction("rw", this.database.lists, this.database.tasks, async () => {
+    return this.database.transaction("rw", this.database.lists, this.database.tasks, this.database.notes, async () => {
       const conflicts: ReplicaConflict[] = [];
       for (const change of changes) {
         if (change.entityType === "list") {
@@ -103,6 +107,20 @@ export class LocalReplica {
           if (existing) {
             conflicts.push({ entityType: "list", entityId: change.entityId, resolution });
           }
+          continue;
+        }
+
+        if (change.entityType === "note") {
+          const existing = await this.database.notes.get(change.entityId);
+          const resolution = decider(toEntityVersion(existing), change);
+          if (existing && resolution === "local") {
+            conflicts.push({ entityType: "note", entityId: change.entityId, resolution });
+            continue;
+          }
+          const record = toLocalNoteRecord(change);
+          assertLocalNoteRecord(record);
+          await this.database.notes.put(record);
+          if (existing) conflicts.push({ entityType: "note", entityId: change.entityId, resolution });
           continue;
         }
 
@@ -147,6 +165,28 @@ function toEntityVersion(
     updatedAt: entity.updatedAt,
     clientVersion: entity.syncClientVersion ?? 0,
     operationId: entity.syncOperationId ?? null,
+  };
+}
+
+function toLocalNoteRecord(change: SyncChange): LocalNoteRecord {
+  const data = change.data;
+  const note: Note = {
+    id: change.entityId,
+    folderId: typeof data.folder_id === "string" ? data.folder_id : null,
+    title: typeof data.title === "string" ? data.title : "",
+    blocks: Array.isArray(data.blocks) ? data.blocks as Note["blocks"] : [],
+    tags: Array.isArray(data.tags) ? data.tags.filter((tag): tag is string => typeof tag === "string") : [],
+    pinned: data.pinned === true,
+    archivedAt: typeof data.archived_at === "string" ? data.archived_at : null,
+    deletedAt: typeof data.deleted_at === "string" ? data.deleted_at : null,
+    createdAt: typeof data.created_at === "string" ? data.created_at : change.updatedAt,
+    updatedAt: change.updatedAt,
+  };
+  return {
+    ...note,
+    searchIndex: buildSearchIndex(note),
+    syncClientVersion: change.clientVersion,
+    syncOperationId: change.operationId,
   };
 }
 

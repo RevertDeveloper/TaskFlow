@@ -25,7 +25,10 @@ describe("TaskFlowDatabase", () => {
 
     expect(database.tables.map((table) => table.name).sort()).toEqual([
       "app_state",
+      "folders",
       "lists",
+      "note_tags",
+      "notes",
       "sync_operations",
       "task_events",
       "tasks",
@@ -87,7 +90,7 @@ describe("TaskFlowDatabase", () => {
     await openTaskFlowDatabase(database);
 
     expect(await database.appState.get("custom")).toEqual({ key: "custom", value: "preserved" });
-    expect(database.tables).toHaveLength(6);
+    expect(database.tables).toHaveLength(9);
     expect(await database.syncOperations.toArray()).toEqual([]);
     expect(await database.voiceSessions.toArray()).toEqual([]);
   });

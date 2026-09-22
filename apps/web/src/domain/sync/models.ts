@@ -1,4 +1,4 @@
-export type SyncEntityType = "list" | "task";
+export type SyncEntityType = "list" | "task" | "note" | "folder";
 export type SyncOperationType = "create" | "update" | "delete";
 
 export type SyncOperation = {

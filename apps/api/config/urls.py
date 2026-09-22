@@ -6,6 +6,7 @@ from apps.common.metrics import metrics
 from apps.data_reset.api import ResetCloudView
 from apps.history.api import HistoryView, ListHistoryView
 from apps.lists.api import ListCollectionView, ListDetailView
+from apps.notes.api import NoteCollectionView, NoteDetailView
 from apps.sync.api import SyncPullView, SyncPushView
 from apps.tasks.api import (
     TaskCollectionView,
@@ -40,6 +41,8 @@ urlpatterns = [
         name="taskflow-list-history",
     ),
     path("api/v1/tasks/", TaskCollectionView.as_view(), name="taskflow-tasks"),
+    path("api/v1/notes/", NoteCollectionView.as_view(), name="taskflow-notes"),
+    path("api/v1/notes/<str:note_id>/", NoteDetailView.as_view(), name="taskflow-note-detail"),
     path("api/v1/tasks/<str:task_id>/", TaskDetailView.as_view(), name="taskflow-task-detail"),
     path(
         "api/v1/tasks/<str:task_id>/complete/",

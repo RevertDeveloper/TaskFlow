@@ -4,11 +4,12 @@ import {
   CURRENT_SCHEMA_VERSION,
   SCHEMA_V1,
   SCHEMA_V2,
+  SCHEMA_V3,
 } from "./schema";
 
 export function registerMigrations(database: Dexie): void {
   database.version(1).stores(SCHEMA_V1);
-  database.version(CURRENT_SCHEMA_VERSION).stores(SCHEMA_V2).upgrade((transaction) => {
+  database.version(2).stores(SCHEMA_V2).upgrade((transaction) => {
     return Promise.all([
       transaction.table("lists").toCollection().modify((record: Record<string, unknown>) => {
         record.description ??= "";
@@ -35,8 +36,14 @@ export function registerMigrations(database: Dexie): void {
       }),
       transaction.table("app_state").put({
         key: APP_STATE_KEYS.schemaVersion,
-        value: CURRENT_SCHEMA_VERSION,
+        value: 2,
       }),
     ]);
+  });
+  database.version(CURRENT_SCHEMA_VERSION).stores(SCHEMA_V3).upgrade((transaction) => {
+    return transaction.table("app_state").put({
+      key: APP_STATE_KEYS.schemaVersion,
+      value: CURRENT_SCHEMA_VERSION,
+    });
   });
 }

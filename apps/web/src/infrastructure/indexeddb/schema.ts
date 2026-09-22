@@ -1,10 +1,11 @@
 import type { HistoryEntry } from "@/domain/history/models";
 import type { TaskList } from "@/domain/list/models";
 import type { Task } from "@/domain/task/models";
+import type { BlockNode, ChecklistItem, InlineSpan, Note } from "@/domain/note/models";
 import { LocalStorageValidationError } from "./errors";
 
 export const DATABASE_NAME = "taskflow-local";
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export const APP_STATE_KEYS = {
   deviceId: "device_id",
@@ -33,9 +34,29 @@ export type LocalTaskRecord = Task & {
   syncOperationId?: string | null;
 };
 
+export type LocalNoteRecord = Note & {
+  searchIndex: string;
+  syncClientVersion?: number;
+  syncOperationId?: string | null;
+};
+
+export type LocalFolderRecord = {
+  id: string;
+  parentId: string | null;
+  name: string;
+  position: number;
+  updatedAt: string;
+  deletedAt: string | null;
+};
+
+export type LocalNoteTagRecord = {
+  noteId: string;
+  tag: string;
+};
+
 export type LocalTaskEventRecord = HistoryEntry;
 
-export type LocalEntityType = "list" | "task";
+export type LocalEntityType = "list" | "task" | "note" | "folder";
 export type LocalSyncOperationType = "create" | "update" | "delete";
 
 export type LocalSyncOperationRecord = {
@@ -83,6 +104,13 @@ export const SCHEMA_V2 = {
   sync_operations: "id, &idempotencyKey, entityType, entityId, occurredAt, processedAt, [entityType+entityId]",
   app_state: "key",
   voice_sessions: "id, status, updatedAt",
+} as const;
+
+export const SCHEMA_V3 = {
+  ...SCHEMA_V2,
+  notes: "id, folderId, title, updatedAt, archivedAt, deletedAt, pinned, [folderId+updatedAt]",
+  folders: "id, parentId, name, position, updatedAt, deletedAt",
+  note_tags: "++, noteId, tag",
 } as const;
 
 export function isJsonValue(value: unknown): value is JsonValue {
@@ -164,6 +192,28 @@ export function assertLocalTaskRecord(value: unknown): asserts value is LocalTas
   }
 }
 
+export function assertLocalNoteRecord(value: unknown): asserts value is LocalNoteRecord {
+  if (!isObject(value)
+    || !isUuid(value.id)
+    || (value.folderId !== null && !isUuid(value.folderId))
+    || typeof value.title !== "string"
+    || !Array.isArray(value.blocks)
+    || value.blocks.length > 2000
+    || !value.blocks.every(isBlockNode)
+    || !Array.isArray(value.tags)
+    || !value.tags.every((tag) => typeof tag === "string")
+    || typeof value.pinned !== "boolean"
+    || (value.archivedAt !== null && typeof value.archivedAt !== "string")
+    || (value.deletedAt !== null && typeof value.deletedAt !== "string")
+    || typeof value.createdAt !== "string"
+    || typeof value.updatedAt !== "string"
+    || typeof value.searchIndex !== "string"
+    || (value.syncClientVersion !== undefined && !isNonNegativeInteger(value.syncClientVersion))
+    || (value.syncOperationId !== undefined && value.syncOperationId !== null && !isUuid(value.syncOperationId))) {
+    throw new LocalStorageValidationError("El registro local de nota no es válido.");
+  }
+}
+
 export function assertLocalTaskEventRecord(value: unknown): asserts value is LocalTaskEventRecord {
   if (!isObject(value)
     || !isUuid(value.id)
@@ -209,9 +259,59 @@ function isTaskSource(value: unknown): value is Task["source"] {
 }
 
 function isLocalEntityType(value: unknown): value is LocalEntityType {
-  return value === "list" || value === "task";
+  return value === "list" || value === "task" || value === "note" || value === "folder";
 }
 
 function isSyncOperationType(value: unknown): value is LocalSyncOperationType {
   return value === "create" || value === "update" || value === "delete";
+}
+
+function isBlockNode(value: unknown): value is BlockNode {
+  if (!isObject(value) || !isUuid(value.id) || typeof value.type !== "string") return false;
+  if (value.type === "paragraph") return isInlineSpanArray(value.spans);
+  if (value.type === "heading") {
+    return (value.level === 1 || value.level === 2 || value.level === 3)
+      && isInlineSpanArray(value.spans)
+      && (value.collapsed === undefined || typeof value.collapsed === "boolean");
+  }
+  if (value.type === "checklist") {
+    return typeof value.autoSort === "boolean"
+      && Array.isArray(value.items)
+      && value.items.every(isChecklistItem);
+  }
+  if (value.type === "code") {
+    return typeof value.text === "string"
+      && (value.language === undefined || typeof value.language === "string");
+  }
+  return value.type === "divider";
+}
+
+function isInlineSpanArray(value: unknown): value is InlineSpan[] {
+  return Array.isArray(value) && value.every((span) => isObject(span)
+    && typeof span.text === "string"
+    && (span.format === undefined || isInlineFormat(span.format)));
+}
+
+function isInlineFormat(value: unknown): boolean {
+  if (!isObject(value)) return false;
+  const keys = Object.keys(value);
+  return keys.every((key) => ["bold", "italic", "code", "highlight", "link"].includes(key))
+    && (value.bold === undefined || value.bold === true)
+    && (value.italic === undefined || value.italic === true)
+    && (value.code === undefined || value.code === true)
+    && (value.highlight === undefined || ["pink", "purple", "orange", "mint", "blue"].includes(String(value.highlight)))
+    && (value.link === undefined || (typeof value.link === "string" && /^https?:\/\//.test(value.link)));
+}
+
+function isChecklistItem(value: unknown): value is ChecklistItem {
+  return isObject(value)
+    && isUuid(value.id)
+    && isInlineSpanArray(value.spans)
+    && (value.status === "pending" || value.status === "completed")
+    && (value.completedAt === null || typeof value.completedAt === "string")
+    && isNonNegativeInteger(value.indentLevel)
+    && value.indentLevel <= 4
+    && isNonNegativeInteger(value.position)
+    && Array.isArray(value.children)
+    && value.children.every(isChecklistItem);
 }

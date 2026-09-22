@@ -17,7 +17,7 @@
         "additionalProperties": false,
         "required": ["entity_type", "entity_id", "operation", "updated_at", "client_version", "operation_id", "data"],
         "properties": {
-          "entity_type": {"enum": ["list", "task"]},
+          "entity_type": {"enum": ["list", "task", "note"]},
           "entity_id": {"type": "string", "format": "uuid"},
           "operation": {"enum": ["upsert", "delete"]},
           "updated_at": {"type": "string", "format": "date-time"},

@@ -36,7 +36,7 @@
       "properties": {
         "operation_id": {"$ref": "#/$defs/uuid"},
         "device_id": {"$ref": "#/$defs/uuid"},
-        "entity_type": {"enum": ["list", "task"]},
+        "entity_type": {"enum": ["list", "task", "note"]},
         "entity_id": {"$ref": "#/$defs/uuid"},
         "mutation": {"enum": ["create", "update", "delete"]},
         "client_version": {"type": "integer", "minimum": 0},

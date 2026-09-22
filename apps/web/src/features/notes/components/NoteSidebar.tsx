@@ -36,17 +36,17 @@ export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose
         <kbd>⌘K</kbd>
       </label>
       <nav className="notes-sidebar__nav" aria-label="Carpetas" role="tree">
-        <button className="folder-node" type="button" role="treeitem" data-active={activeFolder === "all"} aria-expanded="true" onClick={() => selectFolder("all")}>
+        <button className="folder-node" type="button" role="treeitem" aria-selected={activeFolder === "all"} data-active={activeFolder === "all"} aria-expanded="true" onClick={() => selectFolder("all")}>
           <FileText size={17} aria-hidden="true" /><span>Todas las notas</span><small>0</small>
         </button>
         <div className="notes-sidebar__section-label">Carpetas</div>
-        <button className="folder-node" type="button" role="treeitem" data-active={activeFolder === "personal"} aria-expanded="true" onClick={() => selectFolder("personal")}>
+        <button className="folder-node" type="button" role="treeitem" aria-selected={activeFolder === "personal"} data-active={activeFolder === "personal"} aria-expanded="true" onClick={() => selectFolder("personal")}>
           <Folder size={17} aria-hidden="true" /><span>Personal</span>
         </button>
-        <button className="folder-node folder-node--nested" type="button" role="treeitem" data-active={activeFolder === "diario"} aria-expanded="true" onClick={() => selectFolder("diario")}>
+        <button className="folder-node folder-node--nested" type="button" role="treeitem" aria-selected={activeFolder === "diario"} data-active={activeFolder === "diario"} aria-expanded="true" onClick={() => selectFolder("diario")}>
           <Folder size={16} aria-hidden="true" /><span>Diario</span>
         </button>
-        <button className="folder-node" type="button" role="treeitem" data-active={activeFolder === "work"} aria-expanded="true" onClick={() => selectFolder("work")}>
+        <button className="folder-node" type="button" role="treeitem" aria-selected={activeFolder === "work"} data-active={activeFolder === "work"} aria-expanded="true" onClick={() => selectFolder("work")}>
           <Folder size={17} aria-hidden="true" /><span>Trabajo</span>
         </button>
       </nav>

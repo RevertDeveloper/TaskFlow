@@ -6,9 +6,10 @@ from uuid import UUID
 from django.utils.dateparse import parse_datetime
 
 from apps.lists.models import List
+from apps.notes.models import Note
 from apps.tasks.models import Task
 
-ENTITY_ORDER = {"list": 0, "task": 1}
+ENTITY_ORDER = {"list": 0, "task": 1, "note": 2}
 
 
 class InvalidSyncCursor(ValueError):
@@ -36,7 +37,7 @@ def decode_cursor(value: str | None) -> tuple[datetime, str, UUID] | None:
         raise InvalidSyncCursor("El cursor de sincronización no es válido.") from exc
 
 
-def serialize_change(entity_type: str, entity: List | Task) -> dict[str, object]:
+def serialize_change(entity_type: str, entity: List | Task | Note) -> dict[str, object]:
     if entity_type == "list":
         assert isinstance(entity, List)
         deleted_at = entity.deleted_at
@@ -53,7 +54,7 @@ def serialize_change(entity_type: str, entity: List | Task) -> dict[str, object]
             "updated_at": entity.updated_at.isoformat(),
             "deleted_at": deleted_at.isoformat() if deleted_at else None,
         }
-    else:
+    elif entity_type == "task":
         assert isinstance(entity, Task)
         deleted_at = entity.deleted_at
         data = {
@@ -65,6 +66,21 @@ def serialize_change(entity_type: str, entity: List | Task) -> dict[str, object]
             "source": entity.source,
             "position": entity.position,
             "completed_at": entity.completed_at.isoformat() if entity.completed_at else None,
+            "created_at": entity.created_at.isoformat(),
+            "updated_at": entity.updated_at.isoformat(),
+            "deleted_at": deleted_at.isoformat() if deleted_at else None,
+        }
+    else:
+        assert isinstance(entity, Note)
+        deleted_at = entity.deleted_at
+        data = {
+            "id": str(entity.id),
+            "folder_id": str(entity.folder_id) if entity.folder_id else None,
+            "title": entity.title,
+            "blocks": entity.blocks,
+            "tags": entity.tags,
+            "pinned": entity.pinned,
+            "archived_at": entity.archived_at.isoformat() if entity.archived_at else None,
             "created_at": entity.created_at.isoformat(),
             "updated_at": entity.updated_at.isoformat(),
             "deleted_at": deleted_at.isoformat() if deleted_at else None,
