@@ -489,6 +489,33 @@ textarea:focus-visible {
 .tag-chip { border: 1px solid var(--color-border); border-radius: 999px; padding: 0.3rem 0.55rem; background: var(--color-surface-muted); color: var(--color-ink-muted); cursor: pointer; }
 .tag-chip[data-active="true"] { border-color: var(--color-accent); background: var(--color-accent-soft); color: var(--color-ink); }
 .notes-sidebar__new-folder { display: flex; align-items: center; gap: var(--space-2); margin-block-start: auto; padding: 0; background: transparent; color: var(--color-accent-strong); text-align: start; }
+.notes-sidebar__footer { display: grid; gap: var(--space-4); margin-block-start: auto; }
+.notes-sidebar__profile { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-muted); color: var(--color-ink); text-align: start; cursor: pointer; }
+.notes-sidebar__profile span { display: grid; gap: 0.15rem; min-width: 0; }
+.notes-sidebar__profile strong { font-size: 0.82rem; }
+.notes-sidebar__profile small { overflow: hidden; color: var(--color-ink-muted); font-size: 0.7rem; text-overflow: ellipsis; white-space: nowrap; }
+.notes-profile { min-height: 100vh; padding: var(--editor-padding-y) clamp(var(--space-5), 7vw, 7rem); }
+.notes-profile__header { display: flex; align-items: center; gap: var(--space-4); padding-block-end: var(--space-6); border-block-end: 1px solid var(--color-border); }
+.notes-profile__header h2 { margin: 0.2rem 0 0; font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 3rem); }
+.notes-profile__content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); max-width: 72rem; margin: var(--space-6) auto 0; }
+.profile-card { display: grid; align-content: start; gap: var(--space-4); padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-panel); }
+.profile-card--identity { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); }
+.profile-card__icon { display: grid; width: 3.25rem; height: 3.25rem; place-items: center; border-radius: 50%; background: var(--color-accent-soft); color: var(--color-accent-strong); }
+.profile-card__body { display: grid; align-content: start; gap: var(--space-2); }
+.profile-card h3 { margin: 0; font-size: clamp(1.25rem, 2.5vw, 1.8rem); }
+.profile-card p { margin: 0; color: var(--color-ink-muted); }
+.profile-card__body .account-control { width: fit-content; margin-block-start: var(--space-2); }
+.profile-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.profile-card__heading > svg { flex: 0 0 auto; color: var(--color-accent); }
+.profile-storage-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.profile-storage-option { display: flex; align-items: center; gap: var(--space-3); min-height: 4.25rem; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-muted); color: var(--color-ink-muted); text-align: start; cursor: pointer; }
+.profile-storage-option span { display: grid; gap: 0.15rem; }
+.profile-storage-option strong { color: var(--color-ink); }
+.profile-storage-option small { font-size: 0.72rem; }
+.profile-storage-option--active { border-color: var(--color-accent); background: var(--color-accent-soft); color: var(--color-accent-strong); }
+.profile-card__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.profile-card--danger { border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border)); }
+.notes-profile__content > .settings-status { grid-column: 1 / -1; margin: 0; }
 .note-library { min-height: 100vh; padding: var(--editor-padding-y) clamp(var(--space-5), 7vw, 7rem); }
 .note-library__header { align-items: flex-end; padding-block-end: var(--space-6); border-block-end: 1px solid var(--color-border); }
 .note-library__header h2 { font-family: var(--font-body); font-size: clamp(1.5rem, 3vw, 2.25rem); }
@@ -1913,6 +1940,14 @@ textarea:focus-visible {
 @media (max-width: 760px) {
   .settings-grid {
     grid-template-columns: 1fr;
+  }
+
+  .notes-profile__content {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card--identity {
+    grid-column: auto;
   }
 
   .app-frame {

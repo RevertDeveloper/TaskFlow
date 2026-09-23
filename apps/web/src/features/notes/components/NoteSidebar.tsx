@@ -1,11 +1,12 @@
 "use client";
 
-import { FileText, Folder, Plus, Search, Tag } from "lucide-react";
+import { FileText, Folder, Plus, Search, Tag, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Folder as NoteFolder } from "@/domain/folder/models";
 import { IndexedDbFolderRepository } from "@/infrastructure/indexeddb/IndexedDbFolderRepository";
 import { IndexedDbNoteRepository } from "@/infrastructure/indexeddb/IndexedDbNoteRepository";
+import { useAuth } from "@/features/auth/components/AuthBoundary";
 
 type NoteSidebarProps = {
   searchQuery: string;
@@ -16,15 +17,17 @@ type NoteSidebarProps = {
   onFolderChange?: (folderId: string | null) => void;
   onTagChange?: (tag: string | null) => void;
   onClose?: () => void;
+  onOpenProfile: () => void;
 };
 
 const folderRepository = new IndexedDbFolderRepository();
 const noteRepository = new IndexedDbNoteRepository();
 
-export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose, activeFolderId, activeTag, onFolderChange, onTagChange }: NoteSidebarProps) {
+export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose, onOpenProfile, activeFolderId, activeTag, onFolderChange, onTagChange }: NoteSidebarProps) {
   const [folders, setFolders] = useState<NoteFolder[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const load = () => void Promise.all([folderRepository.findAll(), noteRepository.findAll()]).then(([loadedFolders, notes]) => {
@@ -81,7 +84,13 @@ export function NoteSidebar({ searchQuery, onSearchChange, onCreateNote, onClose
         <div className="notes-sidebar__section-label"><Tag size={14} aria-hidden="true" /> Etiquetas</div>
         {tags.length ? <div className="notes-sidebar__tag-list">{tags.map((tag) => <button key={tag} className="tag-chip" type="button" data-active={activeTag === tag} onClick={() => { onTagChange?.(activeTag === tag ? null : tag); onFolderChange?.(null); onClose?.(); }}>#{tag}</button>)}</div> : <p className="notes-sidebar__empty">Tus etiquetas aparecerán aquí</p>}
       </div>
-      <button className="notes-sidebar__new-folder" type="button" onClick={() => { const name = window.prompt("Nombre de la carpeta"); if (!name?.trim()) return; void folderRepository.create({ name, parentId: null, emoji: "" }).then((folder) => setFolders((current) => [...current, folder])); }}> <Plus size={16} aria-hidden="true" /> Nueva carpeta</button>
+      <div className="notes-sidebar__footer">
+        <button className="notes-sidebar__new-folder" type="button" onClick={() => { const name = window.prompt("Nombre de la carpeta"); if (!name?.trim()) return; void folderRepository.create({ name, parentId: null, emoji: "" }).then((folder) => setFolders((current) => [...current, folder])); }}> <Plus size={16} aria-hidden="true" /> Nueva carpeta</button>
+        <button className="notes-sidebar__profile" type="button" onClick={() => { onOpenProfile(); onClose?.(); }}>
+          <UserRound size={18} aria-hidden="true" />
+          <span><strong>Mi perfil</strong><small>{user ? user.first_name || user.username : "Cuenta y preferencias"}</small></span>
+        </button>
+      </div>
     </aside>
   );
 }

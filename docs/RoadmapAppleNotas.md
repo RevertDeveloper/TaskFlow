@@ -835,6 +835,84 @@ Implementados `sections.ts` y `formatting.ts` con pruebas unitarias, el toggle d
 
 ---
 
+## Fase 5 — Revisión personal, reconstrucción y cierre de producción
+
+> **Objetivo:** revisar el proyecto completo, completar las brechas funcionales y operativas, reconstruirlo desde un checkout limpio y dejarlo listo para uso real con evidencia reproducible. Esta fase es transversal: no se considera terminada por tener código, sino por superar los gates de producto, seguridad, datos, despliegue y operación.
+
+El informe operativo completo está en [`docs/InformeFase5Produccion.md`](InformeFase5Produccion.md).
+
+### 5.1 Inventario y reconciliación
+
+- [ ] Reconciliar `RoadmapAppleNotas.md`, `CURRENT_STATE.md` y `ROADMAP.md` para eliminar estados contradictorios.
+- [ ] Revisar todos los `[ ]` y `[~]` de fases anteriores.
+- [ ] Clasificar cada pendiente como implementación, validación, bloqueo externo o fuera de alcance.
+- [ ] Crear una matriz final requisito → archivo → prueba → evidencia.
+
+### 5.2 Cierre funcional del dominio de notas
+
+- [ ] Sustituir los campos de texto simples por una edición que pueda mostrar spans, enlaces, saltos y resaltados parciales de forma segura.
+- [ ] Completar enlaces `>>`, destinos `note://`, backlinks y actualización de títulos enlazados.
+- [ ] Completar movimiento de notas entre carpetas, conflictos y tombstones.
+- [ ] Implementar virtualización o ventana estable para notas largas y medir 2.000 bloques.
+- [ ] Implementar conversión no destructiva de listas legacy a notas.
+- [ ] Añadir pruebas e2e desktop/mobile de creación, edición, búsqueda, colapso, resaltado, reapertura, movimiento y sync.
+- [ ] Completar auditoría manual de accesibilidad y reduced motion.
+
+### 5.3 Recreación reproducible
+
+La reconstrucción debe partir de un checkout limpio, sin reutilizar `node_modules`, `.next`, volúmenes ni bases de datos previas:
+
+```bash
+git clone <URL_DEL_REPOSITORIO> TaskFlow
+cd TaskFlow
+git checkout main
+cp .env.example .env
+make config
+make check-ports
+make up
+make migrate
+make ps
+```
+
+Los checks frontend y backend deben ejecutarse con las dependencias fijadas, preferiblemente dentro del servicio Docker `api` para garantizar que `celery` y Django estén instalados:
+
+```bash
+cd apps/web && npm ci && npm run lint && npm run typecheck && npm test && npm run build
+cd apps/api && python3 -m pytest && python3 manage.py check
+```
+
+La recreación debe demostrar que las migraciones de IndexedDB son no destructivas y que las tablas legacy `tasks/lists` sobreviven.
+
+### 5.4 Staging y publicación
+
+- [ ] Crear staging aislado con Compose, base de datos, Redis, secretos y dominio propios.
+- [ ] Provisionar `taskflow` en Accounts y una cuenta demo específica de QA.
+- [ ] Ejecutar login/logout real sobre HTTPS, expiración, CSRF, cookies y creación de tarea/nota.
+- [ ] Probar sync, conflictos, tombstones, offline y recuperación.
+- [ ] Ejecutar Playwright desktop/mobile, Lighthouse y revisión de lector de pantalla.
+- [ ] Publicar imágenes con tag inmutable y ejecutar el workflow de release.
+- [ ] Conectar Prometheus/Alertmanager, disparar una alerta controlada y verificar su resolución.
+- [ ] Ejecutar backup/restore y rollback contra una release anterior real.
+- [ ] Registrar commit, migraciones, evidencias, riesgos y responsable de aprobación.
+
+### Aceptación Fase 5
+
+- [ ] El proyecto se reconstruye desde cero siguiendo el informe operativo sin pasos implícitos.
+- [ ] Frontend: lint, typecheck, tests, build y e2e desktop/mobile en verde.
+- [ ] Backend: dependencias instaladas, pytest, Django checks, migraciones y contrato API en verde.
+- [ ] Notas: editor enriquecido, enlaces, backlinks, carpetas, virtualización y conversión validados.
+- [ ] Seguridad: sin secretos en Git/logs, auth/CSRF/cookies/headers/input review completada.
+- [ ] Datos: migración IndexedDB, backup/restore y tombstones verificados.
+- [ ] Operación: health/readiness, logs, métricas y alertas verificadas.
+- [ ] Despliegue: staging HTTPS, smoke real de Accounts y rollback ejecutados.
+- [ ] Documentación: estado global, runbooks y evidencias fechadas y enlazadas.
+
+### Estado inicial Fase 5 al 2026-09-22
+
+`[~]` La infraestructura de producción está preparada y el frontend tiene gates verdes recientes, pero la fase aún está abierta por las brechas funcionales de notas y por la falta de evidencia externa de Accounts HTTPS, rollback, alertas conectadas y accesibilidad manual. El detalle y el orden de ejecución están en `docs/InformeFase5Produccion.md`.
+
+---
+
 ## Arquitectura de archivos — resumen de cambios
 
 ```

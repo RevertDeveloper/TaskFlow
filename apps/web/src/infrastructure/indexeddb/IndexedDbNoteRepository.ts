@@ -58,9 +58,11 @@ export class IndexedDbNoteRepository implements NoteRepository {
   async update(id: string, patch: NotePatch): Promise<Note> {
     await openTaskFlowDatabase(this.database);
     const current = await getNoteRecord(this.database, id);
+    const nextBlocks = patch.blocks === undefined ? current.blocks : normalizeBlocks(patch.blocks);
     const next: Note = {
       ...toNote(current),
-      blocks: patch.blocks === undefined ? current.blocks : normalizeBlocks(patch.blocks),
+      blocks: nextBlocks,
+      title: deriveNoteTitle(nextBlocks),
       folderId: patch.folderId === undefined ? current.folderId : patch.folderId,
       pinned: patch.pinned === undefined ? current.pinned : patch.pinned,
       tags: patch.tags === undefined ? current.tags : [...new Set(patch.tags)],

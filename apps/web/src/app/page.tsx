@@ -1,12 +1,7 @@
-import { AppShell } from "@/components/layout/AppShell";
-import { DashboardView } from "@/features/dashboard/components/DashboardView";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
-  return (
-    <AppShell>
-      <DashboardView />
-    </AppShell>
-  );
+  redirect("/app");
 }

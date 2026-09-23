@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
 
 import { minimalTheme } from "./minimal";
 import { starkTheme } from "./stark";
@@ -19,9 +19,10 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+const THEME_STORAGE_KEY = "taskflow_theme";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<ThemeName>("stark");
+  const themeName = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
   const theme = themes[themeName];
 
   useEffect(() => {
@@ -30,10 +31,28 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [themeName]);
 
   function setTheme(name: ThemeName) {
-    setThemeName(name);
+    window.localStorage.setItem(THEME_STORAGE_KEY, name);
+    window.dispatchEvent(new Event("taskflow:theme-change"));
   }
 
   return <ThemeContext.Provider value={{ theme, themeName, setTheme }}>{children}</ThemeContext.Provider>;
+}
+
+function subscribeToTheme(listener: () => void): () => void {
+  window.addEventListener("storage", listener);
+  window.addEventListener("taskflow:theme-change", listener);
+  return () => {
+    window.removeEventListener("storage", listener);
+    window.removeEventListener("taskflow:theme-change", listener);
+  };
+}
+
+function getThemeSnapshot(): ThemeName {
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === "minimal" ? "minimal" : "stark";
+}
+
+function getServerThemeSnapshot(): ThemeName {
+  return "stark";
 }
 
 export function useTheme(): ThemeContextValue {

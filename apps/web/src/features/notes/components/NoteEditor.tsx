@@ -18,6 +18,14 @@ export function NoteEditor({ noteId, onBack }: NoteEditorProps) {
   useEffect(() => { titleRef.current?.focus(); }, []);
 
   function replaceBlock(block: BlockNode) { applyBlockOp({ type: "replace", block }); }
+  function changeTitle(text: string) {
+    const heading = blocks.find((block) => block.type === "heading");
+    if (heading?.type === "heading") {
+      replaceBlock({ ...heading, spans: [{ text }] });
+      return;
+    }
+    applyBlockOp({ type: "insert", block: { id: crypto.randomUUID(), type: "heading", level: 1, spans: [{ text }] } });
+  }
   function changeText(blockId: string, text: string) {
     const block = blocks.find((candidate) => candidate.id === blockId);
     if (!block || (block.type !== "paragraph" && block.type !== "heading")) return;
@@ -49,10 +57,7 @@ export function NoteEditor({ noteId, onBack }: NoteEditorProps) {
         <div className="note-editor__swatches">{(["pink", "purple", "orange", "mint", "blue"] as const).map((color) => <button className={`swatch swatch--${color}`} key={color} type="button" aria-label={`Resaltar en ${color}`} onClick={() => highlightSelection(color)} />)}</div>
       </div> : null}
       <div className="note-editor__canvas" onKeyDown={(event) => handleKeyDown(event)}>
-        <input ref={titleRef} className="note-editor__title" id="note-editor-title" value={blocks.find((block) => block.type === "heading")?.type === "heading" ? blocks.find((block) => block.type === "heading")?.spans[0]?.text ?? "" : ""} onChange={(event) => {
-          const heading = blocks.find((block) => block.type === "heading");
-          replaceBlock(heading?.type === "heading" ? { ...heading, spans: [{ text: event.target.value }] } : { id: crypto.randomUUID(), type: "heading", level: 1, spans: [{ text: event.target.value }] });
-        }} placeholder="Título" aria-label="Título de la nota" />
+        <input ref={titleRef} className="note-editor__title" id="note-editor-title" value={blocks.find((block) => block.type === "heading")?.type === "heading" ? blocks.find((block) => block.type === "heading")?.spans[0]?.text ?? "" : ""} onChange={(event) => changeTitle(event.target.value)} placeholder="Título" aria-label="Título de la nota" />
         <BlockRenderer blocks={blocks} handlers={{ onChecklistChange: changeChecklist, onTextChange: changeText, onHeadingToggle: toggleHeading, onTextSelection: (blockId, start, end) => setSelection({ blockId, start, end }) }} />
         <button className="ui-button ui-button--secondary" type="button" onClick={() => applyBlockOp({ type: "insert", block: { id: crypto.randomUUID(), type: "checklist", autoSort: true, items: [] } })}><CheckSquare size={17} aria-hidden="true" /> Añadir checklist</button>
       </div>

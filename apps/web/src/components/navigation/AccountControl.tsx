@@ -46,5 +46,8 @@ export function AccountControl() {
 }
 
 function currentPath(): string {
+  if (typeof window === "undefined") {
+    return "/app";
+  }
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }

@@ -28,6 +28,27 @@ describe("IndexedDbNoteRepository", () => {
     expect(await repository.findById(note.id)).toMatchObject({ id: note.id, pinned: true });
   });
 
+  it("derives a title from the initial paragraph when no heading exists", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const note = await repository.create({ folderId: null, firstLine: "Primera nota" });
+
+    expect(note.title).toBe("Primera nota");
+  });
+
+  it("refreshes the materialized title when blocks change", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const note = await repository.create({ folderId: null, firstLine: "Título antiguo" });
+
+    const updated = await repository.update(note.id, {
+      blocks: [{ id: createUuid(), type: "heading", level: 1, spans: [{ text: "Título nuevo" }] }],
+    });
+
+    expect(updated.title).toBe("Título nuevo");
+    expect((await repository.findById(note.id))?.title).toBe("Título nuevo");
+  });
+
   it("derives unique tags from note text and keeps them searchable", async () => {
     const database = await createDatabase();
     const repository = new IndexedDbNoteRepository(database);

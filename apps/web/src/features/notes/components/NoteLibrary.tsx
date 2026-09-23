@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/SegmentedControl";
 import { openTaskFlowDatabase, taskFlowDatabase } from "@/infrastructure/indexeddb/database";
-import { IndexedDbNoteRepository } from "@/infrastructure/indexeddb/IndexedDbNoteRepository";
+import { deriveNoteTitle, IndexedDbNoteRepository } from "@/infrastructure/indexeddb/IndexedDbNoteRepository";
 import type { Note } from "@/domain/note/models";
 
 type ViewMode = "list" | "gallery";
@@ -78,6 +78,7 @@ export function NoteLibrary({ searchQuery, folderId, tag, onCreateNote, onOpenNo
 }
 
 function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
+  const displayTitle = note.title || deriveNoteTitle(note.blocks);
   const preview = note.blocks.flatMap((block) => {
     if (block.type === "code") return [block.text];
     if (block.type === "divider") return [];
@@ -86,7 +87,7 @@ function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
   }).filter(Boolean).join(" ");
   return <button className="note-card" type="button" onClick={onOpen}>
     <div className="note-card__preview" aria-hidden="true">{preview.slice(0, 180)}</div>
-    <strong>{note.title || "Nota sin título"}</strong>
+    <strong>{displayTitle || "Nota sin título"}</strong>
     <time dateTime={note.updatedAt}>{new Date(note.updatedAt).toLocaleDateString("es-ES")}</time>
   </button>;
 }
