@@ -27,6 +27,33 @@ def validate_blocks(value: Any) -> list[dict[str, Any]]:
     return value
 
 
+def normalize_blocks(value: Any) -> list[dict[str, Any]]:
+    blocks = validate_blocks(value)
+    normalized: list[dict[str, Any]] = []
+    for block in blocks:
+        if block["type"] == "divider":
+            continue
+        if block["type"] != "checklist":
+            normalized.append(dict(block))
+            continue
+        items = _normalize_checklist_items(block["items"])
+        if items:
+            normalized.append({**block, "items": items})
+    return normalized
+
+
+def _normalize_checklist_items(items: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    for item in items:
+        children = _normalize_checklist_items(item["children"])
+        text = "".join(span["text"] for span in item["spans"])
+        if not text.strip():
+            normalized.extend({**child, "indentLevel": max(0, child["indentLevel"] - 1)} for child in children)
+            continue
+        normalized.append({**item, "children": children})
+    return [{**item, "position": position} for position, item in enumerate(normalized)]
+
+
 def _validate_block(block: Any) -> None:
     if not isinstance(block, Mapping) or not isinstance(block.get("type"), str):
         raise ValidationError("Cada bloque debe ser un objeto con type.")

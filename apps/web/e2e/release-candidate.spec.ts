@@ -394,6 +394,89 @@ test("un visitante puede usar el workspace y ve login para la IA", async ({ page
   await expect(page.getByRole("link", { name: "Iniciar sesión" }).first()).toBeVisible();
 });
 
+test("crear y editar una nota conserva el contenido y expone acciones reales", async ({ page }) => {
+  await installApiFixtures(page);
+  await page.goto("/app");
+  await expect(page.getByRole("heading", { name: "Todas las notas" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Nueva nota" }).click();
+  await page.getByRole("button", { name: "Volver a notas" }).click();
+  await expect(page.getByRole("heading", { name: "Tu biblioteca está despejada" })).toBeVisible();
+
+  if (await page.getByRole("button", { name: "Abrir navegación de notas" }).isVisible()) {
+    await page.getByRole("button", { name: "Abrir navegación de notas" }).click();
+  }
+  page.once("dialog", (dialog) => dialog.accept("Trabajo"));
+  await page.getByRole("button", { name: "Nueva carpeta" }).click();
+  await expect(page.getByRole("treeitem", { name: "Trabajo" })).toBeVisible();
+  const closeDrawer = page.getByRole("dialog", { name: "Navegación de notas" }).getByRole("button", { name: "Cerrar panel" }).last();
+  if (await closeDrawer.isVisible()) await closeDrawer.click();
+
+  await page.getByRole("button", { name: "Nueva nota" }).click();
+  await expect(page.getByRole("button", { name: "Insertar checklist" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Insertar código" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Markdown" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Insertar bloque" })).toHaveCount(0);
+  const mainWidth = (await page.locator(".notes-frame__main").boundingBox())?.width ?? 0;
+  const editorTitle = page.getByRole("textbox", { name: "Título de la nota" });
+  const titleBox = await editorTitle.boundingBox();
+  expect(titleBox?.width ?? 0).toBeGreaterThan(mainWidth * 0.75);
+
+  await editorTitle.fill("Plan de trabajo");
+  await page.getByRole("button", { name: "Markdown" }).click();
+  const source = page.getByRole("textbox", { name: "Fuente Markdown de la nota" });
+  await source.fill("# Trabajo\n\nContenido continuo del documento.\n\n- [ ] Preparar el informe");
+  await page.getByRole("button", { name: "Visual" }).click();
+  const body = page.getByRole("textbox", { name: "Cuerpo de la nota" });
+  await expect(body).toContainText("Trabajo");
+  await expect(body).toContainText("Contenido continuo del documento.");
+  await expect(body).toContainText("Preparar el informe");
+  const bodyBox = await body.boundingBox();
+  const documentSurface = page.locator(".note-document-editor__surface");
+  const documentBox = await documentSurface.boundingBox();
+  expect(Math.abs((titleBox?.x ?? 0) - (documentBox?.x ?? 0))).toBeLessThan(5);
+  expect(bodyBox?.width ?? 0).toBeGreaterThan(mainWidth * 0.75);
+  expect(documentBox?.width ?? 0).toBeGreaterThan(mainWidth * 0.75);
+  const originalViewport = page.viewportSize();
+  for (const width of [320, 390, 768, 1366, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole("button", { name: "Insertar checklist" })).toBeVisible();
+    const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+    expect(hasHorizontalOverflow, `desbordamiento horizontal a ${width}px`).toBe(false);
+    const viewportMainWidth = (await page.locator(".notes-frame__main").boundingBox())?.width ?? 0;
+    const viewportTitleBox = await editorTitle.boundingBox();
+    const viewportDocumentBox = await documentSurface.boundingBox();
+    expect(viewportTitleBox?.width ?? 0).toBeGreaterThan(viewportMainWidth * 0.75);
+    expect(viewportDocumentBox?.width ?? 0).toBeGreaterThan(viewportMainWidth * 0.75);
+    expect(Math.abs((viewportTitleBox?.x ?? 0) - (viewportDocumentBox?.x ?? 0))).toBeLessThan(5);
+  }
+  if (originalViewport) await page.setViewportSize(originalViewport);
+  await body.getByText("Preparar el informe", { exact: true }).click();
+  await page.getByRole("button", { name: "Eliminar checklist" }).click();
+  await expect(body).not.toContainText("Preparar el informe");
+
+  await page.getByRole("button", { name: "Más opciones" }).click();
+  await page.getByRole("button", { name: "Fijar nota" }).click();
+  await page.getByRole("button", { name: "Más opciones" }).click();
+  const [folderId] = await page.getByLabel("Mover a carpeta").selectOption({ label: "Trabajo" });
+  await page.getByRole("button", { name: "Volver a notas" }).click();
+
+  const noteCard = page.getByRole("button", { name: /Plan de trabajo/ });
+  await expect(noteCard).toHaveAccessibleName(/Fijada/);
+  await noteCard.click();
+  await expect(page.getByRole("textbox", { name: "Título de la nota" })).toHaveValue("Plan de trabajo");
+  await expect(page.getByRole("textbox", { name: "Cuerpo de la nota" })).toContainText("Contenido continuo del documento.");
+  await expect(page.getByRole("textbox", { name: "Cuerpo de la nota" })).not.toContainText("Preparar el informe");
+  await page.getByRole("button", { name: "Más opciones" }).click();
+  await expect(page.getByLabel("Mover a carpeta")).toHaveValue(folderId);
+  await page.getByRole("button", { name: "Eliminar nota" }).click();
+  const deleteDialog = page.getByRole("dialog", { name: "Eliminar nota" });
+  await expect(deleteDialog).toBeVisible();
+  await deleteDialog.getByRole("button", { name: "Eliminar nota" }).click();
+  await expect(deleteDialog).toBeHidden();
+  await expect(page.getByRole("button", { name: /Plan de trabajo/ })).toHaveCount(0);
+});
+
 test("voz pasa por revisión antes de crear la tarea", async ({ page }) => {
   await installApiFixtures(page);
   await installMediaRecorder(page);

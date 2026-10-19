@@ -5,16 +5,18 @@ import type { Note } from "@/domain/note/models";
 import type { SyncChange, SyncEntityVersion, SyncMergeDecider } from "@/domain/sync/models";
 import { openTaskFlowDatabase, taskFlowDatabase, type TaskFlowDatabase } from "@/infrastructure/indexeddb/database";
 import { buildSearchIndex } from "@/infrastructure/indexeddb/IndexedDbNoteRepository";
-import {
-  assertLocalListRecord,
-  assertLocalTaskRecord,
-  assertLocalNoteRecord,
-  isUuid,
-  type LocalListRecord,
-  type LocalTaskRecord,
-  type LocalNoteRecord,
-} from "@/infrastructure/indexeddb/schema";
 import { LocalStorageValidationError } from "@/infrastructure/indexeddb/errors";
+import {
+  assertLocalFolderRecord,
+  assertLocalListRecord,
+  assertLocalNoteRecord,
+  assertLocalTaskRecord,
+  isUuid,
+  type LocalFolderRecord,
+  type LocalListRecord,
+  type LocalNoteRecord,
+  type LocalTaskRecord,
+} from "@/infrastructure/indexeddb/schema";
 
 export type ReplicaConflict = {
   entityType: SyncChange["entityType"];
@@ -91,7 +93,7 @@ export class LocalReplica {
     decider: SyncMergeDecider = defaultMergeDecider,
   ): Promise<ReplicaConflict[]> {
     await openTaskFlowDatabase(this.database);
-    return this.database.transaction("rw", this.database.lists, this.database.tasks, this.database.notes, async () => {
+    return this.database.transaction("rw", this.database.lists, this.database.tasks, this.database.notes, this.database.folders, async () => {
       const conflicts: ReplicaConflict[] = [];
       for (const change of changes) {
         if (change.entityType === "list") {
@@ -121,6 +123,20 @@ export class LocalReplica {
           assertLocalNoteRecord(record);
           await this.database.notes.put(record);
           if (existing) conflicts.push({ entityType: "note", entityId: change.entityId, resolution });
+          continue;
+        }
+
+        if (change.entityType === "folder") {
+          const existing = await this.database.folders.get(change.entityId);
+          const resolution = decider(toEntityVersion(existing), change);
+          if (existing && resolution === "local") {
+            conflicts.push({ entityType: "folder", entityId: change.entityId, resolution });
+            continue;
+          }
+          const record = toLocalFolderRecord(change, existing?.emoji ?? "");
+          assertLocalFolderRecord(record);
+          await this.database.folders.put(record);
+          if (existing) conflicts.push({ entityType: "folder", entityId: change.entityId, resolution });
           continue;
         }
 
@@ -172,14 +188,14 @@ function toLocalNoteRecord(change: SyncChange): LocalNoteRecord {
   const data = change.data;
   const note: Note = {
     id: change.entityId,
-    folderId: typeof data.folder_id === "string" ? data.folder_id : null,
+    folderId: readNullableUuid(data.folderId, "folderId"),
     title: typeof data.title === "string" ? data.title : "",
     blocks: Array.isArray(data.blocks) ? data.blocks as Note["blocks"] : [],
     tags: Array.isArray(data.tags) ? data.tags.filter((tag): tag is string => typeof tag === "string") : [],
     pinned: data.pinned === true,
-    archivedAt: typeof data.archived_at === "string" ? data.archived_at : null,
-    deletedAt: typeof data.deleted_at === "string" ? data.deleted_at : null,
-    createdAt: typeof data.created_at === "string" ? data.created_at : change.updatedAt,
+    archivedAt: readNullableString(data.archivedAt, "archivedAt"),
+    deletedAt: change.operation === "delete" ? change.updatedAt : readNullableString(data.deletedAt, "deletedAt"),
+    createdAt: typeof data.createdAt === "string" ? data.createdAt : change.updatedAt,
     updatedAt: change.updatedAt,
   };
   return {
@@ -187,6 +203,20 @@ function toLocalNoteRecord(change: SyncChange): LocalNoteRecord {
     searchIndex: buildSearchIndex(note),
     syncClientVersion: change.clientVersion,
     syncOperationId: change.operationId,
+  };
+}
+
+function toLocalFolderRecord(change: SyncChange, existingEmoji: string): LocalFolderRecord {
+  const data = change.data;
+  return {
+    id: readUuid(data.id, "id", change.entityId),
+    parentId: readNullableUuid(data.parentId, "parentId"),
+    name: readString(data.name, "name"),
+    emoji: typeof data.emoji === "string" ? data.emoji : existingEmoji,
+    position: readNonNegativeInteger(data.position, "position"),
+    createdAt: readString(data.createdAt, "createdAt"),
+    updatedAt: change.updatedAt,
+    deletedAt: change.operation === "delete" ? change.updatedAt : readNullableString(data.deletedAt, "deletedAt"),
   };
 }
 
@@ -240,6 +270,11 @@ function readNullableString(value: unknown, field: string): string | null {
     return null;
   }
   return readString(value, field);
+}
+
+function readNullableUuid(value: unknown, field: string): string | null {
+  if (value === null) return null;
+  return readUuid(value, field);
 }
 
 function readUuid(value: unknown, field: string, expected?: string): string {

@@ -9,6 +9,7 @@ from apps.history.models import TaskEvent
 from apps.lists.models import List
 from apps.lists.services.delete_list import delete_list
 from apps.lists.services.ensure_inbox import ensure_inbox_for_user
+from apps.notes.models import Folder, Note
 from apps.sync.models import SyncOperation
 from apps.tasks.models import Task
 from apps.tasks.services.create_task import create_task
@@ -171,6 +172,69 @@ def test_user_cannot_push_a_foreign_entity(monkeypatch) -> None:  # type: ignore
     assert task.title == "Privada"
     assert not SyncOperation.objects.filter(external_user_id=101).exists()
     assert alice_client.get(f"/api/v1/tasks/{task.id}/").status_code == 200
+
+
+def test_note_sync_assigns_and_clears_an_owned_folder(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    folder = Folder.objects.create(external_user_id=101, name="Trabajo", position=0)
+    note_id = "00000000-0000-4000-8000-000000000121"
+    created = push(client, {
+        **operation(
+            operation_id="00000000-0000-4000-8000-000000000221",
+            device_id="00000000-0000-4000-8000-000000000321",
+            entity_id=note_id,
+            mutation="create",
+            payload={
+                "entityId": note_id,
+                "title": "Plan",
+                "blocks": [],
+                "folderId": str(folder.id),
+            },
+        ),
+        "entity_type": "note",
+    })
+
+    assert created.json()["data"]["accepted"], created.json()["data"]
+    note = Note.objects.get(id=note_id, external_user_id=101)
+    assert note.folder_id == folder.id
+
+    moved = push(client, {
+        **operation(
+            operation_id="00000000-0000-4000-8000-000000000222",
+            device_id="00000000-0000-4000-8000-000000000322",
+            entity_id=note_id,
+            mutation="update",
+            payload={"entityId": note_id, "folderId": None},
+        ),
+        "entity_type": "note",
+    })
+    note.refresh_from_db()
+    assert moved.json()["data"]["accepted"], moved.json()["data"]
+    assert note.folder_id is None
+
+
+def test_note_sync_rejects_a_folder_owned_by_another_user(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    client = auth_client(monkeypatch, "alice")
+    foreign_folder = Folder.objects.create(external_user_id=202, name="Privada", position=0)
+    note_id = "00000000-0000-4000-8000-000000000122"
+    response = push(client, {
+        **operation(
+            operation_id="00000000-0000-4000-8000-000000000223",
+            device_id="00000000-0000-4000-8000-000000000323",
+            entity_id=note_id,
+            mutation="create",
+            payload={
+                "entityId": note_id,
+                "title": "No autorizada",
+                "blocks": [],
+                "folderId": str(foreign_folder.id),
+            },
+        ),
+        "entity_type": "note",
+    })
+
+    assert response.json()["data"]["rejected"][0]["code"] == "invalid_folder"
+    assert not Note.objects.filter(id=note_id).exists()
 
 
 def test_rejected_operation_is_not_retried_forever(monkeypatch) -> None:  # type: ignore[no-untyped-def]

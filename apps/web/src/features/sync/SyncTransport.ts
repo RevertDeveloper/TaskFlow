@@ -24,7 +24,7 @@ type RawOperationResult = {
 };
 
 type RawChange = {
-  entity_type: "list" | "task";
+  entity_type: "list" | "task" | "note" | "folder";
   entity_id: string;
   operation: "upsert" | "delete";
   updated_at: string;

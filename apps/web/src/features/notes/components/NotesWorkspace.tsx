@@ -21,7 +21,10 @@ export function NotesWorkspace() {
   useEffect(() => {
     function handleShortcut(event: KeyboardEvent) {
       const modifier = event.metaKey || event.ctrlKey;
-      if (modifier && event.key.toLowerCase() === "n") { event.preventDefault(); setEditing(true); }
+      const target = event.target;
+      const isEditingText = target instanceof HTMLElement
+        && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if (modifier && event.key.toLowerCase() === "n" && !isEditingText) { event.preventDefault(); setEditing(true); }
       if (modifier && event.key.toLowerCase() === "k") { event.preventDefault(); document.querySelector<HTMLInputElement>(".notes-search input")?.focus(); }
     }
     document.addEventListener("keydown", handleShortcut);
@@ -37,7 +40,7 @@ export function NotesWorkspace() {
     <div className="notes-frame">
       <div className="notes-mobile-header"><button className="icon-button" type="button" aria-label="Abrir navegación de notas" onClick={() => setDrawerOpen(true)}><Menu size={20} aria-hidden="true" /></button><span>Notas</span></div>
       <div className="notes-frame__sidebar">{renderSidebar()}</div>
-      <main className="notes-frame__main">{profileOpen ? <ProfileSettings onBack={() => setProfileOpen(false)} /> : editing ? <NoteEditor noteId={noteId ?? undefined} onBack={() => setEditing(false)} /> : <NoteLibrary searchQuery={searchQuery} folderId={folderId} tag={tag} onCreateNote={createNote} onOpenNote={openNote} />}</main>
+      <main className="notes-frame__main">{profileOpen ? <ProfileSettings onBack={() => setProfileOpen(false)} /> : editing ? <NoteEditor key={noteId ?? "new-note"} noteId={noteId ?? undefined} initialFolderId={noteId ? null : folderId} onBack={() => setEditing(false)} /> : <NoteLibrary searchQuery={searchQuery} folderId={folderId} tag={tag} onCreateNote={createNote} onOpenNote={openNote} />}</main>
       <Drawer open={drawerOpen} title="Navegación de notas" onClose={() => setDrawerOpen(false)}>{renderSidebar(() => setDrawerOpen(false))}</Drawer>
     </div>
   );

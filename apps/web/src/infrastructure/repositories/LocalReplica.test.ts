@@ -30,6 +30,67 @@ describe("LocalReplica sync reconciliation", () => {
       deletedAt: "2026-09-17T10:02:00Z",
     });
   });
+
+  it("applies normalized note folder fields and remote tombstones", async () => {
+    const database = new TaskFlowDatabase(`taskflow-replica-${crypto.randomUUID()}`);
+    databaseNames.push(database.name);
+    await openTaskFlowDatabase(database);
+    const noteId = createUuid();
+    const folderId = createUuid();
+    const replica = new LocalReplica(database);
+    const updatedAt = "2026-09-17T10:01:00Z";
+    const note: SyncChange = {
+      entityType: "note",
+      entityId: noteId,
+      operation: "upsert",
+      updatedAt,
+      clientVersion: 1,
+      operationId: createUuid(),
+      data: {
+        id: noteId,
+        folderId,
+        title: "Nota",
+        blocks: [],
+        tags: [],
+        pinned: false,
+        archivedAt: null,
+        deletedAt: null,
+        createdAt: updatedAt,
+      },
+    };
+
+    await replica.applyChanges([note]);
+    await expect(database.notes.get(noteId)).resolves.toMatchObject({ folderId, deletedAt: null });
+
+    const deletedAt = "2026-09-17T10:02:00Z";
+    await replica.applyChanges([{ ...note, operation: "delete", updatedAt: deletedAt, data: { ...note.data, deletedAt } }]);
+    await expect(database.notes.get(noteId)).resolves.toMatchObject({ deletedAt });
+  });
+
+  it("stores remote folders for cross-device moves", async () => {
+    const database = new TaskFlowDatabase(`taskflow-replica-${crypto.randomUUID()}`);
+    databaseNames.push(database.name);
+    await openTaskFlowDatabase(database);
+    const folderId = createUuid();
+    const replica = new LocalReplica(database);
+    const updatedAt = "2026-09-17T10:01:00Z";
+
+    const folderChange: SyncChange = {
+      entityType: "folder",
+      entityId: folderId,
+      operation: "upsert",
+      updatedAt,
+      clientVersion: 1,
+      operationId: createUuid(),
+      data: { id: folderId, parentId: null, name: "Trabajo", position: 0, createdAt: updatedAt, deletedAt: null },
+    };
+    await replica.applyChanges([folderChange]);
+
+    await expect(database.folders.get(folderId)).resolves.toMatchObject({ id: folderId, name: "Trabajo", deletedAt: null });
+    await database.folders.update(folderId, { emoji: "📁" });
+    await replica.applyChanges([{ ...folderChange, updatedAt: "2026-09-17T10:02:00Z", data: { ...folderChange.data, name: "Trabajo actualizado" } }]);
+    await expect(database.folders.get(folderId)).resolves.toMatchObject({ name: "Trabajo actualizado", emoji: "📁" });
+  });
 });
 
 function listChange(

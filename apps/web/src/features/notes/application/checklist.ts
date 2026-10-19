@@ -1,5 +1,17 @@
 import type { ChecklistItem, InlineSpan } from "@/domain/note/models";
 
+export function createChecklistItem(position: number): ChecklistItem {
+  return {
+    id: crypto.randomUUID(),
+    spans: [{ text: "" }],
+    status: "pending",
+    completedAt: null,
+    indentLevel: 0,
+    position,
+    children: [],
+  };
+}
+
 export function sortChecklistItems(items: ChecklistItem[]): ChecklistItem[] {
   const pending = items.filter((item) => item.status === "pending");
   const completed = items.filter((item) => item.status === "completed");

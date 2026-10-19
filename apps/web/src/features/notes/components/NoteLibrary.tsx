@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Grid2X2, List, Plus } from "lucide-react";
+import { Bookmark, FileText, Grid2X2, List, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SegmentedControl, type SegmentedControlOption } from "@/components/ui/SegmentedControl";
@@ -33,7 +33,7 @@ export function NoteLibrary({ searchQuery, folderId, tag, onCreateNote, onOpenNo
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const result = searchQuery.trim() ? await noteRepository.search(searchQuery) : await noteRepository.findAll(folderId);
+      const result = searchQuery.trim() ? await noteRepository.search(searchQuery) : await noteRepository.findAll(folderId ?? undefined);
       const filtered = tag ? result.filter((note) => note.tags.includes(tag)) : result;
       if (!cancelled) setNotes(filtered);
     };
@@ -44,7 +44,7 @@ export function NoteLibrary({ searchQuery, folderId, tag, onCreateNote, onOpenNo
   useEffect(() => {
     const refresh = () => {
       const query = searchQuery.trim();
-      void (query ? noteRepository.search(query) : noteRepository.findAll(folderId)).then((result) => setNotes(tag ? result.filter((note) => note.tags.includes(tag)) : result)).catch(() => undefined);
+      void (query ? noteRepository.search(query) : noteRepository.findAll(folderId ?? undefined)).then((result) => setNotes(tag ? result.filter((note) => note.tags.includes(tag)) : result)).catch(() => undefined);
     };
     window.addEventListener("taskflow:local-change", refresh);
     return () => window.removeEventListener("taskflow:local-change", refresh);
@@ -79,7 +79,12 @@ export function NoteLibrary({ searchQuery, folderId, tag, onCreateNote, onOpenNo
 
 function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
   const displayTitle = note.title || deriveNoteTitle(note.blocks);
-  const preview = note.blocks.flatMap((block) => {
+  const bodyBlocks = note.blocks[0]?.type === "heading"
+    && displayTitle.trim() !== ""
+    && note.blocks[0].spans.map((span) => span.text).join("").trim() === displayTitle.trim()
+    ? note.blocks.slice(1)
+    : note.blocks;
+  const preview = bodyBlocks.flatMap((block) => {
     if (block.type === "code") return [block.text];
     if (block.type === "divider") return [];
     if (block.type === "checklist") return block.items.map((item) => item.spans.map((span) => span.text).join(""));
@@ -87,7 +92,7 @@ function NoteCard({ note, onOpen }: { note: Note; onOpen: () => void }) {
   }).filter(Boolean).join(" ");
   return <button className="note-card" type="button" onClick={onOpen}>
     <div className="note-card__preview" aria-hidden="true">{preview.slice(0, 180)}</div>
-    <strong>{displayTitle || "Nota sin título"}</strong>
+    <span className="note-card__title"><strong>{displayTitle || "Nota sin título"}</strong>{note.pinned ? <span className="note-card__pinned"><Bookmark size={15} aria-hidden="true" /><span className="sr-only">Fijada</span></span> : null}</span>
     <time dateTime={note.updatedAt}>{new Date(note.updatedAt).toLocaleDateString("es-ES")}</time>
   </button>;
 }

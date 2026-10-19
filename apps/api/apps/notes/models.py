@@ -3,7 +3,7 @@ from django.db import models
 
 from apps.common.models import OwnedTimestampedModel
 
-from .validators import validate_blocks
+from .validators import normalize_blocks
 
 
 class Folder(OwnedTimestampedModel):
@@ -27,7 +27,7 @@ class Folder(OwnedTimestampedModel):
 class Note(OwnedTimestampedModel):
     folder = models.ForeignKey(Folder, null=True, blank=True, on_delete=models.SET_NULL, related_name="notes")
     title = models.CharField(max_length=500, blank=True)
-    blocks = models.JSONField(default=list)
+    blocks = models.JSONField(default=list, blank=True)
     tags = models.JSONField(default=list, blank=True)
     pinned = models.BooleanField(default=False)
     archived_at = models.DateTimeField(null=True, blank=True)
@@ -44,6 +44,6 @@ class Note(OwnedTimestampedModel):
 
     def clean(self) -> None:
         super().clean()
-        validate_blocks(self.blocks)
+        self.blocks = normalize_blocks(self.blocks)
         if self.folder_id and self.folder.external_user_id != self.external_user_id:
             raise ValidationError({"folder": "La carpeta debe pertenecer al mismo usuario."})

@@ -16,6 +16,7 @@ describe("IndexedDbNoteRepository", () => {
     const repository = new IndexedDbNoteRepository(database);
     const note = await repository.create({
       folderId: null,
+      title: "Plan",
       blocks: [{ id: createUuid(), type: "heading", level: 1, spans: [{ text: "Plan" }] }],
     });
 
@@ -28,24 +29,50 @@ describe("IndexedDbNoteRepository", () => {
     expect(await repository.findById(note.id)).toMatchObject({ id: note.id, pinned: true });
   });
 
-  it("derives a title from the initial paragraph when no heading exists", async () => {
+  it("keeps an explicit title independent from the note body", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const blocks = [{ id: createUuid(), type: "paragraph" as const, spans: [{ text: "Contenido distinto" }] }];
+    const note = await repository.create({ folderId: null, title: "Título de la nota", blocks });
+
+    expect(note.title).toBe("Título de la nota");
+    expect(note.blocks).toEqual(blocks);
+
+    const updated = await repository.update(note.id, { title: "Título actualizado" });
+    expect(updated.title).toBe("Título actualizado");
+    expect(updated.blocks).toEqual(blocks);
+  });
+
+  it("returns pinned notes before unpinned notes", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const pinned = await repository.create({ folderId: null, title: "Fijada", pinned: true });
+    const unpinned = await repository.create({ folderId: null, title: "Normal" });
+
+    expect((await repository.findAll()).map((note) => note.id)).toEqual([pinned.id, unpinned.id]);
+  });
+
+  it("keeps an empty title when only body text is provided", async () => {
     const database = await createDatabase();
     const repository = new IndexedDbNoteRepository(database);
     const note = await repository.create({ folderId: null, firstLine: "Primera nota" });
 
-    expect(note.title).toBe("Primera nota");
+    expect(note.title).toBe("");
+    expect(note.blocks).toMatchObject([{ type: "paragraph", spans: [{ text: "Primera nota" }] }]);
   });
 
-  it("refreshes the materialized title when blocks change", async () => {
+  it("updates the title independently from body blocks", async () => {
     const database = await createDatabase();
     const repository = new IndexedDbNoteRepository(database);
-    const note = await repository.create({ folderId: null, firstLine: "Título antiguo" });
+    const blocks = [{ id: createUuid(), type: "paragraph" as const, spans: [{ text: "Contenido" }] }];
+    const note = await repository.create({ folderId: null, title: "Título antiguo", blocks });
 
     const updated = await repository.update(note.id, {
-      blocks: [{ id: createUuid(), type: "heading", level: 1, spans: [{ text: "Título nuevo" }] }],
+      title: "Título nuevo",
     });
 
     expect(updated.title).toBe("Título nuevo");
+    expect(updated.blocks).toEqual(blocks);
     expect((await repository.findById(note.id))?.title).toBe("Título nuevo");
   });
 
@@ -75,10 +102,34 @@ describe("IndexedDbNoteRepository", () => {
     expect(stored && stored.blocks[0].type === "checklist" && stored.blocks[0].items[0].indentLevel).toBe(4);
   });
 
+  it("does not persist empty checklist items, empty lists or dividers", async () => {
+    const database = await createDatabase();
+    const repository = new IndexedDbNoteRepository(database);
+    const note = await repository.create({
+      folderId: null,
+      blocks: [
+        { id: createUuid(), type: "divider" },
+        {
+          id: createUuid(), type: "checklist", autoSort: true, items: [
+            { id: createUuid(), spans: [{ text: "  " }], status: "pending", completedAt: null, indentLevel: 0, position: 0, children: [] },
+            { id: createUuid(), spans: [{ text: "Preparar demo" }], status: "pending", completedAt: null, indentLevel: 0, position: 1, children: [] },
+          ],
+        },
+        { id: createUuid(), type: "checklist", autoSort: true, items: [] },
+      ],
+    });
+
+    expect(note.blocks).toHaveLength(1);
+    expect(note.blocks[0]).toMatchObject({
+      type: "checklist",
+      items: [{ spans: [{ text: "Preparar demo" }], position: 0 }],
+    });
+  });
+
   it("orders matching notes by title, then body and tags", async () => {
     const database = await createDatabase();
     const repository = new IndexedDbNoteRepository(database);
-    const titleMatch = await repository.create({ folderId: null, firstLine: "Project launch" });
+    const titleMatch = await repository.create({ folderId: null, title: "Project launch" });
     const bodyMatch = await repository.create({ folderId: null, blocks: [
       { id: createUuid(), type: "heading", level: 1, spans: [{ text: "Meeting" }] },
       { id: createUuid(), type: "paragraph", spans: [{ text: "Project notes" }] },

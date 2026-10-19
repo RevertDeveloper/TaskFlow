@@ -15,10 +15,10 @@ export class IndexedDbNoteRepository implements NoteRepository {
       : await this.database.notes.toCollection()
         .filter((record) => record.folderId === folderId)
         .sortBy("updatedAt");
-    return records.reverse().flatMap((record) => {
+    return records.flatMap((record) => {
       assertLocalNoteRecord(record);
       return record.deletedAt === null ? [toNote(record)] : [];
-    });
+    }).sort((left, right) => Number(right.pinned) - Number(left.pinned) || right.updatedAt.localeCompare(left.updatedAt));
   }
 
   async findById(id: string): Promise<Note | null> {
@@ -62,7 +62,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const next: Note = {
       ...toNote(current),
       blocks: nextBlocks,
-      title: deriveNoteTitle(nextBlocks),
+      title: patch.title === undefined ? current.title : patch.title.slice(0, 500),
       folderId: patch.folderId === undefined ? current.folderId : patch.folderId,
       pinned: patch.pinned === undefined ? current.pinned : patch.pinned,
       tags: patch.tags === undefined ? current.tags : [...new Set(patch.tags)],
@@ -135,17 +135,37 @@ export function normalizeBlocks(blocks: BlockNode[]): BlockNode[] {
   if (blocks.length > 2000) {
     throw new LocalStorageValidationError("Una nota no puede contener más de 2000 bloques.");
   }
-  return blocks.map((block) => block.type === "checklist"
-    ? { ...block, items: block.items.map(normalizeChecklistItem) }
-    : block);
+  const normalized: BlockNode[] = [];
+  for (const block of blocks) {
+    if (block.type === "divider") continue;
+    if (block.type !== "checklist") {
+      normalized.push(block);
+      continue;
+    }
+    const items = normalizeChecklistItems(block.items);
+    if (items.length > 0) normalized.push({ ...block, items });
+  }
+  return normalized;
 }
 
-function normalizeChecklistItem(item: ChecklistItem): ChecklistItem {
-  return {
-    ...item,
-    indentLevel: Math.max(0, Math.min(4, item.indentLevel)),
-    children: item.children.map(normalizeChecklistItem),
-  };
+function normalizeChecklistItems(items: ChecklistItem[]): ChecklistItem[] {
+  const normalized: ChecklistItem[] = [];
+  for (const item of items) {
+    const children = normalizeChecklistItems(item.children);
+    if (!extractSpans(item.spans).trim()) {
+      normalized.push(...children.map((child) => ({
+        ...child,
+        indentLevel: Math.max(0, child.indentLevel - 1),
+      })));
+      continue;
+    }
+    normalized.push({
+      ...item,
+      indentLevel: Math.max(0, Math.min(4, item.indentLevel)),
+      children,
+    });
+  }
+  return normalized.map((item, position) => ({ ...item, position }));
 }
 
 function createNote(draft: NoteDraft, now: string): Note {
@@ -153,10 +173,10 @@ function createNote(draft: NoteDraft, now: string): Note {
   return {
     id: createUuid(),
     folderId: draft.folderId,
-    title: deriveNoteTitle(blocks, draft.firstLine),
+    title: (draft.title ?? "").slice(0, 500),
     blocks,
     tags: [],
-    pinned: false,
+    pinned: draft.pinned ?? false,
     archivedAt: null,
     deletedAt: null,
     createdAt: now,

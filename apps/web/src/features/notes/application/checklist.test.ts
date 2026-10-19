@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ChecklistItem } from "@/domain/note/models";
-import { indentItem, insertSoftReturn, sortChecklistItems, toggleChecklistItem } from "./checklist";
+import { createChecklistItem, indentItem, insertSoftReturn, sortChecklistItems, toggleChecklistItem } from "./checklist";
 
 function item(id: string, status: ChecklistItem["status"], position: number): ChecklistItem {
   return {
@@ -16,6 +16,17 @@ function item(id: string, status: ChecklistItem["status"], position: number): Ch
 }
 
 describe("checklist helpers", () => {
+  it("creates a pending empty item at the requested position", () => {
+    expect(createChecklistItem(2)).toMatchObject({
+      spans: [{ text: "" }],
+      status: "pending",
+      completedAt: null,
+      indentLevel: 0,
+      position: 2,
+      children: [],
+    });
+  });
+
   it("moves completed items after pending items and normalizes positions", () => {
     expect(sortChecklistItems([item("done", "completed", 4), item("todo", "pending", 7)]).map((entry) => [entry.id, entry.position]))
       .toEqual([["todo", 0], ["done", 1]]);

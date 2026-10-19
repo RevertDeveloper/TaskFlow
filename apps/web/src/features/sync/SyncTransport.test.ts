@@ -72,6 +72,43 @@ describe("HttpSyncTransport", () => {
       "/api/v1/sync/pull/?limit=100&cursor=old-cursor",
     );
   });
+
+  it("maps note and folder tombstones into the shared sync change model", async () => {
+    const client = {
+      post: vi.fn(),
+      get: vi.fn().mockResolvedValue({
+        data: {
+          version: 1,
+          cursor: "note-cursor",
+          has_more: false,
+          changes: [{
+            entity_type: "note",
+            entity_id: "note-1",
+            operation: "delete",
+            updated_at: "2026-09-17T10:00:00Z",
+            client_version: 3,
+            operation_id: "00000000-0000-4000-8000-000000000003",
+            data: { id: "note-1", folder_id: "folder-1", deleted_at: "2026-09-17T10:00:00Z" },
+          }, {
+            entity_type: "folder",
+            entity_id: "folder-1",
+            operation: "upsert",
+            updated_at: "2026-09-17T09:00:00Z",
+            client_version: 2,
+            operation_id: null,
+            data: { id: "folder-1", parent_id: null, created_at: "2026-09-17T08:00:00Z" },
+          }],
+        },
+      }),
+    } as unknown as TaskFlowHttpClient;
+
+    await expect(new HttpSyncTransport(client).pull(null)).resolves.toMatchObject({
+      changes: [
+        { entityType: "note", operation: "delete", data: { folderId: "folder-1", deletedAt: "2026-09-17T10:00:00Z" } },
+        { entityType: "folder", data: { parentId: null, createdAt: "2026-09-17T08:00:00Z" } },
+      ],
+    });
+  });
 });
 
 function operationFixture(): SyncOperation {

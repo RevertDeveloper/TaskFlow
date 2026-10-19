@@ -6,7 +6,7 @@ services:
       target: development
     command: npm run dev
     ports:
-      - "${WEB_PORT:-10700}:3000"
+      - "127.0.0.1:10730:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:8000}
@@ -29,7 +29,7 @@ services:
       dockerfile: infra/docker/api.Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     ports:
-      - "${API_PORT:-10701}:8000"
+      - "127.0.0.1:10731:8000"
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.development
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
@@ -64,7 +64,7 @@ services:
   db:
     image: postgres:17-alpine
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-10710}:5432"
+      - "127.0.0.1:10740:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-taskflow}
       POSTGRES_USER: ${POSTGRES_USER:-taskflow}
@@ -80,7 +80,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "127.0.0.1:${REDIS_PORT:-10720}:6379"
+      - "127.0.0.1:10750:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -121,6 +121,10 @@ services:
 
 volumes:
   postgres_data:
+    name: taskflow-development_postgres_data
   redis_data:
+    name: taskflow-development_redis_data
   web_node_modules:
+    name: taskflow-development_web_node_modules
   web_next:
+    name: taskflow-development_web_next

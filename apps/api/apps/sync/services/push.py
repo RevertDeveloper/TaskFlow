@@ -358,6 +358,7 @@ def _apply_note(
         note = Note(
             id=entity_id,
             external_user_id=external_user_id,
+            folder_id=_validated_note_folder(external_user_id, payload),
             title=_optional_string(payload, "title"),
             blocks=payload.get("blocks", []),
             tags=payload.get("tags", []),
@@ -377,6 +378,8 @@ def _apply_note(
         for field, key in (("title", "title"), ("blocks", "blocks"), ("tags", "tags"), ("pinned", "pinned")):
             if key in payload:
                 setattr(existing, field, payload[key])
+        if "folderId" in payload:
+            existing.folder_id = _validated_note_folder(external_user_id, payload)
         if "archivedAt" in payload:
             existing.archived_at = payload["archivedAt"]
         existing.full_clean()
@@ -387,6 +390,24 @@ def _apply_note(
         existing.save(update_fields=["deleted_at", "updated_at"])
         return existing
     raise SyncRejected("invalid_mutation", "La mutación no es válida para la nota.")
+
+
+def _validated_note_folder(external_user_id: int, payload: Mapping[str, object]):
+    folder_value = payload.get("folderId")
+    if folder_value is None:
+        return None
+    folder_id = _uuid_value(folder_value, "folderId")
+    folder = Folder.objects.filter(
+        id=folder_id,
+        external_user_id=external_user_id,
+        deleted_at__isnull=True,
+    ).only("id").first()
+    if folder is None:
+        raise SyncRejected(
+            "invalid_folder",
+            "La carpeta seleccionada no está disponible para este usuario.",
+        )
+    return folder.id
 
 
 def _apply_folder(external_user_id: int, entity_id: UUID, mutation: str, payload: Mapping[str, object]):
